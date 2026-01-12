@@ -1,0 +1,35 @@
+### 获取数据集列表
+
+GET {{api_root}}/datasets/
+Content-Type: application/json
+
+### 创建数据集
+
+POST {{api_root}}/datasets/
+Content-Type: application/json
+
+{
+  "name": "test",
+  "verbose_name": "测试数据集",
+  "readme": "这是一个测试数据集"
+}
+
+### 获取数据集
+
+GET {{api_root}}/datasets/test
+Content-Type: application/json
+
+### 更新数据集
+
+PUT {{api_root}}/datasets/test
+Content-Type: application/json
+
+### 部分更新数据集
+
+PATCH {{api_root}}/datasets/test
+Content-Type: application/json
+
+### 删除数据集
+
+DELETE {{api_root}}/datasets/test
+Content-Type: application/json

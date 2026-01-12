@@ -1,0 +1,40 @@
+# https://medium.com/@anton-k./how-to-set-up-pre-commit-hooks-with-python-2b512290436
+# https://github.com/tiangolo/fastapi/blob/master/.pre-commit-config.yaml
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-ast
+      - id: double-quote-string-fixer
+      - id: debug-statements
+      - id: check-toml
+      - id: check-json
+      - id: check-xml
+  - repo: local
+    hooks:
+    - id: pytest
+      name: pytest
+      entry: pytest
+      language: system
+      # fix: https://stackoverflow.com/questions/64011304/running-pytest-as-a-pre-commit-hook-no-such-file-or-directory-issue/64014324#64014324
+      pass_filenames: false
+      always_run: true
+    - id: ruff
+      name: ruff
+      entry: ruff check app --fix --force-exclude
+      language: system
+      types: [ python ]
+    - id: mypy
+      name: mypy
+      entry: mypy app
+      require_serial: true
+      language: system
+      types: [ python ]
+ci:
+    autofix_commit_msg: 🎨 [pre-commit.ci] Auto format from pre-commit.com hooks
+    autoupdate_commit_msg: ⬆ [pre-commit.ci] pre-commit autoupdate
