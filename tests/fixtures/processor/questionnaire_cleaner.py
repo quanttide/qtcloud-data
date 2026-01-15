@@ -4,7 +4,7 @@ import pandas as pd
 import re
 from typing import List, Dict, Any
 
-class QuestionnareCleaner:
+class QuestionnaireCleaner:
     """
     问卷数据清洗处理器（Processor）
     输入：原始 DataFrame（含中文列名）
