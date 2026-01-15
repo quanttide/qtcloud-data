@@ -1,14 +1,17 @@
 /// 数据集详情页面
 
-
 import 'package:flutter/material.dart';
 
 import '../models/datasets.dart';
 
-
-
 class DatasetDetailScreen extends StatefulWidget {
-  Dataset dataset = Dataset(name: 'universities', verboseName: '高校数据集', description: '高校及其院系列表', count: 1000);
+  Dataset dataset = Dataset(
+      name: 'universities',
+      verboseName: '高校数据集',
+      description: '高校及其院系列表',
+      count: 1000);
+
+  DatasetDetailScreen({super.key});
 
   // final Dataset dataset;
 
