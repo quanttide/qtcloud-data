@@ -15,43 +15,43 @@ test:  ## 运行所有测试
 
 test-fixtures:  ## 运行 fixtures 验证测试
 	@echo "运行 fixtures 验证测试..."
-	@python3 -m pytest tests/test_questionnaire_cleanning.py -v
+	@python3 -m pytest tests/test_fixtures.py -v
 
 test-fixtures-structure:  ## 只测试 fixtures 目录结构
 	@echo "测试 fixtures 目录结构..."
-	@python3 -m pytest tests/test_questionnaire_cleanning.py::TestFixturesStructure -v
+	@python3 -m pytest tests/test_fixtures.py::TestFixturesStructure -v
 
 test-plan:  ## 只测试 Plan 文件
 	@echo "测试 Plan 文件..."
-	@python3 -m pytest tests/test_questionnaire_cleanning.py::TestPlan -v
+	@python3 -m pytest tests/test_fixtures.py::TestPlan -v
 
 test-schema:  ## 只测试 Schema 文件
 	@echo "测试 Schema 文件..."
-	@python3 -m pytest tests/test_questionnaire_cleanning.py::TestSchema -v
+	@python3 -m pytest tests/test_fixtures.py::TestSchema -v
 
 test-data:  ## 只测试数据记录
 	@echo "测试数据记录..."
-	@python3 -m pytest tests/test_questionnaire_cleanning.py::TestDataRecords -v
+	@python3 -m pytest tests/test_fixtures.py::TestDataRecords -v
 
 test-inspector:  ## 只测试 Inspector 功能
 	@echo "测试 Inspector 功能..."
-	@python3 -m pytest tests/test_questionnaire_cleanning.py::TestInspector -v
+	@python3 -m pytest tests/test_fixtures.py::TestInspector -v
 
 test-manifest:  ## 只测试 Manifest 清单
 	@echo "测试 Manifest 清单..."
-	@python3 -m pytest tests/test_questionnaire_cleanning.py::TestManifest -v
+	@python3 -m pytest tests/test_fixtures.py::TestManifest -v
 
 test-consistency:  ## 只测试数据一致性
 	@echo "测试数据一致性..."
-	@python3 -m pytest tests/test_questionnaire_cleanning.py::TestDataConsistency -v
+	@python3 -m pytest tests/test_fixtures.py::TestDataConsistency -v
 
 test-transformations:  ## 只测试数据转换规则
 	@echo "测试数据转换规则..."
-	@python3 -m pytest tests/test_questionnaire_cleanning.py::TestTransformations -v
+	@python3 -m pytest tests/test_fixtures.py::TestTransformations -v
 
 test-report:  ## 只测试报告文件
 	@echo "测试报告文件..."
-	@python3 -m pytest tests/test_questionnaire_cleanning.py::TestReport -v
+	@python3 -m pytest tests/test_fixtures.py::TestReport -v
 
 test-provider:  ## 运行 Provider 测试
 	@echo "运行 Provider 测试..."
