@@ -1,0 +1,20 @@
+{
+  "order_id": "ORD-QC-20260116-001",
+  "customer": "questionnaire_cleaning",
+  "created_at": "2026-01-16",
+  "includes": [
+    {
+      "type": "recipe",
+      "file": "recipe/questionnaire_cleaning_v1.0.zip",
+      "id": "RC-QC-2026-001",
+      "description": "问卷数据清洗配方 v1.0"
+    },
+    {
+      "type": "dataset",
+      "file": "dataset/questionnaire_cleaning_20260116.zip",
+      "id": "DS-QC-20260116",
+      "description": "问卷清洗后数据集",
+      "processed_by": "RC-QC-2026-001"
+    }
+  ]
+}
