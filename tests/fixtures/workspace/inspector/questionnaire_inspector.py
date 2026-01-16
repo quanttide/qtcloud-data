@@ -402,7 +402,7 @@ def main():
     # 路径配置
     fixtures_root = Path(__file__).parent.parent
     plan_path = fixtures_root / "plan" / "questionnaire_cleaning_plan.md"
-    cleaned_data_path = fixtures_root / "record" / "questionnaire_cleanned.csv"
+    cleaned_data_path = fixtures_root / "record" / "questionnaire_cleaned.csv"
 
     # 创建检查器
     inspector = QuestionnaireInspector(plan_path)

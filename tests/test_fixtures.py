@@ -122,7 +122,7 @@ class TestDataRecords:
 
     @pytest.fixture
     def cleaned_data_path(self):
-        return FIXTURES_ROOT / "record" / "questionnaire_cleanned.csv"
+        return FIXTURES_ROOT / "record" / "questionnaire_cleaned.csv"
 
     def test_raw_data_exists(self, raw_data_path):
         """原始数据文件存在"""
@@ -185,7 +185,7 @@ class TestInspector:
 
     def test_inspector_validate_schema_compliance(self, inspector):
         """Schema 合规性验证"""
-        cleaned_path = FIXTURES_ROOT / "record" / "questionnaire_cleanned.csv"
+        cleaned_path = FIXTURES_ROOT / "record" / "questionnaire_cleaned.csv"
         data = pd.read_csv(cleaned_path)
         result = inspector.validate_schema_compliance(data)
 
@@ -196,7 +196,7 @@ class TestInspector:
 
     def test_inspector_validate_data_quality(self, inspector):
         """数据质量验证"""
-        cleaned_path = FIXTURES_ROOT / "record" / "questionnaire_cleanned.csv"
+        cleaned_path = FIXTURES_ROOT / "record" / "questionnaire_cleaned.csv"
         data = pd.read_csv(cleaned_path)
         result = inspector.validate_data_quality(data)
 
@@ -206,7 +206,7 @@ class TestInspector:
 
     def test_inspector_validate_business_rules(self, inspector):
         """业务规则验证"""
-        cleaned_path = FIXTURES_ROOT / "record" / "questionnaire_cleanned.csv"
+        cleaned_path = FIXTURES_ROOT / "record" / "questionnaire_cleaned.csv"
         data = pd.read_csv(cleaned_path)
         result = inspector.validate_business_rules(data)
 
@@ -274,7 +274,7 @@ class TestDataConsistency:
 
     @pytest.fixture
     def cleaned_df(self):
-        return pd.read_csv(FIXTURES_ROOT / "record" / "questionnaire_cleanned.csv")
+        return pd.read_csv(FIXTURES_ROOT / "record" / "questionnaire_cleaned.csv")
 
     def test_age_range(self, cleaned_df):
         """年龄字段在合理范围内"""
@@ -336,7 +336,7 @@ class TestTransformations:
 
     @pytest.fixture
     def cleaned_df(self):
-        return pd.read_csv(FIXTURES_ROOT / "record" / "questionnaire_cleanned.csv")
+        return pd.read_csv(FIXTURES_ROOT / "record" / "questionnaire_cleaned.csv")
 
     def test_benefits_split(self, cleaned_df):
         """福利多选题拆分正确"""
@@ -367,7 +367,7 @@ class TestReport:
 
     @pytest.fixture
     def report_path(self):
-        return FIXTURES_ROOT / "report" / "questionnaire_cleanning_report.md"
+        return FIXTURES_ROOT / "report" / "questionnaire_cleaning_report.md"
 
     def test_report_exists(self, report_path):
         """报告文件存在"""

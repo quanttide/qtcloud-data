@@ -1,7 +1,7 @@
 {
   "order_id": "ORD-QC-20260116-001",
   "customer": "questionnaire_cleaning",
-  "project_name": "questionnaire_cleanning",
+  "project_name": "questionnaire_cleaning",
   "created_at": "2026-01-16",
   "updated_at": "2026-01-16",
   "status": "completed",
@@ -14,7 +14,7 @@
     },
     {
       "type": "dataset",
-      "file": "record/questionnaire_cleanned.csv",
+      "file": "record/questionnaire_cleaned.csv",
       "id": "DS-QC-20260116",
       "description": "问卷清洗后数据集",
       "processed_by": "RC-QC-2026-001"
@@ -36,7 +36,7 @@
     },
     {
       "type": "report",
-      "file": "report/questionnaire_cleanning_report.md",
+      "file": "report/questionnaire_cleaning_report.md",
       "description": "数据清洗报告"
     }
   ],
