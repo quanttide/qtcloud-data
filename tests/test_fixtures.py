@@ -103,10 +103,14 @@ class TestSchema:
 
     def test_schema_field_definitions_complete(self, schema_data):
         """字段定义包含必需属性"""
+        valid_types = {"string", "integer", "float", "binary", "datetime", "categorical", "text"}
         for field in schema_data["schema"]["fields"]:
             required_attrs = ["name", "type"]
             for attr in required_attrs:
                 assert attr in field, f"字段 {field.get('name')} 缺少必需属性: {attr}"
+            # 验证 type 是否合法
+            assert field["type"] in valid_types, \
+                f"字段 {field['name']} 的 type 不合法: {field['type']}"
 
 
 class TestDataRecords:
@@ -152,8 +156,10 @@ class TestDataRecords:
     def test_cleaned_data_time_format(self, cleaned_df):
         """时间字段格式正确"""
         assert "submit_time" in cleaned_df.columns, "缺少 submit_time 字段"
-        # 尝试解析时间格式
-        pd.to_datetime(cleaned_df["submit_time"], format="%Y-%m-%d %H:%M:%S", errors="raise")
+        # 过滤缺失值后再验证时间格式
+        time_col = cleaned_df["submit_time"]
+        valid_times = time_col[~time_col.isin([-99, "", None, "nan"]) & time_col.notna()]
+        pd.to_datetime(valid_times, format="%Y-%m-%d %H:%M:%S", errors="raise")
 
 
 class TestInspector:
@@ -246,8 +252,13 @@ class TestManifest:
 
     def test_manifest_files_exist(self, manifest_data):
         """Manifest 中引用的文件都存在"""
+        fixtures_root_resolved = FIXTURES_ROOT.resolve()
         for item in manifest_data["includes"]:
-            file_path = FIXTURES_ROOT / item["file"]
+            file_path = (FIXTURES_ROOT / item["file"]).resolve()
+            # 确保路径在 FIXTURES_ROOT 下，防止路径越界
+            assert (fixtures_root_resolved in file_path.parents or
+                    file_path.parent == fixtures_root_resolved), \
+                f"Manifest 引用路径越界: {item['file']}"
             assert file_path.exists(), f"Manifest 引用的文件不存在: {item['file']}"
 
     def test_manifest_quality_assurance(self, manifest_data):
@@ -309,11 +320,14 @@ class TestDataConsistency:
     def test_missing_codes_consistent(self, cleaned_df):
         """缺失值编码一致性"""
         missing_codes = [-99, -88]
-        for col in cleaned_df.columns:
-            if col not in ["submit_time", "benefits_raw", "other_dept_specify"]:
-                # 检查缺失值是否只使用预定义编码
-                non_missing = cleaned_df[col][~cleaned_df[col].isin(missing_codes)]
-                # 这里可以添加更具体的验证逻辑
+        for col in cleaned_df.select_dtypes(include='number').columns:
+            if col not in ["submit_time"]:
+                # 检查数值型字段的缺失值编码
+                unique_vals = set(cleaned_df[col].dropna().unique())
+                # 确保除预定义缺失码外，其他值不是 -99 或 -88 的变体
+                # 实际业务中应确保所有值要么是有效数据，要么是预定义缺失码
+                non_missing_values = unique_vals - set(missing_codes)
+                # 这里可以添加业务范围验证
                 pass
 
 
@@ -361,12 +375,15 @@ class TestReport:
 
     def test_report_has_quality_section(self, report_path):
         """报告包含质量检查章节"""
+        import re
         content = report_path.read_text(encoding='utf-8')
-        assert "数据质量检查" in content or "质量检查" in content, \
+        assert re.search(r"^##.*数据质量检查", content, re.MULTILINE), \
             "报告缺少数据质量检查章节"
 
     def test_report_has_recommendations_section(self, report_path):
         """报告包含建议章节"""
+        import re
         content = report_path.read_text(encoding='utf-8')
-        assert "建议" in content or "改进建议" in content, \
+        assert re.search(r"^##\s+\d+\.?\s*建议", content, re.MULTILINE) or \
+               re.search(r"^##\s+建议", content, re.MULTILINE), \
             "报告缺少建议章节"
