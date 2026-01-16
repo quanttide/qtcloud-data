@@ -11,9 +11,9 @@
       "class": "QuestionnaireCleaner",
       "description": "主处理器类，执行数据清洗流程"
     },
-    "blueprint": {
-      "file": "blueprint/questionnaire_cleaning_blueprint.md",
-      "description": "数据处理蓝图，定义字段和转换规则"
+    "plan": {
+      "file": "plan/questionnaire_cleaning_plan.md",
+      "description": "数据处理计划，定义字段和转换规则"
     },
     "schema": {
       "file": "schema/questionnaire_schema.json",

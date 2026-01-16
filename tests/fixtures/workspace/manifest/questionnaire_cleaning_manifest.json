@@ -20,9 +20,9 @@
       "processed_by": "RC-QC-2026-001"
     },
     {
-      "type": "blueprint",
-      "file": "blueprint/questionnaire_cleaning_blueprint.md",
-      "description": "数据处理蓝图"
+      "type": "plan",
+      "file": "plan/questionnaire_cleaning_plan.md",
+      "description": "数据处理计划"
     },
     {
       "type": "schema",

@@ -13,9 +13,9 @@
       "description": "主处理器类"
     },
     {
-      "path": "blueprint/questionnaire_cleaning_blueprint.md",
+      "path": "plan/questionnaire_cleaning_plan.md",
       "size": 5020,
-      "description": "数据处理蓝图"
+      "description": "数据处理计划"
     },
     {
       "path": "schema/questionnaire_schema.json",

@@ -47,7 +47,7 @@
 - [ ] 业务需求已明确记录
 - [ ] 数据质量问题已初步识别
 
-### 阶段 2️⃣：撰写清洗蓝图（Blueprint）
+### 阶段 2️⃣：撰写清洗计划（Plan）
 
 **目标**: 将需求转化为机器可理解的处理说明书
 
@@ -56,7 +56,7 @@
 - 原始数据样本
 
 **输出**:
-- `blueprint/questionnaire_cleaning.md`（人类审核后定稿）
+- `plan/questionnaire_cleaning.md`（人类审核后定稿）
 
 #### 参与方动作
 
@@ -73,12 +73,12 @@
   ```
 
 ##### AI 助手
-- 🤖 输入需求清单 → AI 生成蓝图草稿
+- 🤖 输入需求清单 → AI 生成计划草稿
 - 🤖 输入原始数据样本 → AI 建议"缺失编码"策略（如空字符串、"N/A"、-1）
 - 🤖 自动检查是否覆盖所有 required columns（来自配置）
 
 **验证检查点**:
-- [ ] 蓝图包含必需章节：数据模型、数据处理流程
+- [ ] 计划包含必需章节：数据模型、数据处理流程
 - [ ] 每个字段的清洗规则清晰明确
 - [ ] 所有必需列都已定义
 - [ ] 缺失值处理策略已确定
@@ -88,7 +88,7 @@
 **目标**: 快速获得可运行的代码基础，减少样板代码编写
 
 **输入**:
-- `blueprint/questionnaire_cleaning.md`
+- `plan/questionnaire_cleaning.md`
 - `record/questionnaire_raw.csv`（样本）
 
 **输出**:
@@ -98,7 +98,7 @@
 #### 参与方动作
 
 ##### AI 助手（由工程师触发）
-- 🤖 输入：blueprint.md + raw_data_sample.csv
+- 🤖 输入：plan.md + raw_data_sample.csv
 - 🤖 输出：
   - `processor/questionnaire_cleaner.py`
   - `schema/questionnaire.json`
@@ -165,7 +165,7 @@
 ##### AI 助手
 - 🤖 自动汇总：
   - 使用了哪些输入（raw data 路径）
-  - 应用了哪些规则（引用 blueprint 章节）
+  - 应用了哪些规则（引用 plan 章节）
   - 产出物列表（cleaned CSV, schema, processor）
   - 质量指标（总行数、缺失率、清洗失败率）
 - 🤖 生成初稿：`manifest/questionnaire_cleaning.md`
@@ -202,7 +202,7 @@
   questionnaire_cleaning.zip
   ├── record/
   │   └── questionnaire_raw.csv
-  ├── blueprint/
+  ├── plan/
   │   └── questionnaire_cleaning.md
   ├── processor/
   │   └── questionnaire_cleaner.py
@@ -230,11 +230,11 @@
 
 1. **工程师生回溯**
    - 是 spec 不清？
-   - 蓝图遗漏？
+   - 计划遗漏？
    - 还是代码 bug？
 
 2. **更新对应环节**
-   - 更新 spec / 蓝图 / 代码
+   - 更新 spec / 计划 / 代码
    - 重新走流程验证
 
 3. **积累案例**

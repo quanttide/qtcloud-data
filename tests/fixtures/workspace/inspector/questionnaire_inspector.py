@@ -1,7 +1,7 @@
 """
 Questionnaire Inspector
 
-检查 Processor 生成的清洗后数据是否符合 Blueprint 定义。
+检查 Processor 生成的清洗后数据是否符合 Plan 定义。
 """
 
 import pandas as pd
@@ -15,30 +15,30 @@ class QuestionnaireInspector:
     问卷数据检查器
 
     职责：
-    1. 验证清洗后数据是否符合 blueprint 的数据模型定义
+    1. 验证清洗后数据是否符合 plan 的数据模型定义
     2. 检查数据质量规则（完整性、范围、一致性）
     3. 生成检查报告
     """
 
-    def __init__(self, blueprint_path: Path):
+    def __init__(self, plan_path: Path):
         """
         初始化检查器
 
         Args:
-            blueprint_path: Blueprint 文件路径
+            plan_path: Plan 文件路径
         """
-        self.blueprint_path = blueprint_path
-        self.blueprint_content = blueprint_path.read_text(encoding='utf-8')
+        self.plan_path = plan_path
+        self.plan_content = plan_path.read_text(encoding='utf-8')
         self.field_definitions = self._parse_field_definitions()
         self.check_results = []
 
     def _parse_field_definitions(self) -> List[Dict[str, Any]]:
-        """解析 blueprint 中的字段定义"""
+        """解析 plan 中的字段定义"""
         fields = []
-        lines = self.blueprint_content.split('\n')
+        lines = self.plan_content.split('\n')
         in_table = False
         headers = []
-        data_model_start = self.blueprint_content.find('## 数据模型')
+        data_model_start = self.plan_content.find('## 数据模型')
 
         for i, line in enumerate(lines):
             # 检查是否在数据模型章节内
@@ -57,6 +57,10 @@ class QuestionnaireInspector:
                     headers = [h.strip() for h in cells]
                     in_table = True
                 elif in_table and len(cells) == len(headers):
+                    # 检查是否是分隔线
+                    if any(c.startswith('---') or c == '--------' for c in cells):
+                        continue
+
                     row = dict(zip(headers, cells))
                     # 提取字段名（可能在反引号中）
                     field_name_match = re.search(r'`([^`]+)`', cells[0])
@@ -65,26 +69,30 @@ class QuestionnaireInspector:
                     else:
                         field_name = cells[0].strip()
 
-                    # 跳过标题行和分隔线
-                    if (not field_name or field_name in ['字段名', '原始来源', '--------', '字段名 '] or
-                        cells[0] == '--------' or cells[0].startswith('|----')):
+                    # 跳过空行
+                    if not field_name:
                         continue
 
-                    # 确定 source 字段
-                    source_value = row.get('原始来源', '')
-                    # 获取 type
-                    type_value = row.get('类型', '')
-                    # 获取值标签
-                    desc_value = row.get('值标签/格式规范', '')
-                    # 获取缺失编码
-                    missing_value = row.get('缺失编码', '')
-                    # 获取逻辑约束
-                    constraint_value = row.get('逻辑约束', '')
+                    # 获取各个列的值
+                    source_value = row.get('原始来源', '') if '原始来源' in headers else ''
+                    type_value = row.get('类型', '') if '类型' in headers else ''
+                    desc_value = row.get('值标签/格式规范', '') if '值标签/格式规范' in headers else ''
+                    missing_value = row.get('缺失编码', '') if '缺失编码' in headers else ''
+                    constraint_value = row.get('逻辑约束', '') if '逻辑约束' in headers else ''
+
+                    # 统一类型名称
+                    type_normalized = type_value.strip() if type_value else ''
+                    if 'binary' in type_normalized:
+                        type_normalized = 'binary'
+                    elif 'text' in type_normalized:
+                        type_normalized = 'text'
+                    elif 'categorical' in type_normalized:
+                        type_normalized = 'categorical'
 
                     fields.append({
                         'name': field_name,
                         'source': source_value.strip() if source_value else '',
-                        'type': type_value.strip() if type_value else '',
+                        'type': type_normalized,
                         'description': desc_value.strip() if desc_value else '',
                         'missing_code': self._parse_missing_code(missing_value.strip() if missing_value else ''),
                         'constraints': self._parse_constraints(constraint_value.strip() if constraint_value else '')
@@ -127,6 +135,18 @@ class QuestionnaireInspector:
                 constraints['min'] = int(match.group(1))
                 constraints['max'] = int(match.group(2))
         return constraints
+
+    def validate_schema_compliance(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """检查 Schema 合规性（公开方法）"""
+        return self._check_schema_compliance(df)
+
+    def validate_data_quality(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """检查数据质量（公开方法）"""
+        return self._check_data_quality(df)
+
+    def validate_business_rules(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """检查业务规则（公开方法）"""
+        return self._check_business_rules(df)
 
     def inspect(self, cleaned_data: pd.DataFrame) -> Dict[str, Any]:
         """
@@ -381,11 +401,11 @@ def main():
 
     # 路径配置
     fixtures_root = Path(__file__).parent.parent
-    blueprint_path = fixtures_root / "blueprint" / "questionnaire_cleaning_blueprint.md"
+    plan_path = fixtures_root / "plan" / "questionnaire_cleaning_plan.md"
     cleaned_data_path = fixtures_root / "record" / "questionnaire_cleanned.csv"
 
     # 创建检查器
-    inspector = QuestionnaireInspector(blueprint_path)
+    inspector = QuestionnaireInspector(plan_path)
 
     # 读取清洗后数据
     cleaned_data = pd.read_csv(cleaned_data_path)

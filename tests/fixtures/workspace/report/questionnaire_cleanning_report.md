@@ -126,7 +126,7 @@
 
 ---
 
-## 4. 数据质量验证
+## 4. 数据质量检查
 
 ### 4.1 Schema 合规性
 
@@ -187,7 +187,7 @@
 | questionnaire_cleanned.csv | CSV | 清洗后数据集 |
 | questionnaire_schema.json | JSON | 数据模式定义 |
 | questionnaire_cleaner.py | Python | 数据清洗处理器 |
-| questionnaire_cleaning_blueprint.md | Markdown | 数据处理蓝图 |
+| questionnaire_cleaning_plan.md | Markdown | 数据处理计划 |
 
 ---
 
