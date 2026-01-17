@@ -373,12 +373,42 @@ class TestReport:
         """报告文件存在"""
         assert report_path.exists(), f"报告文件不存在: {report_path}"
 
-    def test_report_has_quality_section(self, report_path):
-        """报告包含质量检查章节"""
+    def test_report_has_overview_section(self, report_path):
+        """报告包含概述章节"""
+        content = report_path.read_text(encoding='utf-8')
+        assert "## 概述" in content, "报告缺少概述章节"
+
+    def test_report_has_data_overview_section(self, report_path):
+        """报告包含数据概览章节"""
+        content = report_path.read_text(encoding='utf-8')
+        assert "## 1. 数据概览" in content or "## 数据概览" in content, "报告缺少数据概览章节"
+
+    def test_report_has_transformation_section(self, report_path):
+        """报告包含数据转换说明章节"""
+        content = report_path.read_text(encoding='utf-8')
+        assert "## 2. 数据转换说明" in content or "## 数据转换说明" in content, "报告缺少数据转换说明章节"
+
+    def test_report_has_statistics_section(self, report_path):
+        """报告包含数据统计章节"""
+        content = report_path.read_text(encoding='utf-8')
+        assert "## 3. 数据统计" in content or "## 数据统计" in content, "报告缺少数据统计章节"
+
+    def test_report_has_quality_check_section(self, report_path):
+        """报告包含数据质量检查章节"""
         import re
         content = report_path.read_text(encoding='utf-8')
         assert re.search(r"^##.*数据质量检查", content, re.MULTILINE), \
             "报告缺少数据质量检查章节"
+
+    def test_report_has_anomaly_section(self, report_path):
+        """报告包含异常记录说明章节"""
+        content = report_path.read_text(encoding='utf-8')
+        assert "## 5. 异常记录说明" in content or "## 异常记录说明" in content, "报告缺少异常记录说明章节"
+
+    def test_report_has_deliverables_section(self, report_path):
+        """报告包含数据交付物清单章节"""
+        content = report_path.read_text(encoding='utf-8')
+        assert "## 6. 数据交付物清单" in content or "## 数据交付物清单" in content, "报告缺少数据交付物清单章节"
 
     def test_report_has_recommendations_section(self, report_path):
         """报告包含建议章节"""
@@ -387,3 +417,42 @@ class TestReport:
         assert re.search(r"^##\s+\d+\.?\s*建议", content, re.MULTILINE) or \
                re.search(r"^##\s+建议", content, re.MULTILINE), \
             "报告缺少建议章节"
+
+    def test_report_has_field_definition_table(self, report_path):
+        """报告包含字段定义表"""
+        import re
+        content = report_path.read_text(encoding='utf-8')
+        assert re.search(r"字段名", content), "报告缺少字段定义表"
+
+    def test_report_quality_check_passed(self, report_path):
+        """报告中的质量检查结果为通过"""
+        import re
+        content = report_path.read_text(encoding='utf-8')
+        assert re.search(r"质量检查结果.*✅.*通过|✅.*质量检查.*通过", content, re.DOTALL), \
+            "报告中的质量检查结果应为通过"
+
+    def test_report_deliverables_list_complete(self, report_path):
+        """报告交付物清单包含必要文件"""
+        content = report_path.read_text(encoding='utf-8')
+        required_files = [
+            "questionnaire_cleaned.csv",
+            "questionnaire_schema.json",
+            "questionnaire_cleaner.py",
+            "questionnaire_cleaning_plan.md"
+        ]
+        for file in required_files:
+            # 允许文件名可能有的拼写变体
+            assert file in content or file.replace("_cleaned", "_cleanned") in content, \
+                f"报告交付物清单缺少: {file}"
+
+    def test_report_has_transformation_mapping_table(self, report_path):
+        """报告包含字段映射表"""
+        content = report_path.read_text(encoding='utf-8')
+        assert "原始字段" in content and "清洗后字段" in content, \
+            "报告缺少字段映射表"
+
+    def test_report_has_missing_value_table(self, report_path):
+        """报告包含缺失值处理表"""
+        content = report_path.read_text(encoding='utf-8')
+        assert "缺失值" in content or "缺失编码" in content, \
+            "报告缺少缺失值处理表"
