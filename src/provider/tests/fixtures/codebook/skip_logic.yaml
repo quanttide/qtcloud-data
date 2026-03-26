@@ -1,0 +1,36 @@
+# 问卷跳转逻辑定义
+skip_logic:
+  # 第一份工作跳过之前工作年限
+  - trigger: "is_first_job"
+    trigger_value: 1
+    skip_questions:
+      - "prev_garment_years"
+      
+  # 没有考虑离职跳过离职原因
+  - trigger: "satisfaction_consider_quitting"
+    trigger_condition: "<= 2"
+    skip_questions:
+      - "quit_salary"
+      - "quit_intensity"
+      - "quit_environment"
+      - "quit_management"
+      - "quit_relationship"
+      - "quit_promotion"
+      - "quit_monotony"
+      - "quit_family"
+      - "quit_other"
+      
+  # 没有反馈过跳过反馈内容
+  - trigger: "has_feedback"
+    trigger_value: 0
+    skip_questions:
+      - "feedback_content_workload"
+      - "feedback_content_environment"
+      - "feedback_content_allocation"
+      - "feedback_content_salary"
+      - "feedback_content_management"
+      - "feedback_content_other"
+      - "feedback_handle_adopted"
+      - "feedback_handle_recognized"
+      - "feedback_handle_ignored"
+      - "feedback_handle_other"

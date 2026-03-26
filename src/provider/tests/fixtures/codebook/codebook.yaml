@@ -1,0 +1,131 @@
+# 问卷数据清洗 - 数据契约
+version: "1.0"
+name: "员工满意度调查问卷"
+description: "制造企业员工满意度调查问卷数据清洗规范"
+
+# 变量定义
+variables:
+  # 元数据
+  - name: submit_time
+    type: datetime
+    description: "提交答卷时间"
+    format: "YYYY-MM-DD HH:MM:SS"
+    
+  - name: time_spent_sec
+    type: numeric
+    description: "答题用时（秒）"
+    unit: "秒"
+    
+  - name: source
+    type: text
+    description: "来源渠道"
+    
+  - name: ip_address
+    type: text
+    description: "IP地址"
+    
+  - name: total_score
+    type: numeric
+    description: "问卷总分"
+    
+  # 基本信息
+  - name: gender
+    type: categorical
+    description: "性别"
+    mapping: {1: "男", 0: "女"}
+    
+  - name: birth_year
+    type: numeric
+    description: "出生年份"
+    range: [1950, 2010]
+    
+  - name: education
+    type: categorical
+    description: "最高教育程度"
+    mapping:
+      1: "小学"
+      2: "初中"
+      3: "高中"
+      4: "中专"
+      5: "大专"
+      6: "本科"
+      7: "研究生及以上"
+      
+  # 工作经历
+  - name: is_first_job
+    type: categorical
+    description: "是否第一份工作"
+    mapping: {1: "是", 0: "否"}
+    
+  - name: prev_garment_years
+    type: numeric
+    description: "进入本公司之前在服装行业工作年限"
+    nullable_when: "is_first_job == 1"
+    
+  # 满意度量表（正向计分）
+  - name: satisfaction_task
+    type: likert
+    description: "任务满意度"
+    direction: positive
+    mapping: {1: "非常不同意", 2: "比较不同意", 3: "不确定", 4: "比较同意", 5: "非常同意"}
+    
+  # 满意度量表（反向计分）
+  - name: satisfaction_supervisor_inconsiderate
+    type: likert
+    description: "上级不体谅下属的感受"
+    direction: negative
+    mapping: {5: "非常不同意", 4: "比较不同意", 3: "不确定", 2: "比较同意", 1: "非常同意"}
+    
+  - name: satisfaction_consider_quitting
+    type: likert
+    description: "过去三个月多次考虑辞职"
+    direction: negative
+    
+  # 离职原因（多选）
+  quit_reasons:
+    type: multi_choice
+    nullable_when: "satisfaction_consider_quitting <= 2"
+    options:
+      - name: quit_salary
+        label: "工资太低"
+      - name: quit_intensity
+        label: "工作强度太大"
+      - name: quit_environment
+        label: "工作环境差"
+      - name: quit_management
+        label: "班组长管理方式不合理"
+      - name: quit_relationship
+        label: "同事关系不好"
+      - name: quit_promotion
+        label: "没有晋升机会"
+      - name: quit_monotony
+        label: "工作内容单调乏味"
+      - name: quit_family
+        label: "家庭/个人原因"
+      - name: quit_other
+        type: text
+        label: "其他"
+        
+  # 沟通渠道
+  - name: has_feedback
+    type: dummy
+    description: "是否曾通过上述渠道反馈建议或表达看法"
+    mapping: {1: "是", 0: "否"}
+    
+  feedback_content:
+    type: multi_choice
+    nullable_when: "has_feedback == 0"
+    options:
+      - name: feedback_content_workload
+        label: "关于工作量或工作时长"
+      - name: feedback_content_environment
+        label: "关于工作环境、机器或材料"
+      - name: feedback_content_allocation
+        label: "关于工序分配"
+      - name: feedback_content_salary
+        label: "关于工资、绩效或福利发放"
+      - name: feedback_content_management
+        label: "关于班组长或其他管理层的管理方式"
+      - name: feedback_content_other
+        type: text
+        label: "其他"
