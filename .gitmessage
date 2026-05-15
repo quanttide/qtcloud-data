@@ -14,7 +14,6 @@
 # <scope> 影响范围(可选):
 # provider: 后端服务
 # studio: 前端Flutter应用
-# python_sdk: Python SDK
 # qtcloud-data: 整个项目
 # dataset: 数据集相关
 # 

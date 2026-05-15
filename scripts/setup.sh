@@ -1,6 +1,6 @@
 #!/bin/bash
 # 项目初始化脚本
-# 用法: ./scripts/setup.sh [provider|python_sdk|studio|all]
+# 用法: ./scripts/setup.sh [provider|studio|all]
 
 set -e
 
@@ -28,12 +28,6 @@ case $PROJECT_NAME in
         uv sync --dev
         ;;
 
-    python_sdk)
-        echo "📦 初始化 Python SDK 项目..."
-        cd "$PROJECT_ROOT/src/python_sdk"
-        uv sync --dev
-        ;;
-
     studio)
         echo "📦 初始化 Studio 项目..."
         cd "$PROJECT_ROOT/src/studio"
@@ -45,9 +39,6 @@ case $PROJECT_NAME in
         cd "$PROJECT_ROOT/src/provider"
         uv sync --dev
 
-        cd "$PROJECT_ROOT/src/python_sdk"
-        uv sync --dev
-
         cd "$PROJECT_ROOT/src/studio"
         flutter pub get
         ;;
@@ -55,7 +46,7 @@ case $PROJECT_NAME in
     *)
         echo "❌ 未知的项目类型: $PROJECT_NAME"
         echo ""
-        echo "用法: $0 [provider|python_sdk|studio|all]"
+        echo "用法: $0 [provider|studio|all]"
         exit 1
         ;;
 esac
@@ -76,13 +67,6 @@ case $PROJECT_NAME in
         echo "   uv add --dev <package>           # 添加开发依赖"
         ;;
 
-    python_sdk)
-        echo "   cd src/python_sdk"
-        echo "   uv run pytest                    # 运行测试"
-        echo "   uv run pytest -v                 # 详细测试输出"
-        echo "   uv add <package>                 # 添加依赖"
-        ;;
-
     studio)
         echo "   cd src/studio"
         echo "   flutter run                     # 运行 Flutter 应用"
@@ -95,10 +79,6 @@ case $PROJECT_NAME in
         echo "   cd src/provider"
         echo "   uv run pytest"
         echo "   uv run uvicorn app.main:app --reload"
-        echo ""
-        echo "Python SDK:"
-        echo "   cd src/python_sdk"
-        echo "   uv run pytest"
         echo ""
         echo "Studio:"
         echo "   cd src/studio"

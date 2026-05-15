@@ -6,7 +6,7 @@
 qtcloud-data/
 ├── src/
 │   ├── provider/          # 后端服务（FastAPI）
-│   ├── python_sdk/        # Python 工具箱
+│   ├── cli/              # 命令行工具
 │   └── studio/           # 前端 Flutter 应用
 ├── tests/                # 测试fixtures和数据
 ├── docs/                 # 文档
@@ -44,7 +44,6 @@ pip install uv
 
 # 或者单独初始化某个项目
 ./scripts/setup.sh provider
-./scripts/setup.sh python_sdk
 ./scripts/setup.sh studio
 ```
 
@@ -68,22 +67,6 @@ uv run uvicorn app.main:app --reload
 # 添加依赖
 uv add <package>
 uv add --dev <package>
-```
-
-#### Python SDK
-
-```bash
-cd src/python_sdk
-
-# 安装依赖
-uv sync --dev
-
-# 运行测试
-uv run pytest
-uv run pytest -v
-
-# 添加依赖
-uv add <package>
 ```
 
 #### Studio（前端应用）
@@ -163,12 +146,11 @@ flutter pub add <package>
   - `init`: 初始化项目
 
 - `<scope>`: 影响范围(可选)
-  - `provider`: 后端服务
-  - `studio`: 前端Flutter应用
-  - `python_sdk`: Python SDK
-  - `qtcloud-data`: 整个项目
-  - `dataset`: 数据集相关
-  - 其他特定模块名
+   - `provider`: 后端服务
+   - `studio`: 前端Flutter应用
+   - `qtcloud-data`: 整个项目
+   - `dataset`: 数据集相关
+   - 其他特定模块名
 
 - `<description>`: 简短描述
   - 使用祈使句、现在时态，例如"use"而非"used"或"uses"

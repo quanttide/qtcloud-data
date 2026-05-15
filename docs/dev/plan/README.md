@@ -11,6 +11,27 @@ src/qtcloud-data/
 ├── src/                          # 平台层代码
 │   ├── cli/
 │   ├── provider/
+│   └── studio/
+│
+
+└── packages/                     # 可复用包
+    └── quanttide_data_toolkit/   # 领域模型库（本次重点）
+        ├── src/quanttide_data_toolkit/
+        │   ├── __init__.py
+        │   ├── workspace.py
+        │   ├── artifacts.py
+        │   ├── data_pipeline.py
+        │   └── data_schema.py
+        └── tests/quanttide_data_toolkit/
+            ├── test_workspace.py
+            ├── test_artifacts.py
+            ├── test_data_pipeline.py
+            └── test_data_schema.py
+```
+src/qtcloud-data/
+├── src/                          # 平台层代码
+│   ├── cli/
+│   ├── provider/
 │   ├── python_sdk/
 │   └── studio/
 │

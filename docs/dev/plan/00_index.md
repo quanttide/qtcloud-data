@@ -9,7 +9,6 @@ src/qtcloud-data/                       # 当前项目
 ├── src/                               # 平台层代码
 │   ├── cli/
 │   ├── provider/
-│   ├── python_sdk/
 │   └── studio/
 │
 └── packages/                          # 可复用包
