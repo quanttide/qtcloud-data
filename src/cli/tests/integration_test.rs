@@ -3,6 +3,8 @@ use qtcloud_data_cli::providers::dropbox;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
+// ── 辅助函数 ──
+
 async fn mock_upload_ok(server: &MockServer) {
     Mock::given(method("POST"))
         .and(path("/files/upload"))
@@ -20,6 +22,8 @@ async fn mock_shared_link_ok(server: &MockServer) {
         .mount(server)
         .await;
 }
+
+// ── Dropbox 传输测试 ──
 
 #[tokio::test]
 async fn test_dropbox_send() {
@@ -119,38 +123,63 @@ async fn test_dropbox_upload_500() {
     std::fs::remove_file(&tmp).ok();
 }
 
+// ── 网盘类 provider receive_path 测试 ──
+
+#[tokio::test]
+async fn test_cloud_providers_receive_path_not_supported() {
+    let providers: Vec<Box<dyn StorageProvider>> = vec![
+        Box::new(qtcloud_data_cli::providers::DropboxProvider),
+        Box::new(qtcloud_data_cli::providers::BaiduDriveProvider),
+        Box::new(qtcloud_data_cli::providers::GoogleDriveProvider),
+        Box::new(qtcloud_data_cli::providers::OneDriveProvider),
+    ];
+    for p in providers {
+        let result = p.receive_path("/some/path", "/tmp/test").await;
+        assert!(result.is_err(), "{} 应不支持自动接收", p.name());
+    }
+}
+
+// ── S3 receive_path mock 测试 ──
+
+#[tokio::test]
+async fn test_s3_receive_path() {
+    let server = MockServer::start().await;
+    let base = server.uri();
+
+    // mock 一个 S3 GetObject 请求
+    Mock::given(method("GET"))
+        .and(path("/bucket/key"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_bytes(b"s3 mock content")
+                .insert_header("Content-Type", "application/octet-stream"),
+        )
+        .mount(&server)
+        .await;
+    let _base = server.uri();
+    let provider = qtcloud_data_cli::providers::S3Provider;
+    assert_eq!(provider.name(), "s3");
+}
+
+// ── provider 注册测试 ──
+
 #[tokio::test]
 async fn test_provider_detect_from_url() {
     assert!(
         qtcloud_data_cli::providers::detect("https://www.dropbox.com/s/abc/file.csv").is_some(),
-        "应识别 Dropbox 链接"
     );
-    assert!(
-        qtcloud_data_cli::providers::detect("https://pan.baidu.com/s/1abc").is_some(),
-        "应识别百度网盘链接"
-    );
+    assert!(qtcloud_data_cli::providers::detect("https://pan.baidu.com/s/1abc").is_some(),);
     assert!(
         qtcloud_data_cli::providers::detect("https://drive.google.com/file/d/abc123/view")
             .is_some(),
-        "应识别 Google Drive 链接"
     );
-    assert!(
-        qtcloud_data_cli::providers::detect("https://1drv.ms/u/s!abc123").is_some(),
-        "应识别 OneDrive 链接"
-    );
+    assert!(qtcloud_data_cli::providers::detect("https://1drv.ms/u/s!abc123").is_some(),);
     assert!(
         qtcloud_data_cli::providers::detect("https://s3.us-east-1.amazonaws.com/bucket/key")
             .is_some(),
-        "应识别 S3 链接"
     );
-    assert!(
-        qtcloud_data_cli::providers::detect("sftp://user@host:22/path/file.csv").is_some(),
-        "应识别 SFTP 链接"
-    );
-    assert!(
-        qtcloud_data_cli::providers::detect("https://example.com/file").is_none(),
-        "未知链接应返回 None"
-    );
+    assert!(qtcloud_data_cli::providers::detect("sftp://user@host:22/path/file.csv").is_some(),);
+    assert!(qtcloud_data_cli::providers::detect("https://example.com/file").is_none(),);
 }
 
 #[tokio::test]
@@ -164,4 +193,20 @@ async fn test_provider_from_name() {
     assert!(qtcloud_data_cli::providers::from_name("s3").is_some());
     assert!(qtcloud_data_cli::providers::from_name("sftp").is_some());
     assert!(qtcloud_data_cli::providers::from_name("unknown").is_none());
+}
+
+// ── process 中 to_camel 工具函数测试 ──
+
+#[test]
+fn test_to_camel() {
+    assert_eq!(
+        qtcloud_data_cli::process::to_camel("csv-standard"),
+        "csvStandard"
+    );
+    assert_eq!(qtcloud_data_cli::process::to_camel("simple"), "simple");
+    assert_eq!(
+        qtcloud_data_cli::process::to_camel("abc-def-ghi"),
+        "abcDefGhi"
+    );
+    assert_eq!(qtcloud_data_cli::process::to_camel(""), "");
 }

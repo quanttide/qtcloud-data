@@ -115,7 +115,7 @@ fn resolve_blueprint_pipeline(name: &str) -> String {
     pipe
 }
 
-pub(crate) fn to_camel(s: &str) -> String {
+pub fn to_camel(s: &str) -> String {
     let mut result = String::new();
     let mut upper = false;
     for c in s.chars() {
