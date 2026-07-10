@@ -86,4 +86,29 @@ impl StorageProvider for S3Provider {
         println!("✓ 已接收: {local_path} ({} 字节)", bytes.len());
         Ok(())
     }
+
+    async fn receive_path(&self, remote: &str, local: &str) -> Result<(), String> {
+        let client = self.client().await?;
+        let bucket = self.bucket();
+        let key = remote.trim_start_matches('/');
+
+        let data = client
+            .get_object()
+            .bucket(&bucket)
+            .key(key)
+            .send()
+            .await
+            .map_err(|e| format!("下载失败: {e}"))?
+            .body
+            .collect()
+            .await
+            .map_err(|e| format!("读取数据失败: {e}"))?
+            .into_bytes();
+
+        tokio::fs::write(local, &data)
+            .await
+            .map_err(|e| format!("写入文件失败: {e}"))?;
+        println!("✓ 已接收: {local} ({} 字节)", data.len());
+        Ok(())
+    }
 }

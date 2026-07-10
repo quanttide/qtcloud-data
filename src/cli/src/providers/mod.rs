@@ -11,6 +11,12 @@ pub trait StorageProvider: Send + Sync {
 
     /// 接收文件：从分享链接下载到本地
     async fn receive(&self, url: &str, local_path: &str) -> Result<(), String>;
+
+    /// 自动接收：直接从远程路径拉取文件（需直接访问权限）
+    /// S3、SFTP 等支持，网盘类不支持
+    async fn receive_path(&self, _remote: &str, _local: &str) -> Result<(), String> {
+        Err("该平台不支持自动接收，请提供分享链接".to_string())
+    }
 }
 
 pub mod baidu_drive;
