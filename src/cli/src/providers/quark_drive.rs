@@ -5,7 +5,10 @@ use super::StorageProvider;
 
 pub struct QuarkDriveProvider;
 
-/// 夸克网盘 API 端点（社区反向工程，可能随版本变化）
+/// 夸克网盘 API 端点
+///
+/// ⚠️ 夸克网盘目前没有官方公开 API。以下实现基于社区反向工程，
+///    可能随时因服务端更新而失效。建议优先使用其他有官方 API 的平台。
 const QUARK_API: &str = "https://drive.quark.cn/1";
 
 impl QuarkDriveProvider {

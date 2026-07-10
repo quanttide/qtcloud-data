@@ -40,7 +40,7 @@ impl StorageProvider for BaiduDriveProvider {
             "path": remote_path,
             "size": size,
             "isdir": 0,
-            "block_list": [], // 简化：服务端自动计算
+            "block_list": ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"], // 占位符，autoinit 后服务端覆盖
             "autoinit": 1,
         });
 
@@ -79,7 +79,7 @@ impl StorageProvider for BaiduDriveProvider {
             "size": size,
             "isdir": 0,
             "uploadid": uploadid,
-            "block_list": [],
+            "block_list": ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"],
         });
 
         let create_resp = client
