@@ -2,7 +2,7 @@ package store
 
 import "sync"
 
-type RunRecord struct {
+type JobRecord struct {
 	ID         string `json:"id"`
 	CustomerID string `json:"customer_id"`
 	Pipeline   string `json:"pipeline"`
@@ -14,30 +14,30 @@ type RunRecord struct {
 
 type Store struct {
 	mu   sync.RWMutex
-	runs map[string]*RunRecord
+	jobs map[string]*JobRecord
 }
 
 func New() *Store {
-	return &Store{runs: make(map[string]*RunRecord)}
+	return &Store{jobs: make(map[string]*JobRecord)}
 }
 
-func (s *Store) SaveRun(r *RunRecord) {
+func (s *Store) SaveJob(r *JobRecord) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.runs[r.ID] = r
+	s.jobs[r.ID] = r
 }
 
-func (s *Store) GetRun(id string) *RunRecord {
+func (s *Store) GetJob(id string) *JobRecord {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.runs[id]
+	return s.jobs[id]
 }
 
-func (s *Store) ListRuns() []*RunRecord {
+func (s *Store) ListJobs() []*JobRecord {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	var out []*RunRecord
-	for _, r := range s.runs {
+	var out []*JobRecord
+	for _, r := range s.jobs {
 		out = append(out, r)
 	}
 	return out
