@@ -17,13 +17,11 @@ pub mod baidu_drive;
 pub mod dropbox;
 pub mod google_drive;
 pub mod onedrive;
-pub mod quark_drive;
 
 pub use baidu_drive::BaiduDriveProvider;
 pub use dropbox::DropboxProvider;
 pub use google_drive::GoogleDriveProvider;
 pub use onedrive::OneDriveProvider;
-pub use quark_drive::QuarkDriveProvider;
 
 /// 根据名称创建提供商实例
 pub fn from_name(name: &str) -> Option<Box<dyn StorageProvider>> {
@@ -32,7 +30,6 @@ pub fn from_name(name: &str) -> Option<Box<dyn StorageProvider>> {
         "baidu" | "baidudrive" => Some(Box::new(BaiduDriveProvider)),
         "google" | "googledrive" => Some(Box::new(GoogleDriveProvider)),
         "onedrive" => Some(Box::new(OneDriveProvider)),
-        "quark" | "quarkdrive" => Some(Box::new(QuarkDriveProvider)),
         _ => None,
     }
 }
@@ -47,8 +44,6 @@ pub fn detect(url: &str) -> Option<Box<dyn StorageProvider>> {
         Some(Box::new(GoogleDriveProvider))
     } else if url.contains("1drv.ms") || url.contains("onedrive.live.com") {
         Some(Box::new(OneDriveProvider))
-    } else if url.contains("pan.quark.cn") {
-        Some(Box::new(QuarkDriveProvider))
     } else {
         None
     }
