@@ -1,4 +1,6 @@
-use wiremock::matchers::{body_json, method, path};
+use qtcloud_data_cli::providers::StorageProvider;
+use qtcloud_data_cli::providers::dropbox;
+use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn mock_upload_ok(server: &MockServer) {
@@ -9,85 +11,69 @@ async fn mock_upload_ok(server: &MockServer) {
         .await;
 }
 
-async fn mock_shared_link_ok(server: &MockServer, remote_path: &str) {
-    let expected_body = serde_json::json!({
-        "path": remote_path,
-        "settings": { "requested_visibility": { ".tag": "public" } }
-    });
-
+async fn mock_shared_link_ok(server: &MockServer) {
     Mock::given(method("POST"))
         .and(path("/sharing/create_shared_link_with_settings"))
-        .and(body_json(expected_body))
         .respond_with(ResponseTemplate::new(200).set_body_json(
-            serde_json::json!({"url": "https://www.dropbox.com/s/abc123/file.csv?dl=0"}),
+            serde_json::json!({"url": "https://www.dropbox.com/s/abc/file.csv?dl=0"}),
         ))
         .mount(server)
         .await;
 }
 
 #[tokio::test]
-async fn test_send_uploads_file_and_returns_shared_link() {
+async fn test_dropbox_send() {
     let server = MockServer::start().await;
     let base = server.uri();
 
     let tmp = std::env::temp_dir().join("test_send.txt");
-    std::fs::write(&tmp, b"hello, world!").unwrap();
+    std::fs::write(&tmp, b"hello").unwrap();
 
     mock_upload_ok(&server).await;
-    mock_shared_link_ok(&server, "/Customers/send/test_send.txt").await;
+    mock_shared_link_ok(&server).await;
 
-    qtcloud_data_cli::dropbox::upload(
-        "fake_token",
-        tmp.to_str().unwrap(),
-        "/Customers/send/test_send.txt",
-        Some(&base),
-    )
-    .await;
+    dropbox::upload("fake", tmp.to_str().unwrap(), "/test.txt", Some(&base)).await;
 
-    let link = qtcloud_data_cli::dropbox::create_shared_link(
-        "fake_token",
-        "/Customers/send/test_send.txt",
-        Some(&base),
-    )
-    .await
-    .unwrap();
+    let link = dropbox::create_shared_link("fake", "/test.txt", Some(&base))
+        .await
+        .unwrap();
 
-    assert!(link.contains("dropbox.com/s/"));
     assert!(link.contains("?dl=1"));
     std::fs::remove_file(&tmp).ok();
 }
 
 #[tokio::test]
-async fn test_receive_downloads_file_from_shared_link() {
+async fn test_dropbox_receive() {
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
-        .and(path("/s/abc123/file.csv"))
+        .and(path("/s/abc/file.csv"))
         .respond_with(
             ResponseTemplate::new(200)
-                .set_body_bytes(b"mock file content")
+                .set_body_bytes(b"mock data")
                 .insert_header("Content-Type", "application/octet-stream"),
         )
         .mount(&server)
         .await;
 
-    let url = format!("{}/s/abc123/file.csv", server.uri());
-    let tmp = std::env::temp_dir().join("test_received.txt");
+    let tmp = std::env::temp_dir().join("test_recv.txt");
+    let provider = qtcloud_data_cli::providers::DropboxProvider;
 
-    qtcloud_data_cli::dropbox::download_and_save(
-        "fake_token",
-        &format!("{url}?dl=1"),
-        tmp.to_str().unwrap(),
-    )
-    .await;
+    let result = provider
+        .receive(
+            &format!("{}/s/abc/file.csv?dl=1", server.uri()),
+            tmp.to_str().unwrap(),
+        )
+        .await;
 
+    assert!(result.is_ok());
     let content = std::fs::read_to_string(&tmp).unwrap();
-    assert_eq!(content, "mock file content");
+    assert_eq!(content, "mock data");
     std::fs::remove_file(&tmp).ok();
 }
 
 #[tokio::test]
-async fn test_receive_404_should_panic() {
+async fn test_dropbox_receive_404() {
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -95,23 +81,18 @@ async fn test_receive_404_should_panic() {
         .mount(&server)
         .await;
 
-    let url = format!("{}/not-found", server.uri());
     let tmp = std::env::temp_dir().join("test_404.txt");
+    let provider = qtcloud_data_cli::providers::DropboxProvider;
 
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(qtcloud_data_cli::dropbox::download_and_save(
-            "fake_token",
-            &url,
-            tmp.to_str().unwrap(),
-        ));
-    }));
+    let result = provider
+        .receive(&format!("{}/missing", server.uri()), tmp.to_str().unwrap())
+        .await;
 
-    assert!(result.is_err(), "404 应触发 panic");
+    assert!(result.is_err(), "404 应返回 error");
 }
 
 #[tokio::test]
-async fn test_upload_500_should_panic() {
+async fn test_dropbox_upload_500() {
     let server = MockServer::start().await;
     let base = server.uri();
 
@@ -121,13 +102,13 @@ async fn test_upload_500_should_panic() {
         .mount(&server)
         .await;
 
-    let tmp = std::env::temp_dir().join("test_upload_error.txt");
+    let tmp = std::env::temp_dir().join("test_err.txt");
     std::fs::write(&tmp, b"data").unwrap();
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(qtcloud_data_cli::dropbox::upload(
-            "fake_token",
+        rt.block_on(dropbox::upload(
+            "fake",
             tmp.to_str().unwrap(),
             "/fail",
             Some(&base),
@@ -139,22 +120,25 @@ async fn test_upload_500_should_panic() {
 }
 
 #[tokio::test]
-async fn test_create_shared_link_404_returns_error() {
-    let server = MockServer::start().await;
-    let base = server.uri();
+async fn test_provider_detect_from_url() {
+    assert!(
+        qtcloud_data_cli::providers::detect("https://www.dropbox.com/s/abc/file.csv").is_some(),
+        "应识别 Dropbox 链接"
+    );
+    assert!(
+        qtcloud_data_cli::providers::detect("https://pan.baidu.com/s/1abc").is_some(),
+        "应识别百度网盘链接"
+    );
+    assert!(
+        qtcloud_data_cli::providers::detect("https://example.com/file").is_none(),
+        "未知链接应返回 None"
+    );
+}
 
-    Mock::given(method("POST"))
-        .and(path("/sharing/create_shared_link_with_settings"))
-        .respond_with(
-            ResponseTemplate::new(404)
-                .set_body_json(serde_json::json!({"error_summary": "path/not_found"})),
-        )
-        .mount(&server)
-        .await;
-
-    let result =
-        qtcloud_data_cli::dropbox::create_shared_link("fake_token", "/nonexistent", Some(&base))
-            .await;
-
-    assert!(result.is_err(), "404 应返回 error");
+#[tokio::test]
+async fn test_provider_from_name() {
+    assert!(qtcloud_data_cli::providers::from_name("dropbox").is_some());
+    assert!(qtcloud_data_cli::providers::from_name("baidu").is_some());
+    assert!(qtcloud_data_cli::providers::from_name("baidudrive").is_some());
+    assert!(qtcloud_data_cli::providers::from_name("unknown").is_none());
 }

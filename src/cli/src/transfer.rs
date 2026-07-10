@@ -1,7 +1,13 @@
 use clap::{Args, Subcommand};
 
+use crate::providers;
+
 #[derive(Args)]
 pub struct TransferArgs {
+    /// 网盘提供商: dropbox（默认）| baidu
+    #[arg(long, default_value = "dropbox")]
+    pub provider: String,
+
     #[command(subcommand)]
     pub action: TransferAction,
 }
@@ -12,6 +18,8 @@ pub enum TransferAction {
     Send {
         /// 本地文件路径
         file: String,
+        /// 远程路径，不指定则使用文件名
+        remote: Option<String>,
         /// 将链接写入文件（不指定则直接打印到终端）
         #[arg(long)]
         output: Option<String>,
@@ -27,44 +35,63 @@ pub enum TransferAction {
 }
 
 pub fn run(args: &TransferArgs) {
-    let token =
-        std::env::var("DROPBOX_ACCESS_TOKEN").expect("请设置 DROPBOX_ACCESS_TOKEN 环境变量");
+    // 选择提供商：优先 --provider 参数，receive 时也可从 URL 自动识别
+    let provider: Box<dyn providers::StorageProvider> = if args.action.is_receive() {
+        // receive 时尝试从 URL 自动识别
+        let url = args.action.url();
+        providers::detect(url).unwrap_or_else(|| {
+            providers::from_name(&args.provider)
+                .expect(&format!("不支持的提供商: {}", args.provider))
+        })
+    } else {
+        providers::from_name(&args.provider).expect(&format!("不支持的提供商: {}", args.provider))
+    };
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
     match &args.action {
-        TransferAction::Send { file, output } => {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(send(&token, file, output));
-        }
-        TransferAction::Receive { url, output } => {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(receive(&token, url, output));
-        }
-    }
-}
+        TransferAction::Send {
+            file,
+            remote,
+            output,
+        } => {
+            let remote_path = remote.clone().unwrap_or_else(|| {
+                format!("/send/{}", file.rsplit('/').next().unwrap_or("result"))
+            });
 
-async fn send(token: &str, file: &str, output: &Option<String>) {
-    let remote = format!(
-        "/Customers/send/{}",
-        file.rsplit('/').next().unwrap_or("result")
-    );
-    crate::dropbox::upload(token, file, &remote, None).await;
-
-    match crate::dropbox::create_shared_link(token, &remote, None).await {
-        Ok(url) => {
-            if let Some(out) = output {
-                std::fs::write(out, &url).expect("写入链接文件失败");
-                println!("✓ 链接已写入: {out}");
-            } else {
-                println!("{url}");
+            match rt.block_on(provider.send(file, &remote_path)) {
+                Ok(link) => {
+                    if let Some(out) = output {
+                        std::fs::write(out, &link).expect("写入链接文件失败");
+                        println!("✓ 链接已写入: {out}");
+                    } else {
+                        println!("{link}");
+                    }
+                }
+                Err(e) => eprintln!("发送失败: {e}"),
             }
         }
-        Err(e) => eprintln!("⚠ 上传成功，但生成分享链接失败: {e}"),
+        TransferAction::Receive { url, output } => {
+            let local_path = output
+                .clone()
+                .unwrap_or_else(|| url.rsplit('/').next().unwrap_or("received").to_string());
+
+            if let Err(e) = rt.block_on(provider.receive(url, &local_path)) {
+                eprintln!("接收失败: {e}");
+            }
+        }
     }
 }
 
-async fn receive(token: &str, url: &str, output: &Option<String>) {
-    let path = output
-        .clone()
-        .unwrap_or_else(|| url.rsplit('/').next().unwrap_or("received").to_string());
-    crate::dropbox::download_and_save(token, url, &path).await;
+impl TransferAction {
+    fn is_receive(&self) -> bool {
+        matches!(self, TransferAction::Receive { .. })
+    }
+
+    fn url(&self) -> &str {
+        match self {
+            TransferAction::Receive { url, .. } => url,
+            _ => "",
+        }
+    }
 }

@@ -1,2 +1,2 @@
-pub mod dropbox;
+pub mod providers;
 pub mod transfer;
