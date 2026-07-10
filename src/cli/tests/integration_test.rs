@@ -130,6 +130,11 @@ async fn test_provider_detect_from_url() {
         "应识别百度网盘链接"
     );
     assert!(
+        qtcloud_data_cli::providers::detect("https://drive.google.com/file/d/abc123/view")
+            .is_some(),
+        "应识别 Google Drive 链接"
+    );
+    assert!(
         qtcloud_data_cli::providers::detect("https://example.com/file").is_none(),
         "未知链接应返回 None"
     );
@@ -140,5 +145,7 @@ async fn test_provider_from_name() {
     assert!(qtcloud_data_cli::providers::from_name("dropbox").is_some());
     assert!(qtcloud_data_cli::providers::from_name("baidu").is_some());
     assert!(qtcloud_data_cli::providers::from_name("baidudrive").is_some());
+    assert!(qtcloud_data_cli::providers::from_name("google").is_some());
+    assert!(qtcloud_data_cli::providers::from_name("googledrive").is_some());
     assert!(qtcloud_data_cli::providers::from_name("unknown").is_none());
 }

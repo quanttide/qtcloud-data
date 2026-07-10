@@ -15,15 +15,18 @@ pub trait StorageProvider: Send + Sync {
 
 pub mod baidu_drive;
 pub mod dropbox;
+pub mod google_drive;
 
 pub use baidu_drive::BaiduDriveProvider;
 pub use dropbox::DropboxProvider;
+pub use google_drive::GoogleDriveProvider;
 
 /// 根据名称创建提供商实例
 pub fn from_name(name: &str) -> Option<Box<dyn StorageProvider>> {
     match name {
         "dropbox" => Some(Box::new(DropboxProvider)),
         "baidu" | "baidudrive" => Some(Box::new(BaiduDriveProvider)),
+        "google" | "googledrive" => Some(Box::new(GoogleDriveProvider)),
         _ => None,
     }
 }
@@ -34,6 +37,8 @@ pub fn detect(url: &str) -> Option<Box<dyn StorageProvider>> {
         Some(Box::new(DropboxProvider))
     } else if url.contains("pan.baidu.com") {
         Some(Box::new(BaiduDriveProvider))
+    } else if url.contains("drive.google.com") {
+        Some(Box::new(GoogleDriveProvider))
     } else {
         None
     }
