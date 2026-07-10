@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## [0.0.5] - 2026-07-10
+
+### Changed
+- 默认目录改为 `.quanttide/data/` 规范：pipelines / blueprints / contracts
+- WORKDIR 改为系统临时目录 `/tmp/qtcloud-data`，用完自动清理
+- README 更新：添加命令一览表、S3/SFTP 平台、process 示例
+- Cargo.toml 版本更新为 0.0.5
+
 ## [0.0.4] - 2026-07-10
 
 ### Added
