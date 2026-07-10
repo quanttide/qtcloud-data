@@ -24,12 +24,14 @@ pub mod dropbox;
 pub mod google_drive;
 pub mod onedrive;
 pub mod s3;
+pub mod sftp;
 
 pub use baidu_drive::BaiduDriveProvider;
 pub use dropbox::DropboxProvider;
 pub use google_drive::GoogleDriveProvider;
 pub use onedrive::OneDriveProvider;
 pub use s3::S3Provider;
+pub use sftp::SftpProvider;
 
 /// 根据名称创建提供商实例
 pub fn from_name(name: &str) -> Option<Box<dyn StorageProvider>> {
@@ -39,6 +41,7 @@ pub fn from_name(name: &str) -> Option<Box<dyn StorageProvider>> {
         "google" | "googledrive" => Some(Box::new(GoogleDriveProvider)),
         "onedrive" => Some(Box::new(OneDriveProvider)),
         "s3" => Some(Box::new(S3Provider)),
+        "sftp" => Some(Box::new(SftpProvider)),
         _ => None,
     }
 }
@@ -55,6 +58,8 @@ pub fn detect(url: &str) -> Option<Box<dyn StorageProvider>> {
         Some(Box::new(OneDriveProvider))
     } else if url.contains("s3.amazonaws.com") || url.contains("s3.") {
         Some(Box::new(S3Provider))
+    } else if url.starts_with("sftp://") {
+        Some(Box::new(SftpProvider))
     } else {
         None
     }
