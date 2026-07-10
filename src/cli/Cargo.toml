@@ -1,6 +1,6 @@
 [package]
 name = "qtcloud-data-cli"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2024"
 authors = ["QuantTide Inc. <opensource@quanttide.com>"]
 description = "量潮数据云 CLI"

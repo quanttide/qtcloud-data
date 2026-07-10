@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## [0.0.3] - 2026-07-10
+
+### Added
+- S3 provider（`--provider s3`）：PutObject + 预签名 URL + 自动接收
+- SFTP provider（`--provider sftp`）：密钥/密码认证，支持 `sftp://` URL 和自动模式
+- receive 双模式：手动（URL）和自动（路径）
+
+### Changed
+- Cargo.toml 版本更新为 0.0.3
+
 ## [0.0.2] - 2026-07-10
 
 ### Added
