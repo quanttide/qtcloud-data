@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## [0.0.4] - 2026-07-10
+
+### Added
+- `process` 命令：编排 receive → pipeline → send 完整流程
+- `pipeline list|show` 命令：查看 CUE 定义的管道
+- `blueprint list|show` 命令：查看 CUE 定义的蓝图
+- `contract list|show` 命令：查看独立契约定义
+- 全覆盖测试（9 个用例）
+
+### Changed
+- Cargo.toml 版本更新为 0.0.4
+
 ## [0.0.3] - 2026-07-10
 
 ### Added
