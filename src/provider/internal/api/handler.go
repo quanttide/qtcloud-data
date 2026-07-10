@@ -68,7 +68,7 @@ func (h *Handler) TransferReceive(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 }
 
-// GET /runs — 查看执行记录
-func (h *Handler) ListRuns(w http.ResponseWriter, r *http.Request) {
+// GET /process/runs — 查看 pipeline 执行记录
+func (h *Handler) ListProcessRuns(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(h.Store.ListRuns())
 }
