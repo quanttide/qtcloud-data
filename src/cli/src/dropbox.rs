@@ -1,11 +1,22 @@
 use reqwest::Client;
 use std::fs;
 
-const DROPBOX_CONTENT: &str = "https://content.dropboxapi.com/2";
-const DROPBOX_API: &str = "https://api.dropboxapi.com/2";
+fn content_base(override_url: Option<&str>) -> String {
+    override_url
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "https://content.dropboxapi.com".to_string())
+}
+
+fn api_base(override_url: Option<&str>) -> String {
+    override_url
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "https://api.dropboxapi.com".to_string())
+}
 
 /// 上传文件到 Dropbox
-pub async fn upload(token: &str, local_path: &str, remote_path: &str) {
+///
+/// 传 `mock_base` 可指向 mock 服务器（用于测试）。
+pub async fn upload(token: &str, local_path: &str, remote_path: &str, mock_base: Option<&str>) {
     let data = fs::read(local_path).expect("读取本地文件失败");
     let client = Client::new();
 
@@ -15,7 +26,7 @@ pub async fn upload(token: &str, local_path: &str, remote_path: &str) {
     });
 
     let resp = client
-        .post(format!("{DROPBOX_CONTENT}/files/upload"))
+        .post(format!("{}/files/upload", content_base(mock_base)))
         .header("Authorization", format!("Bearer {token}"))
         .header("Dropbox-API-Arg", arg.to_string())
         .header("Content-Type", "application/octet-stream")
@@ -30,21 +41,23 @@ pub async fn upload(token: &str, local_path: &str, remote_path: &str) {
         panic!("上传失败 [{status}]: {text}");
     }
 
-    println!("✓ 已上传: {local_path} → {remote_path} ({} 字节)", data.len());
+    println!(
+        "✓ 已上传: {local_path} → {remote_path} ({} 字节)",
+        data.len()
+    );
 }
 
 /// 从共享链接下载文件并保存到本地
 pub async fn download_and_save(_token: &str, url: &str, local_path: &str) {
     let client = Client::new();
 
-    let url = if url.contains("?dl=") { url.to_string() }
-              else { format!("{url}?dl=1") };
+    let url = if url.contains("?dl=") {
+        url.to_string()
+    } else {
+        format!("{url}?dl=1")
+    };
 
-    let resp = client
-        .get(&url)
-        .send()
-        .await
-        .expect("下载请求失败");
+    let resp = client.get(&url).send().await.expect("下载请求失败");
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -58,7 +71,13 @@ pub async fn download_and_save(_token: &str, url: &str, local_path: &str) {
 }
 
 /// 生成分享链接
-pub async fn create_shared_link(token: &str, path: &str) -> Result<String, String> {
+///
+/// 传 `mock_base` 可指向 mock 服务器（用于测试）。
+pub async fn create_shared_link(
+    token: &str,
+    path: &str,
+    mock_base: Option<&str>,
+) -> Result<String, String> {
     let client = Client::new();
     let body = serde_json::json!({
         "path": path,
@@ -66,7 +85,10 @@ pub async fn create_shared_link(token: &str, path: &str) -> Result<String, Strin
     });
 
     let resp = client
-        .post(format!("{DROPBOX_API}/sharing/create_shared_link_with_settings"))
+        .post(format!(
+            "{}/sharing/create_shared_link_with_settings",
+            api_base(mock_base)
+        ))
         .header("Authorization", format!("Bearer {token}"))
         .json(&body)
         .send()

@@ -47,9 +47,9 @@ async fn send(token: &str, file: &str, output: &Option<String>) {
         "/Customers/send/{}",
         file.rsplit('/').next().unwrap_or("result")
     );
-    super::dropbox::upload(token, file, &remote).await;
+    crate::dropbox::upload(token, file, &remote, None).await;
 
-    match super::dropbox::create_shared_link(token, &remote).await {
+    match crate::dropbox::create_shared_link(token, &remote, None).await {
         Ok(url) => {
             if let Some(out) = output {
                 std::fs::write(out, &url).expect("写入链接文件失败");
@@ -66,5 +66,5 @@ async fn receive(token: &str, url: &str, output: &Option<String>) {
     let path = output
         .clone()
         .unwrap_or_else(|| url.rsplit('/').next().unwrap_or("received").to_string());
-    super::dropbox::download_and_save(token, url, &path).await;
+    crate::dropbox::download_and_save(token, url, &path).await;
 }

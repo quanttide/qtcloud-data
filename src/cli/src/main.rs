@@ -1,7 +1,5 @@
-mod dropbox;
-mod transfer;
-
 use clap::{Parser, Subcommand};
+use qtcloud_data_cli::transfer;
 
 #[derive(Parser)]
 #[command(name = "qtcloud-data", about = "量潮数据云 CLI")]
