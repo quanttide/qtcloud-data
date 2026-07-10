@@ -49,7 +49,7 @@ func ResolvePipeline(name string) (*Pipeline, error) {
 	// 从 CUE 解析（与 CLI 相同逻辑）
 	dir := os.Getenv("PIPELINES_DIR")
 	if dir == "" {
-		dir = "./pipelines"
+		dir = ".quanttide/data/pipelines"
 	}
 	key := strings.ReplaceAll(name, "-", "")
 	key = strings.Replace(key, string(key[0]), strings.ToLower(string(key[0])), 1)

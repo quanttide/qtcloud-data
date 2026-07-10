@@ -19,7 +19,7 @@ pub enum ContractAction {
 }
 
 pub fn run(args: &ContractArgs) {
-    let dir = std::env::var("CONTRACTS_DIR").unwrap_or_else(|_| "./contracts".to_string());
+    let dir = std::env::var("CONTRACTS_DIR").unwrap_or_else(|_| ".quanttide/data/contracts".to_string());
 
     match &args.action {
         ContractAction::List => {
