@@ -1,12 +1,16 @@
-# qtcloud-data transfer — 开发者文档
+# qtcloud-data CLI — 开发者文档
 
 ## 架构概览
 
 ```
 src/
-  main.rs           # 入口：CLI 参数解析，分发到 transfer
-  lib.rs            # 库入口：暴露 providers 和 transfer
+  main.rs           # 入口：CLI 参数解析，分发到各命令
+  lib.rs            # 库入口：暴露所有模块
   transfer.rs       # 传输逻辑：--provider 选择、send/receive 分发
+  process.rs        # 编排流程：receive → pipeline → send
+  pipeline.rs       # 管道管理：list/show，shell 调用 cue
+  blueprint.rs      # 蓝图管理：list/show，shell 调用 cue
+  contract.rs       # 契约管理：list/show，支持 cue / yaml
   providers/
     mod.rs          # StorageProvider trait + 工厂函数
     dropbox.rs      # Dropbox 实现
@@ -14,11 +18,22 @@ src/
     google_drive.rs # Google Drive 实现
     onedrive.rs     # OneDrive 实现
     s3.rs           # S3 实现
+    sftp.rs         # SFTP 实现
 ```
+
+## 命令层级
+
+| 命令 | 职责 | 依赖 |
+|---|---|---|
+| `transfer` | 原子传输操作（send/receive） | 各平台 API |
+| `process` | 编排 receive → pipeline → send | 自身 shell 调用 transfer |
+| `pipeline` | 管道定义查看 | `cue` 命令 |
+| `blueprint` | 蓝图定义查看 | `cue` 命令 |
+| `contract` | 契约定义查看 | `cue` 或直接文件读取 |
 
 ## StorageProvider trait
 
-所有平台提供商实现 `StorageProvider` trait：
+所有传输平台实现此 trait：
 
 ```rust
 #[async_trait]
@@ -26,29 +41,27 @@ pub trait StorageProvider: Send + Sync {
     fn name(&self) -> &'static str;
     async fn send(&self, local_path: &str, remote_path: &str) -> Result<String, String>;
     async fn receive(&self, url: &str, local_path: &str) -> Result<(), String>;
-
-    /// 自动接收：直接从远程路径拉取（S3、SFTP 等支持）
     async fn receive_path(&self, remote: &str, local: &str) -> Result<(), String> {
-        Err("该平台不支持自动接收，请提供分享链接".to_string())
+        Err("该平台不支持自动接收".to_string())
     }
 }
 ```
 
-- `send`：上传本地文件 → 创建分享链接 → 返回可分享的 URL
-- `receive`：从分享链接下载文件到本地（手动模式）
-- `receive_path`：直接从远程路径拉取（自动模式），S3 等需直接访问权限的平台重写此方法
+## process 编排
+
+`process` 命令串联三步：
+
+1. **receive** — shell 调用 `transfer receive`
+2. **pipeline** — 顺序执行步骤链，每步输入 CSV 输出 CSV
+3. **send** — shell 调用 `transfer send`
+
+Pipeline 定义在 CUE 文件中，通过 `--pipeline` 或 `--blueprint` 引用。
 
 ## 添加新平台
 
-新建 `providers/<name>.rs`，实现 `StorageProvider` trait，然后在 `providers/mod.rs` 注册：
-
-1. 文件注册：`pub mod <name>;` + `pub use`
-2. 名称注册：在 `from_name()` 中添加 `"<name>" => Some(Box::new(<Provider>))`
-3. URL 检测：在 `detect()` 中添加 URL 域名匹配
+新建 `providers/<name>.rs`，实现 `StorageProvider` trait，在 `providers/mod.rs` 注册。
 
 ### 认证约定
-
-每个 provider 从独立的环境变量读取凭证：
 
 | Provider | 环境变量 |
 |---|---|
@@ -57,39 +70,31 @@ pub trait StorageProvider: Send + Sync {
 | Google Drive | `GOOGLE_DRIVE_ACCESS_TOKEN` |
 | OneDrive | `ONEDRIVE_ACCESS_TOKEN` |
 | S3 | `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` |
+| SFTP | `SFTP_HOST` + `SFTP_USER` |
 
-### 手动模式 vs 自动模式
+### 手动 vs 自动模式
 
-- **手动模式**：`receive` 传入 URL（以 `http://` 或 `https://` 开头），自动识别提供商。全部平台支持
-- **自动模式**：`receive` 传入远程路径，配合 `--provider` 使用。仅 S3 等有直接访问权限的平台支持。网盘类默认返回错误
+- **手动**：`receive` 传入 URL，自动识别提供商。全部平台支持
+- **自动**：`receive` 传入路径 + `--provider`。仅 S3、SFTP 等直接访问平台支持
+
+## 环境变量
+
+| 变量 | 默认值 | 用途 |
+|---|---|---|
+| `PIPELINE` | `csv-standard` | 默认 pipeline 名称 |
+| `PIPELINES_DIR` | `./pipelines` | CUE 管道定义目录 |
+| `BLUEPRINTS_DIR` | `./blueprints` | CUE 蓝图定义目录 |
+| `CONTRACTS_DIR` | `./contracts` | 契约定义目录 |
+| `WORKDIR` | `./work` | 流程执行工作目录 |
+| `QTDATA_CLI` | `qtcloud-data` | 自身命令路径（process 调用） |
 
 ## 测试
-
-### 单元测试
 
 ```bash
 cargo test
 ```
 
-使用 `wiremock` 模拟 HTTP 响应，不依赖真实网络。测试位于 `tests/integration_test.rs`。
-
-### 测试新 provider
-
-```rust
-#[tokio::test]
-async fn test_my_provider_send() {
-    let server = MockServer::start().await;
-    let base = server.uri();
-
-    Mock::given(method("POST"))
-        .and(path("/upload"))
-        .respond_with(ResponseTemplate::new(200))
-        .mount(&server)
-        .await;
-
-    // 测试逻辑...
-}
-```
+使用 `wiremock` 模拟 HTTP 响应。测试位于 `tests/integration_test.rs`。
 
 ## 构建
 
