@@ -1,4 +1,5 @@
 pub mod blueprint;
+pub mod catalog;
 pub mod contract;
 pub mod pipeline;
 pub mod process;

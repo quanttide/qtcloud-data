@@ -19,7 +19,7 @@ pub enum BlueprintAction {
 }
 
 pub fn run(args: &BlueprintArgs) {
-    let dir = std::env::var("BLUEPRINTS_DIR").unwrap_or_else(|_| ".quanttide/data/blueprints".to_string());
+    let dir = std::env::var("BLUEPRINT_DIR").unwrap_or_else(|_| ".quanttide/data/blueprint".to_string());
 
     match &args.action {
         BlueprintAction::List => {

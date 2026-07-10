@@ -19,7 +19,8 @@ pub enum PipelineAction {
 }
 
 pub fn run(args: &PipelineArgs) {
-    let dir = std::env::var("PIPELINES_DIR").unwrap_or_else(|_| ".quanttide/data/pipelines".to_string());
+    let dir =
+        std::env::var("PIPELINE_DIR").unwrap_or_else(|_| ".quanttide/data/pipeline".to_string());
 
     match &args.action {
         PipelineAction::List => {
