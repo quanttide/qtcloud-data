@@ -139,6 +139,11 @@ async fn test_provider_detect_from_url() {
         "应识别 OneDrive 链接"
     );
     assert!(
+        qtcloud_data_cli::providers::detect("https://s3.us-east-1.amazonaws.com/bucket/key")
+            .is_some(),
+        "应识别 S3 链接"
+    );
+    assert!(
         qtcloud_data_cli::providers::detect("https://example.com/file").is_none(),
         "未知链接应返回 None"
     );
@@ -152,5 +157,6 @@ async fn test_provider_from_name() {
     assert!(qtcloud_data_cli::providers::from_name("google").is_some());
     assert!(qtcloud_data_cli::providers::from_name("googledrive").is_some());
     assert!(qtcloud_data_cli::providers::from_name("onedrive").is_some());
+    assert!(qtcloud_data_cli::providers::from_name("s3").is_some());
     assert!(qtcloud_data_cli::providers::from_name("unknown").is_none());
 }

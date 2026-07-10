@@ -4,7 +4,7 @@ use crate::providers;
 
 #[derive(Args)]
 pub struct TransferArgs {
-    /// 网盘提供商: dropbox（默认）| baidu | google | onedrive
+    /// 网盘提供商: dropbox（默认）| baidu | google | onedrive | s3
     #[arg(long, default_value = "dropbox")]
     pub provider: String,
 
