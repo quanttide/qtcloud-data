@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use qtcloud_data_cli::{blueprint, pipeline, process, transfer};
+use qtcloud_data_cli::{blueprint, contract, pipeline, process, transfer};
 
 #[derive(Parser)]
 #[command(name = "qtcloud-data", about = "量潮数据云 CLI")]
@@ -18,6 +18,8 @@ enum Commands {
     Pipeline(pipeline::PipelineArgs),
     /// 蓝图管理
     Blueprint(blueprint::BlueprintArgs),
+    /// 契约查看
+    Contract(contract::ContractArgs),
 }
 
 fn main() {
@@ -28,5 +30,6 @@ fn main() {
         Commands::Process(args) => process::run(args),
         Commands::Pipeline(args) => pipeline::run(args),
         Commands::Blueprint(args) => blueprint::run(args),
+        Commands::Contract(args) => contract::run(args),
     }
 }
