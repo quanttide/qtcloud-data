@@ -1,0 +1,18 @@
+[package]
+name = "qtcloud-data-cli"
+version = "0.1.0"
+edition = "2024"
+authors = ["QuantTide Inc. <opensource@quanttide.com>"]
+description = "量潮数据云 CLI"
+license = "MIT"
+
+[[bin]]
+name = "qtcloud-data"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+reqwest = { version = "0.12", features = ["rustls-tls", "json"], default-features = false }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
