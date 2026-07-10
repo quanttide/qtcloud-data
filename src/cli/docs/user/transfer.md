@@ -13,7 +13,7 @@ cargo build --release
 
 ## 认证
 
-使用前需设置对应网盘的访问凭证：
+使用前需设置对应平台的访问凭证：
 
 ```bash
 # Dropbox（默认）
@@ -27,13 +27,19 @@ export GOOGLE_DRIVE_ACCESS_TOKEN=你的token
 
 # OneDrive
 export ONEDRIVE_ACCESS_TOKEN=你的token
+
+# Amazon S3（标准 AWS 凭证链）
+export AWS_ACCESS_KEY_ID=xxx
+export AWS_SECRET_ACCESS_KEY=xxx
+export AWS_REGION=us-east-1
+export S3_BUCKET=my-bucket
 ```
 
 ## 命令
 
 ### 发送文件
 
-上传本地文件到网盘并生成分享链接：
+上传本地文件到平台并生成分享链接：
 
 ```bash
 qtcloud-data transfer send ./report.pdf
@@ -44,6 +50,7 @@ qtcloud-data transfer send ./report.pdf
 
 ```bash
 qtcloud-data transfer send ./report.pdf --provider baidu
+qtcloud-data transfer send ./report.pdf --provider s3
 ```
 
 指定远程路径：
@@ -60,11 +67,14 @@ qtcloud-data transfer send ./report.pdf --output link.txt
 
 ### 接收文件
 
-从分享链接下载文件到本地：
+支持两种模式：
+
+#### 手动模式 — 从分享链接下载
+
+传入 `http://` / `https://` 开头的 URL，自动识别提供商：
 
 ```bash
 qtcloud-data transfer receive "https://www.dropbox.com/s/xxx/data.csv"
-# 输出: ✓ 已接收: data.csv (xxxx 字节)
 ```
 
 指定保存路径：
@@ -73,7 +83,7 @@ qtcloud-data transfer receive "https://www.dropbox.com/s/xxx/data.csv"
 qtcloud-data transfer receive "https://drive.google.com/file/d/xxx/view" --output ./incoming/data.csv
 ```
 
-URL 自动识别提供商，无需 `--provider` 参数：
+URL 自动识别：
 
 | 链接格式 | 自动识别 |
 |---|---|
@@ -81,40 +91,62 @@ URL 自动识别提供商，无需 `--provider` 参数：
 | `pan.baidu.com/s/...` | 百度网盘 |
 | `drive.google.com/file/d/...` | Google Drive |
 | `1drv.ms/...` / `onedrive.live.com/...` | OneDrive |
+| `s3.amazonaws.com/...` 或 presigned URL | S3 |
+
+#### 自动模式 — 直接从存储拉取
+
+传入远程路径（非 URL），配合 `--provider` 指定平台。无需传 URL，适合内部系统对接：
+
+```bash
+qtcloud-data transfer receive /Customers/ABC/data.csv --provider s3
+```
+
+> 自动模式目前仅 S3 支持。网盘类平台（Dropbox、百度等）调用自动模式会提示"不支持自动接收，请提供分享链接"。
 
 ## 示例
 
-### 与客户交换数据
+### 与客户交换数据（手动模式）
 
 ```bash
 # 1. 接收客户发来的文件
-dropbox receive "https://www.dropbox.com/s/xxx/customer_data.csv"
+qtcloud-data transfer receive "https://www.dropbox.com/s/xxx/customer_data.csv"
 
 # 2. 处理...
 
 # 3. 发送结果给客户
-dropbox send ./result.csv --output link.txt
+qtcloud-data transfer send ./result.csv --output link.txt
 # 把 link.txt 里的链接发给客户即可下载
 ```
 
-### 跨网盘传输
+### 内部系统自动传输（自动模式）
+
+```bash
+# 处理结果自动上传到 S3
+qtcloud-data transfer send ./result.csv --provider s3
+
+# 另一端直接拉取（无需传 URL）
+qtcloud-data transfer receive /output/result.csv --provider s3
+```
+
+### 跨平台传输
 
 ```bash
 # 从百度网盘接收
-dropbox receive --provider baidu "https://pan.baidu.com/s/xxx"
+qtcloud-data transfer receive "https://pan.baidu.com/s/xxx"
 
 # 处理后用 Google Drive 发出去
-dropbox send ./result.csv --provider google
+qtcloud-data transfer send ./result.csv --provider google
 ```
 
 ## 支持的平台
 
-| 平台 | `--provider` 值 | 认证方式 |
-|---|---|---|
-| Dropbox | `dropbox`（默认） | OAuth 2.0 token |
-| 百度网盘 | `baidu` | OAuth 2.0 token |
-| Google Drive | `google` | OAuth 2.0 token |
-| OneDrive | `onedrive` | OAuth 2.0 token |
+| 平台 | `--provider` 值 | 认证方式 | 自动接收 |
+|---|---|---|---|
+| Dropbox | `dropbox`（默认） | OAuth 2.0 token | ❌ |
+| 百度网盘 | `baidu` | OAuth 2.0 token | ❌ |
+| Google Drive | `google` | OAuth 2.0 token | ❌ |
+| OneDrive | `onedrive` | OAuth 2.0 token | ❌ |
+| S3 | `s3` | AWS 凭证链 | ✅ |
 
 ## 常见问题
 
@@ -130,3 +162,4 @@ A: 各平台 OAuth 流程：
 - 百度网盘：https://pan.baidu.com/union/ → 创建应用 → OAuth 2.0 授权码流程
 - Google Drive：https://console.cloud.google.com/ → 启用 Drive API → 创建 OAuth 2.0 凭据
 - OneDrive：https://portal.azure.com/ → 注册应用 → 启用 Microsoft Graph API 权限
+- S3：标准 AWS 凭证（环境变量 / ~/.aws/credentials / IAM 角色）

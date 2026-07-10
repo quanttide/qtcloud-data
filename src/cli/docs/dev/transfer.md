@@ -13,11 +13,12 @@ src/
     baidu_drive.rs  # 百度网盘实现
     google_drive.rs # Google Drive 实现
     onedrive.rs     # OneDrive 实现
+    s3.rs           # S3 实现
 ```
 
 ## StorageProvider trait
 
-所有网盘提供商实现 `StorageProvider` trait：
+所有平台提供商实现 `StorageProvider` trait：
 
 ```rust
 #[async_trait]
@@ -25,11 +26,17 @@ pub trait StorageProvider: Send + Sync {
     fn name(&self) -> &'static str;
     async fn send(&self, local_path: &str, remote_path: &str) -> Result<String, String>;
     async fn receive(&self, url: &str, local_path: &str) -> Result<(), String>;
+
+    /// 自动接收：直接从远程路径拉取（S3、SFTP 等支持）
+    async fn receive_path(&self, remote: &str, local: &str) -> Result<(), String> {
+        Err("该平台不支持自动接收，请提供分享链接".to_string())
+    }
 }
 ```
 
-- `send`：上传本地文件到网盘 → 创建分享链接 → 返回可分享的 URL
-- `receive`：从分享链接获取文件 → 下载保存到本地
+- `send`：上传本地文件 → 创建分享链接 → 返回可分享的 URL
+- `receive`：从分享链接下载文件到本地（手动模式）
+- `receive_path`：直接从远程路径拉取（自动模式），S3 等需直接访问权限的平台重写此方法
 
 ## 添加新平台
 
@@ -49,6 +56,12 @@ pub trait StorageProvider: Send + Sync {
 | 百度网盘 | `BAIDU_ACCESS_TOKEN` |
 | Google Drive | `GOOGLE_DRIVE_ACCESS_TOKEN` |
 | OneDrive | `ONEDRIVE_ACCESS_TOKEN` |
+| S3 | `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` |
+
+### 手动模式 vs 自动模式
+
+- **手动模式**：`receive` 传入 URL（以 `http://` 或 `https://` 开头），自动识别提供商。全部平台支持
+- **自动模式**：`receive` 传入远程路径，配合 `--provider` 使用。仅 S3 等有直接访问权限的平台支持。网盘类默认返回错误
 
 ## 测试
 
