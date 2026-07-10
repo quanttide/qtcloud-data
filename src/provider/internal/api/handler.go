@@ -68,6 +68,14 @@ func (h *Handler) TransferReceive(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 }
 
+// GET /version — 版本信息
+func (h *Handler) Version(w http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(w).Encode(map[string]string{
+		"service": "qtcloud-provider",
+		"version": provider.Version,
+	})
+}
+
 // GET /process/jobs — 查看 process 执行记录
 func (h *Handler) ListProcessJobs(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(h.Store.ListJobs())

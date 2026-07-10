@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/quanttide/qtcloud-provider/internal/api"
+	"github.com/quanttide/qtcloud-provider/internal/provider"
 	"github.com/quanttide/qtcloud-provider/internal/store"
 )
 
@@ -20,6 +21,6 @@ func main() {
 	handler := api.Router(s)
 
 	addr := fmt.Sprintf(":%s", port)
-	log.Printf("量潮数据云 Provider 启动: http://localhost%s", addr)
+	log.Printf("量潮数据云 Provider %s 启动: http://localhost%s", provider.Version, addr)
 	log.Fatal(http.ListenAndServe(addr, handler))
 }

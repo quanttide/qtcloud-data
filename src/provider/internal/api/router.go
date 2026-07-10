@@ -14,6 +14,7 @@ func Router(s *store.Store) http.Handler {
 	mux.HandleFunc("POST /transfer/send", h.TransferSend)
 	mux.HandleFunc("POST /transfer/receive", h.TransferReceive)
 	mux.HandleFunc("GET /process/jobs", h.ListProcessJobs)
+	mux.HandleFunc("GET /version", h.Version)
 
 	return mux
 }
