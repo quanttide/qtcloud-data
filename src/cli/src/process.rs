@@ -25,7 +25,8 @@ pub fn run(args: &ProcessArgs) {
     };
 
     let qtdata = std::env::var("QTDATA_CLI").unwrap_or_else(|_| "qtcloud-data".to_string());
-    let work_dir = std::env::var("WORKDIR").unwrap_or_else(|_| ".quanttide/data/work".to_string());
+    let work_dir = std::env::temp_dir().join("qtcloud-data");
+    let work_dir = work_dir.to_string_lossy().to_string();
     let customer_dir = format!("{}/{}", work_dir, args.customer_id);
     std::fs::create_dir_all(&customer_dir).expect("创建工作目录失败");
 
@@ -86,7 +87,8 @@ pub fn run(args: &ProcessArgs) {
 }
 
 fn resolve_blueprint_pipeline(name: &str) -> String {
-    let dir = std::env::var("BLUEPRINTS_DIR").unwrap_or_else(|_| ".quanttide/data/blueprints".to_string());
+    let dir = std::env::var("BLUEPRINTS_DIR")
+        .unwrap_or_else(|_| ".quanttide/data/blueprints".to_string());
     let key = to_camel(name);
     let output = Command::new("cue")
         .args([
