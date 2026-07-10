@@ -1,1 +1,0 @@
-/home/iguo/repos/quanttide/domains/quanttide-data/apps/qtcloud-data/src/cli/target/debug/qtcloud-data: /home/iguo/repos/quanttide/domains/quanttide-data/apps/qtcloud-data/src/cli/src/dropbox.rs /home/iguo/repos/quanttide/domains/quanttide-data/apps/qtcloud-data/src/cli/src/main.rs /home/iguo/repos/quanttide/domains/quanttide-data/apps/qtcloud-data/src/cli/src/transfer.rs

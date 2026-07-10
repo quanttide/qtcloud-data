@@ -8,4 +8,5 @@ __pycache__/
 *.pyc
 
 
+target/
 .DS_Store
