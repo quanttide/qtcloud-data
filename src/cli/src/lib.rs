@@ -1,4 +1,5 @@
 pub mod blueprint;
+pub mod blueprint_core;
 pub mod catalog;
 pub mod contract;
 pub mod pipeline;

@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## [0.1.0-alpha.1] - 2026-07-17
+
+### Added
+- `blueprint review` — 审计已有 Blueprint，LLM 输出结构化问题清单
+- `blueprint design new` — 生成 .md Blueprint 模板
+- `blueprint design edit` — 编辑已有 .md Blueprint
+- `blueprint formalize` — Markdown → LLM → CUE 形式化
+- `blueprint preview` — CUE → HTML 可视化渲染
+- `blueprint version list|show|diff` — git-based 版本管理
+
+### Changed
+- Blueprint 模块拆分为纯逻辑层 `blueprint_core` 与 I/O 薄壳层
+- LLM 调用统一走 `quanttide-agent` 接口
+
+### Added (dependencies)
+- `quanttide-data-core` — Blueprint 数据模型 + CUE 解析器
+- `quanttide-agent` — LLM 统一接口
+
 ## [0.0.5] - 2026-07-10
 
 ### Changed
