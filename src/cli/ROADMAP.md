@@ -48,3 +48,28 @@ review → design → formalize → preview → version
 ### LLM 接入
 
 CLI 通过 `quanttide-agent` 统一接口调用 LLM，AI 直接读 `quanttide-agent-toolkit` 源码理解调用方式。环境变量 `LLM_API_KEY` 配置 API key。
+
+---
+
+## 版本目标
+
+### v0.1.0 — 能用（今晚）
+
+**交付标准**：
+- 五个命令全部实现：review / design / formalize / preview / version
+- 至少一个项目（GHTorrent）能跑通 review → version 全流程
+- `cargo build && cargo test && cargo clippy && cargo fmt --check` 全通过
+- 覆盖率：cli ≥80%, toolkit ≥95%
+- 发 alpha 迭代 → 稳定后发 beta.1
+
+**做不到的标准**：干到干不动就收工，版本号记录当前进度即可。卡住了摇果总。
+
+### v0.5.0 — 好用
+
+**交付标准**：
+- 能把零零散散、各个时期、各种版本的 Blueprint 规范到统一格式
+- 新人能通过这个工具快速吸收历史海量项目经验
+- review 命令能自动发现跨项目的不一致模式
+- 成为团队日常的数据蓝图治理工具
+
+**当前位置**：v0.0.5 → 冲向 v0.1.0
