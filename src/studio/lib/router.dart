@@ -4,6 +4,7 @@ import 'screens/transfer.dart';
 import 'screens/jobs.dart';
 import 'screens/pipelines.dart';
 import 'screens/blueprints.dart';
+import 'screens/blueprint_detail.dart';
 import 'screens/contracts.dart';
 import 'widgets/layout.dart';
 
@@ -22,6 +23,14 @@ final GoRouter router = GoRouter(
         GoRoute(
           path: '/blueprints',
           builder: (_, __) => const BlueprintsScreen(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              builder: (_, state) => BlueprintDetailScreen(
+                id: state.pathParameters['id']!,
+              ),
+            ),
+          ],
         ),
         GoRoute(
           path: '/contracts',

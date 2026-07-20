@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>量潮数据云 — Blueprint 预览</title>
+<style>
+  :root {
+    --primary: #2697FF;
+    --secondary: #2A2D3E;
+    --bg: #212332;
+    --text: #e0e0e0;
+    --muted: #9e9e9e;
+    --orange: #ff9800;
+    --green: #4caf50;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); display: flex; min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 200px; background: var(--secondary); padding: 24px 0; flex-shrink: 0;
+    display: flex; flex-direction: column;
+  }
+  .sidebar-title { font-size: 16px; font-weight: bold; padding: 0 16px; margin-bottom: 24px; }
+  .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px; }
+  .sidebar-item {
+    padding: 10px 16px; font-size: 14px; color: rgba(255,255,255,0.55); cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sidebar-item.active { color: var(--primary); }
+  .sidebar-item:hover { background: rgba(255,255,255,0.05); }
+  .sidebar-item .icon { width: 20px; text-align: center; font-size: 16px; }
+  .sidebar-footer { margin-top: auto; padding: 12px 16px; font-size: 12px; color: #666; }
+  .sidebar-footer .divider { border-top: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px; }
+
+  /* Main area */
+  .main { flex: 1; padding: 24px; overflow-y: auto; min-width: 0; }
+
+  /* Utility */
+  .card { background: var(--secondary); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+  .section-title { font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: #fff; }
+  .section-title .icon { color: var(--primary); font-size: 20px; }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 12px;
+    background: rgba(38,151,255,0.2); color: var(--primary);
+    font-size: 13px; font-weight: 600;
+  }
+  .page-title { font-size: 22px; font-weight: bold; margin-bottom: 24px; }
+
+  /* List cards */
+  .bp-card {
+    background: var(--secondary); border-radius: 12px; padding: 16px; margin-bottom: 12px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .bp-card:hover { background: #353849; }
+  .bp-card-name { font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+  .bp-card-row { display: flex; padding: 2px 0; font-size: 13px; }
+  .bp-card-label { width: 60px; color: var(--muted); flex-shrink: 0; }
+
+  /* Detail header */
+  .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .detail-header h1 { font-size: 22px; font-weight: bold; }
+  .back-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 4px; }
+  .back-btn:hover { text-decoration: underline; }
+
+  /* Two-column */
+  .two-col { display: flex; gap: 16px; margin-bottom: 24px; }
+  .two-col > * { flex: 1; min-width: 0; }
+  .sub-card { background: var(--secondary); border-radius: 12px; padding: 16px; }
+  .sub-card-header { font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .sub-card-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin-bottom: 16px; }
+
+  .field-row { margin-bottom: 16px; }
+  .field-name { font-size: 14px; font-weight: 600; font-family: monospace; }
+  .field-type { display: inline-block; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08); font-size: 11px; color: rgba(255,255,255,0.5); margin-left: 8px; }
+  .field-meaning { font-size: 13px; color: rgba(255,255,255,0.7); margin: 4px 0 2px; }
+  .field-constraint { font-size: 12px; color: rgba(255,152,0,0.8); }
+  .field-commitment { font-size: 12px; color: rgba(76,175,80,0.8); }
+
+  .warning-box {
+    background: rgba(255,152,0,0.08); border: 1px solid rgba(255,152,0,0.25);
+    border-radius: 8px; padding: 12px; display: flex; gap: 8px; font-size: 13px; color: var(--orange);
+  }
+
+  /* Timeline */
+  .timeline-step { display: flex; gap: 12px; margin-bottom: 24px; }
+  .timeline-indicator { width: 40px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+  .timeline-dot {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: bold; color: #fff; flex-shrink: 0;
+  }
+  .timeline-line { width: 2px; flex: 1; background: rgba(38,151,255,0.3); margin: 4px 0; }
+  .timeline-content { background: var(--secondary); border-radius: 12px; padding: 16px; flex: 1; margin-top: 0; }
+  .timeline-content .step-title { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
+  .step-detail { display: flex; gap: 4px; font-size: 13px; margin-bottom: 4px; line-height: 1.5; }
+  .step-detail .label { color: rgba(255,255,255,0.35); width: 42px; flex-shrink: 0; }
+
+  /* Description text */
+  .desc { font-size: 14px; line-height: 1.7; }
+  .hint { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+
+  @media (max-width: 768px) {
+    .two-col { flex-direction: column; }
+    .sidebar { width: 60px; }
+    .sidebar-title, .sidebar-item span:not(.icon), .sidebar-footer { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-title">量潮数据云</div>
+  <hr class="sidebar-divider">
+  <div class="sidebar-item"><span class="icon">📊</span> <span>总览</span></div>
+  <div class="sidebar-item"><span class="icon">🔄</span> <span>传输</span></div>
+  <div class="sidebar-item"><span class="icon">📋</span> <span>执行记录</span></div>
+  <div class="sidebar-item"><span class="icon">🌲</span> <span>管道</span></div>
+  <div class="sidebar-item active"><span class="icon">🗺️</span> <span>蓝图</span></div>
+  <div class="sidebar-item"><span class="icon">📄</span> <span>契约</span></div>
+  <div class="sidebar-footer">
+    <div class="divider"></div>
+    v0.1.0-alpha
+  </div>
+</nav>
+
+<!-- Main content: page switching via JS -->
+<div class="main" id="app"></div>
+
+<script>
+const blueprints = {
+  'csv-standard': {
+    id: 'csv-standard',
+    name: '客户画像标准化方案',
+    version: 'v1.2',
+    description: '将多源原始客户数据清洗、标准化，输出统一的用户画像格式，确保数据质量符合下游分析要求。',
+    inputs: [
+      { name: 'raw_user_id', type: '文本', meaning: '原始用户标识', constraint: '必填，不可全数字' },
+      { name: 'raw_age', type: '数字', meaning: '原始年龄', constraint: '必填，范围 0-120' },
+      { name: 'raw_gender', type: '文本', meaning: '原始性别', constraint: '必填，枚举值 [M, F]' },
+      { name: 'raw_date', type: '日期', meaning: '注册日期', constraint: '必填，格式 YYYY-MM-DD' }
+    ],
+    outputs: [
+      { name: 'standard_user_id', type: '文本', meaning: '标准化用户标识', commitment: '去重，非空，长度固定 16 位' },
+      { name: 'age_group', type: '文本', meaning: '年龄段', commitment: '枚举值 [18-25, 26-35, 36-45, 46+]' },
+      { name: 'gender_full', type: '文本', meaning: '性别全称', commitment: '枚举值 [男, 女]，空值率 < 1%' },
+      { name: 'register_quarter', type: '文本', meaning: '注册季度', commitment: '格式 YYYY-QX，去重率 100%' }
+    ],
+    steps: [
+      { number: 1, name: '数据格式与完整性校验', logic: '检查必填字段是否为空，验证日期/数字格式是否合规。', action: '不合规的记录将被剔除并记录在《异常数据报告》中。' },
+      { number: 2, name: '缺失值与异常值处理', logic: '对于年龄为负数或大于 120 的记录，标记为异常并置空。', action: '确保进入下一步的数据在逻辑上是合理的。' },
+      { number: 3, name: '字段标准化映射', logic: '将性别缩写 (M/F) 统一转换为全称 (男/女)，将连续的年龄数值映射为年龄段。', action: '如 28 岁映射为 "26-35"，M 映射为 "男"。' },
+      { number: 4, name: '去重与最终封装', logic: '基于 standard_user_id 进行去重，保留最新记录。', action: '生成最终符合输出规格的交付文件。' }
+    ]
+  },
+  'survey-clean': {
+    id: 'survey-clean',
+    name: '问卷清洗',
+    version: 'v1.0',
+    description: '对原始问卷数据进行清洗和结构化处理，去除无效回答，标准化字段格式，输出可直接用于分析的结构化数据集。',
+    inputs: [
+      { name: 'respondent_id', type: '文本', meaning: '受访者编号', constraint: '必填，唯一标识' },
+      { name: 'answer_text', type: '文本', meaning: '开放题回答', constraint: '必填，不超过 5000 字符' },
+      { name: 'choice_ids', type: '文本', meaning: '选择题选项', constraint: '必填，逗号分隔的数字列表' },
+      { name: 'submit_time', type: '日期时间', meaning: '提交时间', constraint: '必填，ISO 8601 格式' }
+    ],
+    outputs: [
+      { name: 'clean_respondent_id', type: '文本', meaning: '清洗后受访者编号', commitment: '去重，非空' },
+      { name: 'answer_tokens', type: '文本数组', meaning: '分词结果', commitment: '已去停用词，空值率 < 5%' },
+      { name: 'choice_labels', type: '文本数组', meaning: '选项标签', commitment: '已映射为可读文本' },
+      { name: 'duration_minutes', type: '数字', meaning: '答题时长(分钟)', commitment: '非负，异常值已剔除' }
+    ],
+    steps: [
+      { number: 1, name: '问卷完整性检查', logic: '检查每份问卷的必答题是否全部作答，筛除答题时长异常的记录。', action: '不合格问卷标记为无效，不进入后续处理。' },
+      { number: 2, name: '开放题文本清洗', logic: '对开放题回答进行分词、去停用词处理。', action: '生成标准化的词条列表。' },
+      { number: 3, name: '选择题选项映射', logic: '将选项 ID 映射为对应的标签文本。', action: '便于分析人员直接阅读。' },
+      { number: 4, name: '输出格式化', logic: '汇总所有清洗后的字段，生成最终数据集。', action: '附带数据质量报告。' }
+    ]
+  }
+};
+
+function renderList() {
+  document.getElementById('app').innerHTML = `
+    <h1 class="page-title">蓝图</h1>
+    ${Object.values(blueprints).map(bp => `
+      <div class="bp-card" onclick="renderDetail('${bp.id}')">
+        <div class="bp-card-name">${bp.name}</div>
+        <div class="bp-card-row"><span class="bp-card-label">契约</span><span>input: CSV → output: CSV + 元数据</span></div>
+        <div class="bp-card-row"><span class="bp-card-label">管道</span><span>csv-standard</span></div>
+        <div class="bp-card-row"><span class="bp-card-label">验收</span><span>4 条验收规则</span></div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function renderDetail(id) {
+  const bp = blueprints[id];
+  if (!bp) { renderList(); return; }
+
+  document.getElementById('app').innerHTML = `
+    <div class="detail-header">
+      <button class="back-btn" onclick="renderList()">← 返回列表</button>
+      <h1>${bp.name}</h1>
+      <span class="badge">${bp.version}</span>
+    </div>
+
+    <!-- Module 1: Summary -->
+    <div class="card">
+      <div class="section-title"><span class="icon">📝</span> 方案概要</div>
+      <div class="desc">${bp.description}</div>
+    </div>
+
+    <!-- Module 2: Contract comparison -->
+    <div class="section-title"><span class="icon">🔄</span> 数据交接规格</div>
+    <div class="two-col">
+      <div class="sub-card">
+        <div class="sub-card-header" style="color: var(--orange);">📥 您需提供的数据（输入）</div>
+        <hr class="sub-card-divider">
+        ${bp.inputs.map(f => `
+          <div class="field-row">
+            <div class="field-name">${f.name}<span class="field-type">${f.type}</span></div>
+            <div class="field-meaning">${f.meaning}</div>
+            <div class="field-constraint">约束条件: ${f.constraint}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-header" style="color: var(--green);">📤 我们将交付的数据（输出）</div>
+        <hr class="sub-card-divider">
+        ${bp.outputs.map(f => `
+          <div class="field-row">
+            <div class="field-name">${f.name}<span class="field-type">${f.type}</span></div>
+            <div class="field-meaning">${f.meaning}</div>
+            <div class="field-commitment">质量承诺: ${f.commitment}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="warning-box" style="margin-top: -8px; margin-bottom: 24px;">
+      ⚠️ 请确保输入数据符合上述规格，否则可能导致处理异常或延迟交付。
+    </div>
+
+    <!-- Module 3: Process timeline -->
+    <div class="section-title"><span class="icon">⚙️</span> 处理过程详解（透明化业务流）</div>
+    <div class="hint">我们将严格按照以下步骤处理您的数据：</div>
+    ${bp.steps.map((s, i) => `
+      <div class="timeline-step">
+        <div class="timeline-indicator">
+          <div class="timeline-dot">${s.number}</div>
+          ${i < bp.steps.length - 1 ? '<div class="timeline-line"></div>' : ''}
+        </div>
+        <div class="timeline-content">
+          <div class="step-title">步骤 ${s.number}：${s.name}</div>
+          <div class="step-detail"><span class="label">逻辑:</span><span>${s.logic}</span></div>
+          <div class="step-detail"><span class="label">动作:</span><span>${s.action}</span></div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+// Start on list page
+renderList();
+</script>
+
+</body>
+</html>

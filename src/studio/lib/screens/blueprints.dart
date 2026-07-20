@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../theme.dart';
 
 class BlueprintsScreen extends StatelessWidget {
@@ -14,6 +15,7 @@ class BlueprintsScreen extends StatelessWidget {
           Text('蓝图', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 24),
           _Card(
+            id: 'csv-standard',
             name: 'CSV 数据标准化',
             contract: 'input: CSV → output: CSV + 元数据',
             pipeline: 'csv-standard',
@@ -21,6 +23,7 @@ class BlueprintsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _Card(
+            id: 'survey-clean',
             name: '问卷清洗',
             contract: 'input: 原始问卷 → output: 清洗后问卷',
             pipeline: 'csv-standard',
@@ -33,11 +36,13 @@ class BlueprintsScreen extends StatelessWidget {
 }
 
 class _Card extends StatelessWidget {
+  final String id;
   final String name;
   final String contract;
   final String pipeline;
   final String rules;
   const _Card({
+    required this.id,
     required this.name,
     required this.contract,
     required this.pipeline,
@@ -48,20 +53,24 @@ class _Card extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: secondaryColor,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              name,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _Row('契约', contract),
-            _Row('管道', pipeline),
-            _Row('验收', rules),
-          ],
+      child: InkWell(
+        onTap: () => context.push('/blueprints/$id'),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              _Row('契约', contract),
+              _Row('管道', pipeline),
+              _Row('验收', rules),
+            ],
+          ),
         ),
       ),
     );
