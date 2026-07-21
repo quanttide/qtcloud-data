@@ -26,6 +26,20 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Setup dependencies
+        run: |
+          # Create the expected parent directory structure for path deps
+          # path = "../../../../packages/..." from src/cli/ means:
+          #   .. = src/, ../.. = repo root, ../../.. = parent, ../../../.. = grandparent
+          GRANDPARENT=$(cd .. && pwd)/..
+          mkdir -p "$GRANDPARENT/packages"
+          cd "$GRANDPARENT/packages"
+          git clone https://github.com/quanttide/quanttide-agent-toolkit.git --depth 1
+          git clone https://github.com/quanttide/quanttide-data-toolkit.git --depth 1
+        shell: bash
 
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
