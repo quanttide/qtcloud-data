@@ -7,57 +7,38 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-          - target: x86_64-apple-darwin
-            os: macos-latest
-          - target: aarch64-apple-darwin
-            os: macos-latest
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-
-    runs-on: ${{ matrix.os }}
-
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
 
       - name: Patch path deps to git deps
         run: |
-          python3 -c "
-          import re
-          c = open('src/cli/Cargo.toml').read()
-          c = re.sub(r'quanttide-agent = \{ path = \"[^\"]+\" \}', 'quanttide-agent = { git = \"https://github.com/quanttide/quanttide-agent-toolkit.git\" }', c)
-          c = re.sub(r'quanttide-data-core = \{ path = \"[^\"]+\" \}', 'quanttide-data-core = { git = \"https://github.com/quanttide/quanttide-data-toolkit.git\" }', c)
-          open('src/cli/Cargo.toml','w').write(c)
-          "
+          # Path deps don't work in CI. Replace with git deps.
+          # Note: git deps require Cargo.toml at repo root, not in subdirectory.
+          # As a workaround, clone the deps into the expected relative path.
+          # path = "../../../../packages/..." from src/cli/
+          # In CI runner: checkout = /home/runner/work/qtcloud-data/qtcloud-data
+          # ../../../../ from src/cli = /home/runner/work/packages/
+          mkdir -p /home/runner/work/packages
+          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit
+          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit
+          # Verify
+          ls /home/runner/work/packages/quanttide-agent-toolkit/packages/rust/Cargo.toml
+          ls /home/runner/work/packages/quanttide-data-toolkit/packages/rust/Cargo.toml
 
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release
         working-directory: src/cli
 
-      - name: Package (Unix)
-        if: matrix.os != 'windows-latest'
+      - name: Package
         run: |
-          cd target/${{ matrix.target }}/release
-          tar czf ../../../qtcloud-data-${{ matrix.target }}.tar.gz qtcloud-data
-
-      - name: Package (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          cd target/${{ matrix.target }}/release
-          7z a ../../../qtcloud-data-${{ matrix.target }}.zip qtcloud-data.exe
+          cd target/release
+          tar czf ../../qtcloud-data-x86_64-linux.tar.gz qtcloud-data
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            qtcloud-data-*.tar.gz
-            qtcloud-data-*.zip
+          files: qtcloud-data-x86_64-linux.tar.gz
