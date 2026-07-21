@@ -229,7 +229,7 @@ class _Header extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: primaryColor.withValues(alpha: 0.2),
+            color: primaryColor.withOpacity(0.2),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -292,9 +292,9 @@ class _ModuleTwo extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.1),
+            color: Colors.orange.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            border: Border.all(color: Colors.orange.withOpacity(0.3)),
           ),
           child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,7 +389,7 @@ class _FieldRow extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             '$hint: $constraintOrCommitment',
-            style: TextStyle(fontSize: 12, color: field is InputField ? Colors.orange.withValues(alpha: 0.8) : Colors.green.withValues(alpha: 0.8)),
+            style: TextStyle(fontSize: 12, color: field is InputField ? Colors.orange.withOpacity(0.8) : Colors.green.withOpacity(0.8)),
           ),
         ],
       ),
@@ -451,7 +451,7 @@ class _TimelineStep extends StatelessWidget {
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: primaryColor.withValues(alpha: 0.4),
+                      color: primaryColor.withOpacity(0.4),
                     ),
                   ),
               ],
