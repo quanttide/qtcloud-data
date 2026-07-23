@@ -234,18 +234,43 @@ fn read_drd(input: &str) -> String {
 }
 
 /// Split LLM response into CUE and Markdown parts.
-/// Expects `---` as separator between .cue and .md sections.
+/// Expects `---` as separator. Strips markdown code blocks from CUE part.
 fn split_cue_md(response: &str) -> (String, String) {
-    if let Some(pos) = response.find("\n---\n") {
-        let cue = response[..pos].trim().to_string();
-        let md = response[pos + 5..].trim().to_string();
+    // First, strip markdown code blocks from the response
+    let cleaned = strip_markdown_fences(response);
+
+    if let Some(pos) = cleaned.find("\n---\n") {
+        let cue = cleaned[..pos].trim().to_string();
+        let md = cleaned[pos + 5..].trim().to_string();
         (cue, md)
-    } else if let Some(pos) = response.find("---") {
-        let cue = response[..pos].trim().to_string();
-        let md = response[pos + 3..].trim().to_string();
+    } else if let Some(pos) = cleaned.find("---") {
+        let cue = cleaned[..pos].trim().to_string();
+        let md = cleaned[pos + 3..].trim().to_string();
         (cue, md)
     } else {
-        // No separator: return entire response as both
-        (response.to_string(), response.to_string())
+        (cleaned.to_string(), cleaned.to_string())
+    }
+}
+
+/// Strip ```cue / ```yaml / ``` from the beginning and ``` from the end of text.
+fn strip_markdown_fences(text: &str) -> String {
+    let trimmed = text.trim();
+    // Strip opening fence: ```cue, ```yaml, ```json, ```
+    let after_open = if let Some(rest) = trimmed
+        .strip_prefix("```cue")
+        .or_else(|| trimmed.strip_prefix("```CUE"))
+        .or_else(|| trimmed.strip_prefix("```yaml"))
+        .or_else(|| trimmed.strip_prefix("```json"))
+        .or_else(|| trimmed.strip_prefix("```"))
+    {
+        rest.trim_start()
+    } else {
+        trimmed
+    };
+    // Strip closing fence: ``` at end
+    if let Some(cleaned) = after_open.strip_suffix("```") {
+        cleaned.trim_end().to_string()
+    } else {
+        after_open.to_string()
     }
 }

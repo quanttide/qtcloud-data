@@ -443,35 +443,105 @@ pub fn design_contract_prompt(drd: &str) -> String {
     format!(
         r#"你是一个数据工程规格设计师。请根据以下数据需求文档（DRD），生成数据契约（Contract）。
 
-Contract 定义数据的输入输出结构约束，包含：
+Contract 定义数据的输入输出结构约束。你必须输出以下 CUE 结构：
 
-1. **输入契约**（客户需要提供什么数据）：
-   - 字段名、数据类型、业务含义、约束条件（必填/格式/枚举值）
+CUE 骨架（严格按此结构填充，不要增删字段）:
 
-2. **输出契约**（我们将交付什么数据）：
-   - 字段名、数据类型、业务含义、质量承诺
+package spec
 
-输出格式：先输出 .cue 格式的结构化定义（package spec），再输出 .md 格式的人类可读版本。两者之间用 `---` 分隔。
+#Contract: {{
+    schema: string     // 数据结构的自然语言描述
+    format?: string    // 数据格式，如 "CSV"、"JSON"、"Parquet"
+    rules?: [...string] // 数据质量规则列表
+}}
+
+myContract: #Contract & {{
+    schema: "输入数据的 schema 描述"
+    format: "数据格式"
+    rules: ["规则1", "规则2"]
+}}
+
+然后在分隔线 `---` 之后，输出面向客户的 Markdown 说明：
+- 输入契约：客户需要提供什么数据（字段、类型、约束）
+- 输出契约：我们将交付什么数据（字段、类型、质量承诺）
+
+注意：
+- 不要用 markdown 代码块包裹 CUE，直接输出原始文本
+- .cue 和 .md 两部分之间用单独一行的 `---` 分隔
+- 只输出 CUE 和 Markdown，不要输出任何解释文字
 
 DRD:
 {drd}"#
     )
 }
 
-/// Build the design-blueprint prompt: DRD → Blueprint (.cue + .md + .html).
+/// Build the design-blueprint prompt: DRD → Blueprint (.cue + .md).
 pub fn design_blueprint_prompt(drd: &str) -> String {
     format!(
         r#"你是一个数据工程规格设计师。请根据以下数据需求文档（DRD），生成处理蓝图（Blueprint）。
 
-Blueprint 定义数据处理的工作流步骤，包含：
+你必须输出以下 CUE 结构。严格按此结构填充，字段名必须完全一致：
 
-1. **步骤名称**：简洁描述这一步骤做什么
-2. **输入（from）**：数据从哪里来
-3. **输出（to）**：数据到哪里去
-4. **处理逻辑**：用业务语言描述具体做什么操作
-5. **依赖（depends）**：依赖前面哪几个步骤
+CUE 骨架:
 
-输出格式：先输出 .cue 格式的结构化定义（package spec），再输出 .md 格式的人类可读版本。两者之间用 `---` 分隔。
+package spec
+
+#Step: {{
+    name:    string        // 步骤名称
+    from:    string        // 数据从哪里来
+    to:      string        // 处理后的数据到哪里去
+    desc:    string        // 业务逻辑说明
+    depends?: [...string]  // 依赖的前置步骤名（可选）
+}}
+
+#Pipeline: {{
+    name:  string
+    steps: [...#Step]
+}}
+
+#Blueprint: {{
+    name:        string           // 蓝图名称
+    description?: string          // 业务描述
+    contract: {{
+        input: #Contract
+        output: #Contract
+    }}
+    pipeline: #Pipeline
+    status:     "draft" | "submitted" | "confirmed" | "rejected"
+    created_at: string
+    updated_at: string
+}}
+
+myBlueprint: #Blueprint & {{
+    name: "项目名称"
+    description: "业务描述"
+    contract: {{
+        input:  {{ schema: "输入数据描述", format: "CSV" }}
+        output: {{ schema: "输出数据描述", format: "CSV", rules: ["规则"] }}
+    }}
+    pipeline: {{
+        name: "处理管道"
+        steps: [
+            {{
+                name: "步骤1-名称"
+                from: "原始数据"
+                to:   "处理后数据"
+                desc: "这一步做什么操作"
+            }},
+        ]
+    }}
+    status: "draft"
+    created_at: "2026-07-23T00:00:00+00:00"
+    updated_at: "2026-07-23T00:00:00+00:00"
+}}
+
+然后在分隔线 `---` 之后，输出面向客户的 Markdown 说明，解释每个步骤的业务逻辑。
+
+注意：
+- 不要用 markdown 代码块包裹 CUE，直接输出原始文本
+- .cue 和 .md 两部分之间用单独一行的 `---` 分隔
+- Step 的字段名是 name/from/to/desc/depends，不要用其他名字
+- 只输出 CUE 和 Markdown，不要输出任何解释文字
 
 DRD:
 {drd}"#
