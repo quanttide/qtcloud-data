@@ -480,7 +480,7 @@ pub fn contract_tables_to_cue(md_tables: &str) -> (String, String) {
     let cue = format!(
         r#"package spec
 
-myContract: {{
+{{
     input: {{
         schema: "{}"
         format: "CSV"
@@ -611,7 +611,7 @@ pub fn blueprint_table_to_cue(md_table: &str, project_name: &str) -> (String, St
     let cue = format!(
         r#"package spec
 
-myBlueprint: {{
+{{
     name: "{name}"
     description: "从 DRD 自动生成的 Blueprint"
     pipeline: {{
