@@ -474,13 +474,7 @@ pub fn contract_tables_to_cue(md_tables: &str) -> (String, String) {
     let cue = format!(
         r#"package spec
 
-#Contract: {{
-    schema: string
-    format: string
-    rules?: [...string]
-}}
-
-myContract: #Contract & {{
+myContract: {{
     input: {{
         schema: "{}"
         format: "CSV"
@@ -610,19 +604,6 @@ pub fn blueprint_table_to_cue(md_table: &str, project_name: &str) -> (String, St
 
     let cue = format!(
         r#"package spec
-
-#Step: {{
-    name:    string
-    from:    string
-    to:      string
-    desc:    string
-    depends: [...string]
-}}
-
-#Pipeline: {{
-    name:  string
-    steps: [...#Step]
-}}
 
 myBlueprint: {{
     name: "{name}"
