@@ -503,9 +503,11 @@ pub fn contract_tables_to_cue(md_tables: &str) -> (String, String) {
 fn parse_md_table(text: &str, section: &str) -> Vec<Vec<String>> {
     let mut rows = Vec::new();
     let mut in_section = false;
+    let mut found_section = false;
     for line in text.lines() {
         if line.contains(section) {
             in_section = true;
+            found_section = true;
             continue;
         }
         if in_section && line.starts_with('|') && !line.contains("---") && !line.contains("字段名") {
@@ -519,6 +521,20 @@ fn parse_md_table(text: &str, section: &str) -> Vec<Vec<String>> {
         }
         if in_section && line.starts_with("##") {
             in_section = false;
+        }
+    }
+    // Fallback: if section header not found, parse all | lines as table data
+    if !found_section {
+        for line in text.lines() {
+            if line.starts_with('|') && !line.contains("---") && !line.contains("字段名") {
+                let cells: Vec<String> = line.split('|')
+                    .map(|c| c.trim().to_string())
+                    .filter(|c| !c.is_empty())
+                    .collect();
+                if !cells.is_empty() {
+                    rows.push(cells);
+                }
+            }
         }
     }
     rows
