@@ -476,7 +476,7 @@ pub fn contract_tables_to_cue(md_tables: &str) -> (String, String) {
 
 #Contract: {{
     schema: string
-    format?: string
+    format: string
     rules?: [...string]
 }}
 
@@ -616,7 +616,7 @@ pub fn blueprint_table_to_cue(md_table: &str, project_name: &str) -> (String, St
     from:    string
     to:      string
     desc:    string
-    depends?: [...string]
+    depends: [...string]
 }}
 
 #Pipeline: {{
