@@ -82,6 +82,11 @@ Blueprint:
 
 /// Build the formalize prompt for LLM.
 pub fn formalize_prompt(md: &str) -> String {
+    design_formalize_prompt(md)
+}
+
+/// (v0.2.0) Formalize prompt — same logic, renamed under design namespace.
+pub fn design_formalize_prompt(md: &str) -> String {
     format!(
         r#"你是一个 CUE 语言专家。请将以下 Blueprint Markdown 文档形式化为 CUE 格式。
 
@@ -378,8 +383,142 @@ mod tests {
 
     #[test]
     fn test_blueprint_dir_default() {
-        // Without env var set, returns default
         let dir = blueprint_dir();
         assert_eq!(dir, ".quanttide/data/blueprint");
+    }
+}
+
+// ── v0.2.0: 新框架目录 ──
+
+/// Get the DRD directory (Data Requirements Document).
+pub fn drd_dir() -> String {
+    std::env::var("DRD_DIR").unwrap_or_else(|_| ".quanttide/data/drd".to_string())
+}
+
+/// Get the Specification directory.
+pub fn spec_dir() -> String {
+    std::env::var("SPEC_DIR").unwrap_or_else(|_| ".quanttide/data/spec".to_string())
+}
+
+// ── v0.2.0: clarify prompt ──
+
+/// Build the clarify prompt for LLM: convert chat logs into a DRD.
+pub fn clarify_prompt(chat: &str) -> String {
+    format!(
+        r#"你是一个数据工程需求分析师。请从以下客户聊天记录中，提取并生成一份数据需求文档（DRD）。
+
+DRD 是面向客户沟通用的，用业务语言撰写。包含以下章节：
+
+# <项目名称>
+
+## 1. 业务背景
+- 客户是谁，做什么业务
+- 当前面临什么问题
+
+## 2. 数据来源
+- 客户能提供什么数据（格式、大致规模、更新频率）
+- 是否有样例数据
+
+## 3. 期望产出
+- 客户希望最终拿到什么（报表？数据集？API？）
+- 对产出格式有什么偏好
+
+## 4. 约束与要求
+- 时间要求
+- 安全/合规要求
+- 其他特殊要求
+
+## 5. 待确认事项
+- 哪些信息客户还没说清楚，需要后续确认
+
+聊天记录:
+{chat}"#
+    )
+}
+
+// ── v0.2.0: design prompts ──
+
+/// Build the design-contract prompt: DRD → Contract (.cue + .md).
+pub fn design_contract_prompt(drd: &str) -> String {
+    format!(
+        r#"你是一个数据工程规格设计师。请根据以下数据需求文档（DRD），生成数据契约（Contract）。
+
+Contract 定义数据的输入输出结构约束，包含：
+
+1. **输入契约**（客户需要提供什么数据）：
+   - 字段名、数据类型、业务含义、约束条件（必填/格式/枚举值）
+
+2. **输出契约**（我们将交付什么数据）：
+   - 字段名、数据类型、业务含义、质量承诺
+
+输出格式：先输出 .cue 格式的结构化定义（package spec），再输出 .md 格式的人类可读版本。两者之间用 `---` 分隔。
+
+DRD:
+{drd}"#
+    )
+}
+
+/// Build the design-blueprint prompt: DRD → Blueprint (.cue + .md + .html).
+pub fn design_blueprint_prompt(drd: &str) -> String {
+    format!(
+        r#"你是一个数据工程规格设计师。请根据以下数据需求文档（DRD），生成处理蓝图（Blueprint）。
+
+Blueprint 定义数据处理的工作流步骤，包含：
+
+1. **步骤名称**：简洁描述这一步骤做什么
+2. **输入（from）**：数据从哪里来
+3. **输出（to）**：数据到哪里去
+4. **处理逻辑**：用业务语言描述具体做什么操作
+5. **依赖（depends）**：依赖前面哪几个步骤
+
+输出格式：先输出 .cue 格式的结构化定义（package spec），再输出 .md 格式的人类可读版本。两者之间用 `---` 分隔。
+
+DRD:
+{drd}"#
+    )
+}
+
+#[cfg(test)]
+mod tests_v020 {
+    use super::*;
+
+    #[test]
+    fn test_drd_dir_default() {
+        assert_eq!(drd_dir(), ".quanttide/data/drd");
+    }
+
+    #[test]
+    fn test_spec_dir_default() {
+        assert_eq!(spec_dir(), ".quanttide/data/spec");
+    }
+
+    #[test]
+    fn test_clarify_prompt_contains_sections() {
+        let prompt = clarify_prompt("客户是做电商的，需要清洗订单数据");
+        assert!(prompt.contains("业务背景"));
+        assert!(prompt.contains("数据来源"));
+        assert!(prompt.contains("期望产出"));
+        assert!(prompt.contains("约束与要求"));
+        assert!(prompt.contains("待确认事项"));
+        assert!(prompt.contains("客户是做电商的"));
+    }
+
+    #[test]
+    fn test_design_contract_prompt() {
+        let prompt = design_contract_prompt("客户需要用户画像数据");
+        assert!(prompt.contains("package spec"));
+        assert!(prompt.contains("输入契约"));
+        assert!(prompt.contains("输出契约"));
+        assert!(prompt.contains("用户画像"));
+    }
+
+    #[test]
+    fn test_design_blueprint_prompt() {
+        let prompt = design_blueprint_prompt("清洗订单数据");
+        assert!(prompt.contains("package spec"));
+        assert!(prompt.contains("from"));
+        assert!(prompt.contains("to"));
+        assert!(prompt.contains("depends"));
+        assert!(prompt.contains("清洗订单"));
     }
 }

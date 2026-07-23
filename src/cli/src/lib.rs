@@ -1,8 +1,12 @@
 pub mod blueprint;
 pub mod blueprint_core;
 pub mod catalog;
+pub mod clarify;
 pub mod contract;
+pub mod design;
 pub mod pipeline;
 pub mod process;
 pub mod providers;
+pub mod review;
 pub mod transfer;
+pub mod version;

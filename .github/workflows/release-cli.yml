@@ -14,20 +14,13 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Patch path deps to git deps
+      - name: Clone dependency repos
         run: |
-          # Path deps don't work in CI. Replace with git deps.
-          # Note: git deps require Cargo.toml at repo root, not in subdirectory.
-          # As a workaround, clone the deps into the expected relative path.
-          # path = "../../../../packages/..." from src/cli/
-          # In CI runner: checkout = /home/runner/work/qtcloud-data/qtcloud-data
-          # ../../../../ from src/cli = /home/runner/work/packages/
           mkdir -p /home/runner/work/packages
-          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit
-          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit
-          # Verify
-          ls /home/runner/work/packages/quanttide-agent-toolkit/packages/rust/Cargo.toml
-          ls /home/runner/work/packages/quanttide-data-toolkit/packages/rust/Cargo.toml
+          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit 2>&1
+          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit 2>&1
+          echo "=== verifying ==="
+          find /home/runner/work/packages -name "Cargo.toml" -maxdepth 4
 
       - name: Build
         run: cargo build --release

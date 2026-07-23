@@ -1,8 +1,7 @@
-# TODO — CLI Blueprint 五命令集
+# TODO — CLI v0.2.0 框架对齐
 
-> 目标版本 v0.1.0 | 测试覆盖率 ≥80%  
-> 依赖：`quanttide-data-core`（toolkit/packages/rust）发布后集成  
-> LLM：AI 读 `quanttide-agent-toolkit` 源码后接入
+> 目标版本 v0.2.0 | 测试覆盖率 ≥80%  
+> 当前：v0.1.0-alpha.1 → v0.2.0
 
 ---
 
@@ -11,127 +10,121 @@
 ### 允许创建/修改的文件
 
 ```
-src/blueprint/review.rs      ← 新增
-src/blueprint/design.rs      ← 新增（本期只做模板生成）
-src/blueprint/formalize.rs   ← 新增
-src/blueprint/preview.rs     ← 新增
-src/blueprint/version.rs     ← 新增
-src/blueprint/mod.rs         ← 修改（注册子命令）
-src/main.rs                  ← 不修改（已有 Blueprint 注册）
-Cargo.toml                   ← 修改（加新依赖，如有需要）
-tests/integration_test.rs    ← 追加测试
-docs/user/blueprint.md       ← 新增
-docs/dev/blueprint.md        ← 新增
+src/clarify.rs             ← 新增：clarify 命令
+src/design.rs              ← 新增：design 命令（contract/blueprint/formalize/preview）
+src/review.rs              ← 新增：review 命令（从 blueprint/review 迁移 + 升级）
+src/version.rs             ← 新增：version 命令（从 blueprint/version 迁移）
+src/blueprint.rs           ← 修改：只剩 list/show，其他子命令迁移走
+src/blueprint_core.rs      ← 修改：新增 clarify_prompt / design_contract_prompt / design_blueprint_prompt
+src/lib.rs                 ← 修改：注册新模块
+src/main.rs                ← 修改：重新定义 CLI 命令树
+Cargo.toml                 ← 不修改（依赖不变）
+tests/blueprint_test.rs    ← 追加 v0.2.0 测试
+tests/clarify_test.rs      ← 新增
+tests/design_test.rs       ← 新增
 ```
 
 ### 禁止操作
 
-- **禁止修改** src/transfer.rs、src/process.rs、src/pipeline.rs、src/contract.rs、src/catalog.rs、src/lib.rs
-- **禁止修改** 任何测试 fixture 文件
-- **禁止在** src/ 下创建非 blueprint 命名的文件
-- **禁止修改** README.md、CHANGELOG.md（交付时统一更新）
-
-### 交付验证
-
-每完成一个 checkbox，运行 `cargo build && cargo test && cargo clippy && cargo fmt --check` 确认不破坏已有功能。
+- **禁止修改** transfer、process、pipeline、contract、catalog、providers 模块
+- **禁止删除** blueprint.rs（list/show 保留）
+- **禁止修改** 测试 fixture 文件
 
 ---
 
-## 1. LLM 接入准备
+## 1. 新命令结构（对齐工程标准）
 
-- [ ] 读 `quanttide-agent-toolkit` 源码，理解 agent 初始化、prompt 构造、响应解析
-- [ ] 确认 `LLM_API_KEY` 环境变量配置方式
-
----
-
-## 2. `review` 命令 — 审计已有 Blueprint
-
-### 2.1 模块实现
-
-- [ ] `src/blueprint/review.rs` — 审计已有 Blueprint，输出问题清单
-  - [ ] `fn read_blueprint(path: &Path) -> Result<Blueprint>` — 读取 .cue 文件（通过 toolkit 解析）
-  - [ ] `fn build_review_prompt(blueprint: &Blueprint) -> String` — 构造审计 prompt
-  - [ ] `fn run_review(blueprint: &Blueprint, agent: &Agent) -> Result<ReviewReport>` — 调 LLM 审计
-  - [ ] `struct ReviewReport` — 问题清单：严重程度、位置、建议修复
-- [ ] `src/blueprint/mod.rs` — 注册 `review` 子命令
-  - [ ] 参数：`--input`（.cue 路径或 Blueprint 名称）
-
-### 2.2 集成测试
-
-- [ ] 输入 ghtorrent/blueprint.cue → 输出包含结构化问题清单
-- [ ] 验证 ReviewReport 包含严重程度、位置、建议
-- [ ] 验证空 Blueprint 或缺失字段时能正确报出问题
+```
+qtcloud-data
+├── clarify                     ← NEW
+│   └── from-chat <file>       从聊天记录/上下文生成 DRD (.md)
+├── design                      ← REDESIGNED
+│   ├── contract <drd>         从 DRD 生成 Contract (.cue + .md)
+│   ├── blueprint <drd>        从 DRD 生成 Blueprint (.cue + .md + .html)
+│   ├── formalize <md>         通用 md → CUE 转换
+│   └── preview <cue>          通用 CUE → HTML 渲染
+├── review <input>             从 blueprint 子命令提升为顶级
+├── version {list,show,diff}   从 blueprint 子命令提升为顶级
+├── blueprint {list,show}      保留，其他子命令迁移
+├── contract {list,show}       不变
+├── pipeline {list,show}       不变
+├── catalog {}                 不变
+├── process {}                 不变
+└── transfer {send,receive,ls} 不变
+```
 
 ---
 
-## 3. `formalize` 命令 — Markdown → CUE
+## 2. `clarify` 命令
 
-### 3.1 模块实现
+### 2.1 功能
+- `clarify from-chat <file>` — 读聊天记录 .txt/.md，调 LLM 生成 DRD (.md) 到 `drd/` 目录
 
-- [ ] `src/blueprint/formalize.rs` — 读取 .md 文件，调 LLM 形式化为 CUE
-  - [ ] `fn read_markdown(path: &Path) -> Result<String>` — 读取 .md 文件内容
-  - [ ] `fn build_prompt(markdown: &str) -> String` — 构造 LLM prompt
-  - [ ] `fn call_llm(prompt: &str, agent: &Agent) -> Result<String>` — 调 LLM，返回 CUE 代码
-  - [ ] `fn write_cue(cue_code: &str, output_path: &Path) -> Result<()>` — 写入 .cue 到 `BLUEPRINT_DIR`
-  - [ ] `fn validate_cue(cue_path: &Path) -> Result<()>` — 调 `cue vet` 验证输出
-- [ ] `src/blueprint/mod.rs` — 注册 `formalize` 子命令
-  - [ ] 参数：`--input`（.md 路径）、`--output`（可选，默认同名 .cue）
-
-### 3.2 集成测试
-
-- [ ] 用 `data/profile/ghtorrent/blueprint.md` 作为输入
-- [ ] 验证输出 .cue 通过 `cue vet`
-- [ ] 验证输出 .cue 包含 `#Blueprint` 实例
-- [ ] 验证错误输入（空文件、非 Blueprint 内容）能报错而非崩溃
+### 2.2 实现
+- [ ] `src/clarify.rs` — 命令入口
+  - [ ] `struct ClarifyArgs` — from-chat 子命令
+  - [ ] `fn cmd_from_chat(input: &str, dir: &str)` — 读聊天记录 → LLM → 写 DRD
+- [ ] `src/blueprint_core.rs` — 纯函数
+  - [ ] `fn clarify_prompt(chat: &str) -> String` — 构造 clarify prompt
+  - [ ] `fn drd_dir() -> String` — DRD 目录（`.quanttide/data/drd/`）
+- [ ] 集成测试
+  - [ ] `clarify from-chat` help 正常
+  - [ ] `clarify_prompt` 包含 DRD 模板结构
+  - [ ] `drd_dir` 返回正确默认值
 
 ---
 
-## 4. `design` 命令 — 创建/编辑 Markdown Blueprint
+## 3. `design` 命令（重新设计）
 
-- [ ] `src/blueprint/design.rs`
-  - [ ] `fn generate_template(name: &str) -> String` — 根据 `#Blueprint` 类型生成 .md 模板
-  - [ ] `blueprint design --new <name>` — 创建新 Blueprint .md 文件
-  - [ ] `blueprint design --edit <name>` — 打开已有 .md 文件（调用 $EDITOR）
-- [ ] 集成测试：生成模板非空、包含必要章节标题
+### 3.1 功能
+- `design contract <drd>` — 读 DRD .md → LLM → Contract (.cue + .md)
+- `design blueprint <drd>` — 读 DRD .md → LLM → Blueprint (.cue + .md + .html)
+- `design formalize <md>` — 通用 md → CUE（保留）
+- `design preview <cue>` — 通用 CUE → HTML（保留）
 
----
-
-## 5. `preview` 命令 — CUE → HTML
-
-- [ ] `src/blueprint/preview.rs`
-  - [ ] `fn cue_to_html(cue_path: &Path, output_path: &Path) -> Result<()>` — 渲染为 HTML
-  - [ ] 参考 `data/profile/ghtorrent/blueprint.html` 的样式
-  - [ ] 支持版本并排对比（多个 CUE 文件同时输入）
-- [ ] 集成测试：输入 .cue 输出非空 .html
-
----
-
-## 6. `version` 命令 — 版本管理
-
-- [ ] `src/blueprint/version.rs`
-  - [ ] `blueprint version list` — 列出版本历史
-  - [ ] `blueprint version show <ver>` — 查看指定版本
-  - [ ] `blueprint version diff <v1> <v2>` — 版本差异
-- [ ] 集成测试：两版本 diff 输出包含新增/删除/变更
+### 3.2 实现
+- [ ] `src/design.rs` — 命令入口
+  - [ ] `struct DesignArgs` — 子命令枚举
+  - [ ] `fn cmd_contract(input: &str, dir: &str)` — DRD → Contract
+  - [ ] `fn cmd_blueprint(input: &str, dir: &str)` — DRD → Blueprint
+  - [ ] `fn cmd_formalize(input: &str, output: &Option<String>, dir: &str)` — md → CUE（保留）
+  - [ ] `fn cmd_preview(input: &str, output: &Option<String>)` — CUE → HTML（保留）
+- [ ] `src/blueprint_core.rs` — 纯函数
+  - [ ] `fn design_contract_prompt(drd: &str) -> String` — Contract prompt
+  - [ ] `fn design_blueprint_prompt(drd: &str) -> String` — Blueprint prompt
+  - [ ] `fn design_formalize_prompt(md: &str) -> String` — 原有 formalize_prompt 重命名
+  - [ ] `fn spec_dir() -> String` — 规格目录（`.quanttide/data/spec/`）
+- [ ] 集成测试
+  - [ ] 四个子命令 help 正常
+  - [ ] prompt 包含对应的模板结构
+  - [ ] `spec_dir` 返回正确默认值
 
 ---
 
-## 7. 现有命令增强
+## 4. 旧命令迁移
 
-- [ ] `blueprint list` — 增加 `--format json` 输出
-- [ ] `blueprint show` — 增加 `--format yaml|json` 选项
+- [ ] `review` — 从 `blueprint review` 迁移为顶级 `review`
+- [ ] `version` — 从 `blueprint version` 迁移为顶级 `version`
+- [ ] `blueprint.rs` — 删除 review/design/formalize/preview/version 代码，只保留 list/show
+- [ ] `main.rs` — 注册新顶级命令，移除旧 blueprint 子命令
 
 ---
 
-## 8. Build & CI
+## 5. 纯函数层更新
+
+- [ ] `src/blueprint_core.rs`
+  - [ ] 新增：`clarify_prompt`, `drd_dir`
+  - [ ] 新增：`design_contract_prompt`, `design_blueprint_prompt`, `spec_dir`
+  - [ ] 重命名：`formalize_prompt` → `design_formalize_prompt`
+  - [ ] 保留：`review_prompt`, `extract_cue`, `render_html`, `design_template`, `to_camel`, `blueprint_dir`, `resolve_*`
+  - [ ] 删除：无
+
+---
+
+## 6. Build & CI
 
 - [ ] `cargo build` 通过
 - [ ] `cargo test` 全量通过
 - [ ] `cargo clippy` 无 warning
 - [ ] `cargo fmt` 检查通过
-- [ ] CI workflow：`rust-build.yml` 补充 lint + test 步骤
-- [ ] 测试覆盖率 ≥80%（`cargo tarpaulin`）
-
----
-
-## 覆盖率目标：≥80%
+- [ ] 测试覆盖率 ≥80%（纯逻辑层）

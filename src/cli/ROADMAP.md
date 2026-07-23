@@ -1,75 +1,100 @@
 # ROADMAP
 
-> 当前版本 v0.0.5 | 目标版本 v0.1.0：Blueprint 完整生命周期  
-> Feature 愿景：**数据蓝图治理工具** — 把不同时期、不同版本的 Blueprint 规范到统一格式，让新人通过工具快速吸收历史项目经验。v0.5 以后完全实现。
+> 当前版本 v0.1.0-alpha.1 | 目标版本 v0.2.0：数据工程框架对齐
+> Feature 愿景：CLI 命令对齐工程标准中定义的动词体系，让工程标准成为 CLI 和平台设计的单一事实源。
 
-## v0.1.0 — Blueprint 五命令集
+## v0.1.0 — Blueprint 五命令集（已完成）
 
-核心目标：让 CLI 能够操作 Blueprint 的三格式（.md / .cue / .html）完整生命周期，覆盖新项目创建和老项目整理两条路径。
+Blueprint 命令已实现：`review / design / formalize / preview / version`，覆盖 Blueprint 三格式（.md / .cue / .html）生命周期。`cli/v0.1.0-alpha.1` 已发布。
 
-### 当前状态
+---
 
-Blueprint 命令已有 `list` 和 `show` 两个子命令，底层通过调用 `cue` CLI 实现。
+## v0.2.0 — 对齐升级版数据工程框架
 
-### 工作流
+核心目标：CLI 命令从"围绕 Blueprint"升级为"围绕工程标准动词体系"。
+
+### 新框架背景
+
+工程标准定义了完整的数据处理流程和对应的动词：
 
 ```
-review → design → formalize → preview → version
-  ↑                                                    │
-  └──────────── 循环迭代，每次 review 更少问题 ──────────┘
+Context → clarify → Requirements (DRD) → design → Specification → implement → execute → report → transfer → Delivery
+                                                      └─ Contract + Blueprint ─┘
 ```
 
-| 命令 | 输入 | 输出 | 功能 |
-|------|------|------|------|
-| `review` | 已有 Blueprint | 问题清单 | 审计已有 Blueprint，找缺口和不一致。老项目进入系统的入口 |
-| `design` | — | `.md` | 创建/编辑人类可读的 Blueprint 文档 |
-| `formalize` | `.md` | `.cue` | 将 Markdown 形式化为 CUE 结构化定义 |
-| `preview` | `.cue` | `.html` | 从 CUE 生成可视化页面 |
-| `version` | — | 版本元数据 | 维护版本历史、show、diff |
+CLI 不覆盖全流程——执行层（implement/execute）留给人来做。CLI 覆盖的重点是前期（clarify + design）和后端（report + transfer）。
 
-### review 与 design 的分工
+### 命令结构升级
 
-- `review` 面向**已有项目**：审计现有 Blueprint，输出"哪里不严谨、哪里缺信息"
-- `design` 面向**缺口**：review 发现问题后，design 补充缺失部分；新项目则直接 design
+```
+qtcloud-data
+├── clarify                     ← NEW（v0.2.0）
+│   ├── from-chat <file>       从聊天记录/上下文生成 DRD
+│   ├── list                   列出已有 DRD
+│   └── show <name>            查看 DRD
+├── design                      ← UPDATED（v0.2.0）
+│   ├── contract <drd>         从 DRD 生成 Contract（数据契约：输入输出规格）
+│   ├── blueprint <drd>        从 DRD 生成 Blueprint（处理蓝图：工作流步骤）
+│   ├── formalize <md>         md → CUE（保留，继承自 v0.1.0）
+│   └── preview <cue>          CUE → HTML（保留）
+├── review <file>              审计 DRD 或 Specification
+├── contract {list, show}      不变
+├── pipeline {list, show}      不变
+├── catalog {}                 不变
+├── process {}                 不变
+├── transfer {send, receive, ls} 不变
+└── version {list, show, diff} 不变
+```
+
+### 新旧概念对照
+
+| 旧（v0.1.0） | 新（v0.2.0） | 说明 |
+|-------------|-------------|------|
+| Blueprint（模糊） | Requirements + Specification | Blueprint 拆成两层 |
+| `blueprint review` | `review`（提升为顶级命令） | 审计对象从 Blueprint 扩展到 DRD + Specification |
+| `blueprint design new/edit` | `clarify from-chat` + `design contract/blueprint` | 旧 design 混合了需求和技术，新框架分两步 |
+| `blueprint formalize` | `design formalize` | md→CUE 转换归到 design 子命令 |
+| `blueprint preview` | `design preview` | 预览归到 design 子命令 |
+| `blueprint version` | `version`（提升为顶级命令） | 版本管理独立出来 |
+| — | `clarify` | 新增：从聊天记录/上下文生成 DRD |
+
+### 对齐工程标准
+
+目标：工程标准 (`docs/specification`) 中定义的每个动词，在 CLI 中都有对应命令。这样只要看工程标准就知道 CLI 和平台的定义对不对。
+
+| 工程标准动词 | CLI 命令 | 状态 |
+|-------------|---------|------|
+| clarify | `clarify` | NEW |
+| design | `design` | UPDATED |
+| implement | — | 不覆盖 |
+| execute | — | 不覆盖 |
+| report | `report` | 后续版本 |
+| transfer | `transfer` | 已有 |
+| (审计) | `review` | 已有 |
 
 ### 实现顺序
 
-1. `formalize` — 核心命令，打通 md→cue 流程
-2. `review` — 审计命令，老项目入口
-3. `design` — 模板生成与编辑
-4. `preview` — cue→html 渲染
-5. `version` — 版本管理
-
-### 依赖
-
-- `packages/quanttide-data-toolkit/packages/rust/` — Blueprint 数据模型
-- `quanttide-agent-toolkit` — LLM 调用（AI 读源码理解接口）
-
-### LLM 接入
-
-CLI 通过 `quanttide-agent` 统一接口调用 LLM，AI 直接读 `quanttide-agent-toolkit` 源码理解调用方式。环境变量 `LLM_API_KEY` 配置 API key。
+1. `clarify from-chat` — 核心新命令，打通 context→DRD 流程
+2. `design contract` / `design blueprint` — 从 DRD 生成 Specification
+3. 老命令迁移：`blueprint *` → `design *` / `review` / `version`
 
 ---
 
 ## 版本目标
 
-### v0.1.0 — 能用（今晚）
+### v0.2.0 — 框架对齐
 
 **交付标准**：
-- 五个命令全部实现：review / design / formalize / preview / version
-- 至少一个项目（GHTorrent）能跑通 review → version 全流程
-- `cargo build && cargo test && cargo clippy && cargo fmt --check` 全通过
-- 覆盖率：cli ≥80%, toolkit ≥95%
-- 发 alpha 迭代 → 稳定后发 beta.1
+- `clarify` 和 `design` 命令可用
+- 老 `blueprint` 子命令迁移完成，向后兼容
+- 命令结构与工程标准动词一一对应
+- `cargo build && cargo test` 通过
 
-**做不到的标准**：干到干不动就收工，版本号记录当前进度即可。卡住了摇果总。
+**当前位置**：v0.1.0-alpha.1 → 冲向 v0.2.0
 
 ### v0.5.0 — 好用
 
 **交付标准**：
-- 能把零零散散、各个时期、各种版本的 Blueprint 规范到统一格式
-- 新人能通过这个工具快速吸收历史海量项目经验
-- review 命令能自动发现跨项目的不一致模式
+- 新人通过 CLI + 工程标准能快速上手历史项目
+- `review` 能自动发现跨项目不一致模式
 - 成为团队日常的数据蓝图治理工具
-
-**当前位置**：v0.0.5 → 冲向 v0.1.0
