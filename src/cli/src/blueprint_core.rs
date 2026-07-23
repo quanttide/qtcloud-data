@@ -438,60 +438,185 @@ DRD 是面向客户沟通用的，用业务语言撰写。包含以下章节：
 
 // ── v0.2.0: design prompts ──
 
-/// Build the design-contract prompt: DRD → Contract (.cue + .md).
+/// Build the design-contract prompt: DRD → Contract (Markdown tables).
+/// CLI 代码解析 Markdown 表格，生成 .cue + .md 文件。LLM 不直接写 CUE。
 pub fn design_contract_prompt(drd: &str) -> String {
     format!(
         r#"你是一个数据工程规格设计师。请根据以下数据需求文档（DRD），生成数据契约（Contract）。
 
-Contract 定义数据的输入输出结构约束。你必须输出以下 CUE 结构：
+输出以下两个 Markdown 表格（只输出表格，不要输出任何 CUE 代码或解释文字）：
 
-CUE 骨架（严格按此结构填充，不要增删字段）:
+## 输入契约
 
-package spec
+| 字段名 | 类型 | 业务含义 | 约束条件 |
+|--------|------|----------|----------|
+| 字段1  | 类型 | 描述     | 约束     |
 
-#Contract: {{
-    schema: string     // 数据结构的自然语言描述
-    format?: string    // 数据格式，如 "CSV"、"JSON"、"Parquet"
-    rules?: [...string] // 数据质量规则列表
-}}
+## 输出契约
 
-myContract: #Contract & {{
-    schema: "输入数据的 schema 描述"
-    format: "数据格式"
-    rules: ["规则1", "规则2"]
-}}
-
-然后在分隔线 `---` 之后，输出面向客户的 Markdown 说明：
-- 输入契约：客户需要提供什么数据（字段、类型、约束）
-- 输出契约：我们将交付什么数据（字段、类型、质量承诺）
-
-注意：
-- 不要用 markdown 代码块包裹 CUE，直接输出原始文本
-- .cue 和 .md 两部分之间用单独一行的 `---` 分隔
-- 只输出 CUE 和 Markdown，不要输出任何解释文字
+| 字段名 | 类型 | 业务含义 | 质量承诺 |
+|--------|------|----------|----------|
+| 字段1  | 类型 | 描述     | 承诺     |
 
 DRD:
 {drd}"#
     )
 }
 
-/// Build the design-blueprint prompt: DRD → Blueprint (.cue + .md).
+/// Parse contract Markdown tables into a Contract struct, return CUE + MD.
+pub fn contract_tables_to_cue(md_tables: &str) -> (String, String) {
+    let input_fields = parse_md_table(md_tables, "输入契约");
+    let output_fields = parse_md_table(md_tables, "输出契约");
+
+    let input_schema = fields_to_schema_desc(&input_fields);
+    let output_schema = fields_to_schema_desc(&output_fields);
+
+    let cue = format!(
+        r#"package spec
+
+#Contract: {{
+    schema: string
+    format?: string
+    rules?: [...string]
+}}
+
+myContract: #Contract & {{
+    input: {{
+        schema: "{}"
+        format: "CSV"
+    }}
+    output: {{
+        schema: "{}"
+        format: "CSV"
+        rules: ["数据完整性校验", "字段类型校验"]
+    }}
+}}
+"#,
+        input_schema.replace('"', "\\\""),
+        output_schema.replace('"', "\\\""),
+    );
+
+    let md = render_contract_md(&input_fields, &output_fields);
+    (cue, md)
+}
+
+fn parse_md_table(text: &str, section: &str) -> Vec<Vec<String>> {
+    let mut rows = Vec::new();
+    let mut in_section = false;
+    for line in text.lines() {
+        if line.contains(section) {
+            in_section = true;
+            continue;
+        }
+        if in_section && line.starts_with('|') && !line.contains("---") && !line.contains("字段名") {
+            let cells: Vec<String> = line.split('|')
+                .map(|c| c.trim().to_string())
+                .filter(|c| !c.is_empty())
+                .collect();
+            if !cells.is_empty() {
+                rows.push(cells);
+            }
+        }
+        if in_section && line.starts_with("##") {
+            in_section = false;
+        }
+    }
+    rows
+}
+
+fn fields_to_schema_desc(fields: &[Vec<String>]) -> String {
+    if fields.is_empty() { return "待定义".into(); }
+    let items: Vec<String> = fields.iter()
+        .filter_map(|f| f.first().map(|name| format!("{name}: {}", f.get(1).unwrap_or(&"string".into()))))
+        .collect();
+    format!("{{\n    {}\n  }}", items.join(",\n    "))
+}
+
+fn render_contract_md(input: &[Vec<String>], output: &[Vec<String>]) -> String {
+    let mut md = String::from("## 输入契约\n\n| 字段名 | 类型 | 业务含义 | 约束条件 |\n|--------|------|----------|----------|\n");
+    for row in input {
+        let cells: Vec<&str> = row.iter().map(|c| c.as_str()).collect();
+        if cells.len() >= 4 {
+            md.push_str(&format!("| {} |\n", cells[..4].join(" | ")));
+        }
+    }
+    md.push_str("\n## 输出契约\n\n| 字段名 | 类型 | 业务含义 | 质量承诺 |\n|--------|------|----------|----------|\n");
+    for row in output {
+        let cells: Vec<&str> = row.iter().map(|c| c.as_str()).collect();
+        if cells.len() >= 4 {
+            md.push_str(&format!("| {} |\n", cells[..4].join(" | ")));
+        }
+    }
+    md
+}
+
+/// Build the design-blueprint prompt: DRD → Blueprint (Markdown table).
+/// CLI 代码解析 Markdown 表格，生成 .cue + .md + .html 文件。LLM 不直接写 CUE。
 pub fn design_blueprint_prompt(drd: &str) -> String {
     format!(
-        r#"你是一个数据工程规格设计师。请根据以下数据需求文档（DRD），生成处理蓝图（Blueprint）。
+        r#"你是一个数据工程规格设计师。请根据以下数据需求文档（DRD），生成处理蓝图（Blueprint）的工作流步骤。
 
-你必须输出以下 CUE 结构。严格按此结构填充，字段名必须完全一致：
+输出一个 Markdown 表格（只输出表格，不要输出任何 CUE 代码或解释文字）：
 
-CUE 骨架:
+## 处理步骤
 
-package spec
+| 步骤名 | 输入(from) | 输出(to) | 处理逻辑(desc) | 依赖(depends) |
+|--------|-----------|----------|---------------|--------------|
+| 步骤1  | 原始数据   | 中间结果  | 业务逻辑描述   | -            |
+
+注意：
+- 依赖(depends) 列填写依赖的前置步骤名，多个用逗号分隔，无依赖填 -
+- from/to/desc 对应 CUE Step 结构体的 from/to/desc 字段
+
+DRD:
+{drd}"#
+    )
+}
+
+/// Parse blueprint Markdown table into CUE + MD.
+pub fn blueprint_table_to_cue(md_table: &str, project_name: &str) -> (String, String) {
+    let steps = parse_md_table(md_table, "处理步骤");
+
+    let mut steps_cue = String::new();
+    for row in &steps {
+        let name = row.first().map(|s| s.as_str()).unwrap_or("unnamed");
+        let from = row.get(1).map(|s| s.as_str()).unwrap_or("");
+        let to = row.get(2).map(|s| s.as_str()).unwrap_or("");
+        let desc = row.get(3).map(|s| s.as_str()).unwrap_or("");
+        let deps = row.get(4).map(|s| s.as_str()).unwrap_or("");
+
+        let deps_str = if deps.is_empty() || deps == "-" {
+            String::new()
+        } else {
+            let dep_list: Vec<String> = deps.split(',').map(|d| format!("\"{}\"", d.trim())).collect();
+            format!("\n            depends: [{}]", dep_list.join(", "))
+        };
+
+        steps_cue.push_str(&format!(
+            r#"        {{
+            name: "{name}"
+            from: "{from}"
+            to: "{to}"
+            desc: "{desc}"{deps}
+        }},
+"#,
+            name = name,
+            from = from,
+            to = to,
+            desc = desc,
+            deps = deps_str,
+        ));
+    }
+
+    let cue = format!(
+        r#"package spec
 
 #Step: {{
-    name:    string        // 步骤名称
-    from:    string        // 数据从哪里来
-    to:      string        // 处理后的数据到哪里去
-    desc:    string        // 业务逻辑说明
-    depends?: [...string]  // 依赖的前置步骤名（可选）
+    name:    string
+    from:    string
+    to:      string
+    desc:    string
+    depends?: [...string]
 }}
 
 #Pipeline: {{
@@ -499,53 +624,35 @@ package spec
     steps: [...#Step]
 }}
 
-#Blueprint: {{
-    name:        string           // 蓝图名称
-    description?: string          // 业务描述
-    contract: {{
-        input: #Contract
-        output: #Contract
-    }}
-    pipeline: #Pipeline
-    status:     "draft" | "submitted" | "confirmed" | "rejected"
-    created_at: string
-    updated_at: string
-}}
-
-myBlueprint: #Blueprint & {{
-    name: "项目名称"
-    description: "业务描述"
-    contract: {{
-        input:  {{ schema: "输入数据描述", format: "CSV" }}
-        output: {{ schema: "输出数据描述", format: "CSV", rules: ["规则"] }}
-    }}
+myBlueprint: {{
+    name: "{name}"
+    description: "从 DRD 自动生成的 Blueprint"
     pipeline: {{
-        name: "处理管道"
+        name: "{name}-pipeline"
         steps: [
-            {{
-                name: "步骤1-名称"
-                from: "原始数据"
-                to:   "处理后数据"
-                desc: "这一步做什么操作"
-            }},
-        ]
+{steps}        ]
     }}
     status: "draft"
     created_at: "2026-07-23T00:00:00+00:00"
     updated_at: "2026-07-23T00:00:00+00:00"
 }}
+"#,
+        name = project_name,
+        steps = steps_cue,
+    );
 
-然后在分隔线 `---` 之后，输出面向客户的 Markdown 说明，解释每个步骤的业务逻辑。
+    let md = render_blueprint_md(project_name, &steps);
+    (cue, md)
+}
 
-注意：
-- 不要用 markdown 代码块包裹 CUE，直接输出原始文本
-- .cue 和 .md 两部分之间用单独一行的 `---` 分隔
-- Step 的字段名是 name/from/to/desc/depends，不要用其他名字
-- 只输出 CUE 和 Markdown，不要输出任何解释文字
-
-DRD:
-{drd}"#
-    )
+fn render_blueprint_md(name: &str, steps: &[Vec<String>]) -> String {
+    let mut md = format!("# {name}\n\n## 处理步骤\n\n| 步骤名 | 输入 | 输出 | 处理逻辑 | 依赖 |\n|--------|------|------|----------|------|\n");
+    for row in steps {
+        let cells: Vec<&str> = row.iter().map(|c| c.as_str()).collect();
+        let padded: Vec<String> = (0..5).map(|i| cells.get(i).unwrap_or(&"").to_string()).collect();
+        md.push_str(&format!("| {} |\n", padded.join(" | ")));
+    }
+    md
 }
 
 #[cfg(test)]
@@ -576,19 +683,19 @@ mod tests_v020 {
     #[test]
     fn test_design_contract_prompt() {
         let prompt = design_contract_prompt("客户需要用户画像数据");
-        assert!(prompt.contains("package spec"));
         assert!(prompt.contains("输入契约"));
         assert!(prompt.contains("输出契约"));
+        assert!(prompt.contains("Markdown 表格"));
         assert!(prompt.contains("用户画像"));
     }
 
     #[test]
     fn test_design_blueprint_prompt() {
         let prompt = design_blueprint_prompt("清洗订单数据");
-        assert!(prompt.contains("package spec"));
+        assert!(prompt.contains("处理步骤"));
         assert!(prompt.contains("from"));
-        assert!(prompt.contains("to"));
-        assert!(prompt.contains("depends"));
+        assert!(prompt.contains("desc"));
+        assert!(prompt.contains("Markdown 表格"));
         assert!(prompt.contains("清洗订单"));
     }
 }

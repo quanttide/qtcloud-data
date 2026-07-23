@@ -46,7 +46,7 @@ pub fn run(args: &DesignArgs) {
     }
 }
 
-// ── Contract ──
+// ── Contract: LLM outputs Markdown table, code generates CUE ──
 
 fn cmd_contract(input: &str) {
     let drd = read_drd(input);
@@ -59,25 +59,8 @@ fn cmd_contract(input: &str) {
 
     match llm.complete(&messages, quanttide_agent::llm::CompleteOptions::default()) {
         Ok(resp) => {
-            let (cue_content, md_content) = split_cue_md(&resp.content);
-            let spec_dir = blueprint_core::spec_dir();
-            std::fs::create_dir_all(&spec_dir).unwrap_or_else(|e| {
-                eprintln!("无法创建目录 {spec_dir}: {e}");
-                std::process::exit(1);
-            });
-
-            let cue_path = Path::new(&spec_dir).join(format!("{stem}-contract.cue"));
-            let md_path = Path::new(&spec_dir).join(format!("{stem}-contract.md"));
-            std::fs::write(&cue_path, &cue_content).unwrap_or_else(|e| {
-                eprintln!("写入 .cue 失败: {e}");
-                std::process::exit(1);
-            });
-            std::fs::write(&md_path, &md_content).unwrap_or_else(|e| {
-                eprintln!("写入 .md 失败: {e}");
-                std::process::exit(1);
-            });
-            println!("已生成: {}", cue_path.display());
-            println!("已生成: {}", md_path.display());
+            let (cue_content, md_content) = blueprint_core::contract_tables_to_cue(&resp.content);
+            write_spec_files(&stem, "contract", &cue_content, &md_content);
         }
         Err(e) => {
             eprintln!("LLM 调用失败: {e}");
@@ -86,7 +69,7 @@ fn cmd_contract(input: &str) {
     }
 }
 
-// ── Blueprint ──
+// ── Blueprint: LLM outputs Markdown table, code generates CUE ──
 
 fn cmd_blueprint(input: &str) {
     let drd = read_drd(input);
@@ -99,27 +82,11 @@ fn cmd_blueprint(input: &str) {
 
     match llm.complete(&messages, quanttide_agent::llm::CompleteOptions::default()) {
         Ok(resp) => {
-            let (cue_content, md_content) = split_cue_md(&resp.content);
-            let spec_dir = blueprint_core::spec_dir();
-            std::fs::create_dir_all(&spec_dir).unwrap_or_else(|e| {
-                eprintln!("无法创建目录 {spec_dir}: {e}");
-                std::process::exit(1);
-            });
+            let (cue_content, md_content) = blueprint_core::blueprint_table_to_cue(&resp.content, &stem);
+            write_spec_files(&stem, "blueprint", &cue_content, &md_content);
 
-            let cue_path = Path::new(&spec_dir).join(format!("{stem}-blueprint.cue"));
-            let md_path = Path::new(&spec_dir).join(format!("{stem}-blueprint.md"));
-            std::fs::write(&cue_path, &cue_content).unwrap_or_else(|e| {
-                eprintln!("写入 .cue 失败: {e}");
-                std::process::exit(1);
-            });
-            std::fs::write(&md_path, &md_content).unwrap_or_else(|e| {
-                eprintln!("写入 .md 失败: {e}");
-                std::process::exit(1);
-            });
-
-            // Also generate HTML preview
-            let cue_code = blueprint_core::extract_cue(&cue_content);
-            let bp = quanttide_data_core::serde::cue::from_cue::parse_cue_str(&cue_code)
+            // Generate HTML preview
+            let bp = quanttide_data_core::serde::cue::from_cue::parse_cue_str(&cue_content)
                 .unwrap_or_else(|e| {
                     eprintln!("解析 CUE 失败: {e}");
                     std::process::exit(1);
@@ -132,13 +99,12 @@ fn cmd_blueprint(input: &str) {
                 &bp.created_at, &bp.updated_at,
                 &bp.contract.input.schema, &bp.contract.output.schema, &step_refs,
             );
+            let spec_dir = blueprint_core::spec_dir();
             let html_path = Path::new(&spec_dir).join(format!("{stem}-blueprint.html"));
             std::fs::write(&html_path, &html).unwrap_or_else(|e| {
                 eprintln!("写入 .html 失败: {e}");
                 std::process::exit(1);
             });
-            println!("已生成: {}", cue_path.display());
-            println!("已生成: {}", md_path.display());
             println!("已生成: {}", html_path.display());
         }
         Err(e) => {
@@ -233,44 +199,22 @@ fn read_drd(input: &str) -> String {
     })
 }
 
-/// Split LLM response into CUE and Markdown parts.
-/// Expects `---` as separator. Strips markdown code blocks from CUE part.
-fn split_cue_md(response: &str) -> (String, String) {
-    // First, strip markdown code blocks from the response
-    let cleaned = strip_markdown_fences(response);
-
-    if let Some(pos) = cleaned.find("\n---\n") {
-        let cue = cleaned[..pos].trim().to_string();
-        let md = cleaned[pos + 5..].trim().to_string();
-        (cue, md)
-    } else if let Some(pos) = cleaned.find("---") {
-        let cue = cleaned[..pos].trim().to_string();
-        let md = cleaned[pos + 3..].trim().to_string();
-        (cue, md)
-    } else {
-        (cleaned.to_string(), cleaned.to_string())
-    }
-}
-
-/// Strip ```cue / ```yaml / ``` from the beginning and ``` from the end of text.
-fn strip_markdown_fences(text: &str) -> String {
-    let trimmed = text.trim();
-    // Strip opening fence: ```cue, ```yaml, ```json, ```
-    let after_open = if let Some(rest) = trimmed
-        .strip_prefix("```cue")
-        .or_else(|| trimmed.strip_prefix("```CUE"))
-        .or_else(|| trimmed.strip_prefix("```yaml"))
-        .or_else(|| trimmed.strip_prefix("```json"))
-        .or_else(|| trimmed.strip_prefix("```"))
-    {
-        rest.trim_start()
-    } else {
-        trimmed
-    };
-    // Strip closing fence: ``` at end
-    if let Some(cleaned) = after_open.strip_suffix("```") {
-        cleaned.trim_end().to_string()
-    } else {
-        after_open.to_string()
-    }
+fn write_spec_files(stem: &str, kind: &str, cue: &str, md: &str) {
+    let spec_dir = blueprint_core::spec_dir();
+    std::fs::create_dir_all(&spec_dir).unwrap_or_else(|e| {
+        eprintln!("无法创建目录 {spec_dir}: {e}");
+        std::process::exit(1);
+    });
+    let cue_path = Path::new(&spec_dir).join(format!("{stem}-{kind}.cue"));
+    let md_path = Path::new(&spec_dir).join(format!("{stem}-{kind}.md"));
+    std::fs::write(&cue_path, cue).unwrap_or_else(|e| {
+        eprintln!("写入 .cue 失败: {e}");
+        std::process::exit(1);
+    });
+    std::fs::write(&md_path, md).unwrap_or_else(|e| {
+        eprintln!("写入 .md 失败: {e}");
+        std::process::exit(1);
+    });
+    println!("已生成: {}", cue_path.display());
+    println!("已生成: {}", md_path.display());
 }
