@@ -85,19 +85,25 @@ pub fn formalize_prompt(md: &str) -> String {
     design_formalize_prompt(md)
 }
 
-/// (v0.2.0) Formalize prompt — same logic, renamed under design namespace.
+/// (v0.1.0-beta.1) Formalize prompt — converts Markdown to YAML.
 pub fn design_formalize_prompt(md: &str) -> String {
     format!(
-        r#"你是一个 CUE 语言专家。请将以下 Blueprint Markdown 文档形式化为 CUE 格式。
+        r#"你是一个数据工程规格设计师。请将以下 Blueprint Markdown 文档转化为 YAML 格式。
 
-要求：
-1. 输出 package blueprints，然后是 #Blueprint 实例
-2. 使用 struct 定义 contract（input/output 的 schema/format/rules）
-3. 使用 struct 列表定义 pipeline steps（name/from/to/desc/depends）
-4. 保留原始文档中的所有业务信息，不要遗漏字段
-5. 只输出 CUE 代码，不要解释
+输出格式:
+name: "项目名称"
+description: "业务描述"
+pipeline:
+  name: "管道名称"
+  steps:
+    - name: "步骤1"
+      from: "输入"
+      to: "输出"
+      desc: "业务逻辑描述"
 
-Blueprint Markdown 文档:
+只输出 YAML，不要解释。
+
+文档:
 {md}"#
     )
 }
@@ -264,15 +270,14 @@ mod tests {
         let prompt = formalize_prompt("# Test Blueprint\n\nSome content");
         assert!(prompt.contains("# Test Blueprint"));
         assert!(prompt.contains("Some content"));
-        assert!(prompt.contains("package blueprints"));
-        assert!(prompt.contains("#Blueprint"));
+        assert!(prompt.contains("YAML"));
     }
 
     #[test]
-    fn test_formalize_prompt_includes_cue_instructions() {
+    fn test_formalize_prompt_includes_yaml_instructions() {
         let prompt = formalize_prompt("hello");
-        assert!(prompt.contains("CUE 语言专家"));
-        assert!(prompt.contains("只输出 CUE 代码"));
+        assert!(prompt.contains("YAML"));
+        assert!(prompt.contains("只输出 YAML"));
     }
 
     // ── extract_cue ──

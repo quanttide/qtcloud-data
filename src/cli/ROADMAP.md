@@ -35,7 +35,7 @@ qtcloud-data
 ├── design                      ← UPDATED（v0.1.0-beta.1）
 │   ├── contract <drd>         从 DRD 生成 Contract（数据契约：输入输出规格）
 │   ├── blueprint <drd>        从 DRD 生成 Blueprint（处理蓝图：工作流步骤）
-│   ├── formalize <md>         md → CUE（保留，继承自 v0.1.0）
+│   ├── formalize <md>         md → YAML（保留，继承自 v0.1.0）
 │   └── preview <cue>          CUE → HTML（保留）
 ├── review <file>              审计 DRD 或 Specification
 ├── contract {list, show}      不变

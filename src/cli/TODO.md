@@ -39,8 +39,8 @@ qtcloud-data
 ├── clarify                     ← NEW
 │   └── from-chat <file>       从聊天记录/上下文生成 DRD (.md)
 ├── design                      ← REDESIGNED
-│   ├── contract <drd>         从 DRD 生成 Contract (.cue + .md)
-│   ├── blueprint <drd>        从 DRD 生成 Blueprint (.cue + .md + .html)
+│   ├── contract <drd>         从 DRD 生成 Contract (.yaml + .md)
+│   ├── blueprint <drd>        从 DRD 生成 Blueprint (.yaml + .md + .html)
 │   ├── formalize <md>         通用 md → CUE 转换
 │   └── preview <cue>          通用 CUE → HTML 渲染
 ├── review <input>             从 blueprint 子命令提升为顶级
@@ -77,8 +77,8 @@ qtcloud-data
 ## 3. `design` 命令（重新设计）
 
 ### 3.1 功能
-- `design contract <drd>` — 读 DRD .md → LLM → Contract (.cue + .md)
-- `design blueprint <drd>` — 读 DRD .md → LLM → Blueprint (.cue + .md + .html)
+- `design contract <drd>` — 读 DRD .md → LLM → Contract (.yaml + .md)
+- `design blueprint <drd>` — 读 DRD .md → LLM → Blueprint (.yaml + .md + .html)
 - `design formalize <md>` — 通用 md → CUE（保留）
 - `design preview <cue>` — 通用 CUE → HTML（保留）
 
