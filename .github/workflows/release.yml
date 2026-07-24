@@ -64,5 +64,15 @@ jobs:
           git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit
           git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit
 
-      - name: Publish to crates.io
+      - name: Publish quanttide-agent
+        run: |
+          cd /home/runner/work/packages/quanttide-agent-toolkit/packages/rust
+          cargo publish --allow-dirty --token ${{ secrets.CRATE_API_KEY }}
+
+      - name: Publish quanttide-data-core
+        run: |
+          cd /home/runner/work/packages/quanttide-data-toolkit/packages/rust
+          cargo publish --allow-dirty --token ${{ secrets.CRATE_API_KEY }}
+
+      - name: Publish qtcloud-data-cli
         run: cargo publish --allow-dirty --token ${{ secrets.CRATE_API_KEY }}
