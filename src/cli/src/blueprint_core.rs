@@ -640,6 +640,13 @@ pub fn blueprint_table_to_yaml(md_table: &str, project_name: &str) -> (String, S
     let yaml = format!(
         r#"name: "{name}"
 description: "从 DRD 自动生成的 Blueprint"
+contract:
+  input:
+    schema: ""
+    format: ""
+  output:
+    schema: ""
+    format: ""
 pipeline:
   name: "{name}-pipeline"
   steps:

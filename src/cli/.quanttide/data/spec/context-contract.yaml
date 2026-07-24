@@ -1,0 +1,38 @@
+contract:
+  input:
+    schema: "{
+    report_id: string,
+    institution: string,
+    sample_id: string,
+    sample_name: string,
+    original_indicator_name: string,
+    time_point: string,
+    group_name: string,
+    mean_value: double,
+    std_dev: double,
+    change_rate: double,
+    p_value: double,
+    unit: string,
+    page_number: int,
+    location_description: string
+  }"
+    format: CSV
+  output:
+    schema: "{
+    standard_report_id: string,
+    standard_sample_id: string,
+    standard_indicator_name: string,
+    time_point: string,
+    group_name: string,
+    mean_value: double,
+    std_dev: double,
+    change_rate: double,
+    p_value: double,
+    source_report_id: string,
+    source_page: int,
+    source_location: string
+  }"
+    format: CSV
+    rules:
+      - 数据完整性校验
+      - 字段类型校验

@@ -1,0 +1,49 @@
+name: "context"
+description: "从 DRD 自动生成的 Blueprint"
+contract:
+  input:
+    schema: ""
+    format: ""
+  output:
+    schema: ""
+    format: ""
+pipeline:
+  name: "context-pipeline"
+  steps:
+      - name: "步骤名"
+        from: "输入(from)"
+        to: "输出(to)"
+        desc: "处理逻辑(desc)"
+        depends:
+          - 依赖(depends)
+      - name: "PDF解析与文本提取"
+        from: "原始PDF文件"
+        to: "页面文本及表格区域"
+        desc: "使用OCR或PDF解析库读取各页文本，标记每段文字所在的页码和坐标区域"
+      - name: "指标识别与映射"
+        from: "页面文本及表格区域"
+        to: "指标映射结果"
+        desc: "根据预设的机构-标准指标词典，识别原始指标名称并统一映射为标准指标名（如“角质层水分含量”→“皮肤水分含量”）"
+        depends:
+          - PDF解析与文本提取
+      - name: "数据抽取与结构化"
+        from: "指标映射结果"
+        to: "结构化观测记录"
+        desc: "从文本中提取每个样品、时间点、组别的检测值（均值、标准差、变化率、P值），关联原始页码和区域信息"
+        depends:
+          - 指标识别与映射
+      - name: "数值精度与追溯校验"
+        from: "结构化观测记录"
+        to: "校验后的观测记录"
+        desc: "保留原始数值精度（如30.37%不变），标记缺失或异常数值，确保每个值能追溯到原始PDF的页码位置"
+        depends:
+          - 数据抽取与结构化
+      - name: "长表生成与输出"
+        from: "校验后的观测记录"
+        to: "最终CSV文件"
+        desc: "按“报告ID、样品、标准指标名、时间点、组别、均值、标准差、变化率、P值、原始页码、原始区域”长表格式输出CSV"
+        depends:
+          - 数值精度与追溯校验
+status: draft
+created_at: "2026-07-24T00:00:00+00:00"
+updated_at: "2026-07-24T00:00:00+00:00"

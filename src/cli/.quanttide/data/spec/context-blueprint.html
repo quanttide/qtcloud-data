@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><title>context — Blueprint</title>
+<style>body{font-family:sans-serif;max-width:960px;margin:0 auto;padding:2rem}h1{color:#2563eb}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.5rem;border-bottom:1px solid #ddd}th{color:#6c757d}</style></head>
+<body><h1>context</h1><p>从 DRD 自动生成的 Blueprint</p><p>状态: draft | 创建: 2026-07-24T00:00:00+00:00 | 更新: 2026-07-24T00:00:00+00:00</p>
+<h2>契约</h2><h3>输入</h3><pre></pre><h3>输出</h3><pre></pre>
+<h2>管道 (6 步)</h2><table><tr><th>#</th><th>名称</th><th>From</th><th>To</th><th>描述</th></tr><tr><td>1</td><td>步骤名</td><td>输入(from)</td><td>输出(to)</td><td>处理逻辑(desc)</td></tr><tr><td>2</td><td>PDF解析与文本提取</td><td>原始PDF文件</td><td>页面文本及表格区域</td><td>使用OCR或PDF解析库读取各页文本，标记每段文字所在的页码和坐标区域</td></tr><tr><td>3</td><td>指标识别与映射</td><td>页面文本及表格区域</td><td>指标映射结果</td><td>根据预设的机构-标准指标词典，识别原始指标名称并统一映射为标准指标名（如“角质层水分含量”→“皮肤水分含量”）</td></tr><tr><td>4</td><td>数据抽取与结构化</td><td>指标映射结果</td><td>结构化观测记录</td><td>从文本中提取每个样品、时间点、组别的检测值（均值、标准差、变化率、P值），关联原始页码和区域信息</td></tr><tr><td>5</td><td>数值精度与追溯校验</td><td>结构化观测记录</td><td>校验后的观测记录</td><td>保留原始数值精度（如30.37%不变），标记缺失或异常数值，确保每个值能追溯到原始PDF的页码位置</td></tr><tr><td>6</td><td>长表生成与输出</td><td>校验后的观测记录</td><td>最终CSV文件</td><td>按“报告ID、样品、标准指标名、时间点、组别、均值、标准差、变化率、P值、原始页码、原始区域”长表格式输出CSV</td></tr></table>
+</body></html>
