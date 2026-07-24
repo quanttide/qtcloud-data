@@ -5,7 +5,7 @@
 
 ## v0.1.0 — Blueprint 五命令集（已完成）
 
-Blueprint 命令已实现：`review / design / formalize / preview / version`，覆盖 Blueprint 三格式（.md / .cue / .html）生命周期。`cli/v0.1.0-alpha.1` 已发布。
+Blueprint 命令已实现：`review / design / formalize / preview / version`，覆盖 Blueprint 三格式（.md / .yaml / .html）生命周期。`cli/v0.1.0-alpha.1` 已发布。
 
 ---
 
@@ -36,7 +36,7 @@ qtcloud-data
 │   ├── contract <drd>         从 DRD 生成 Contract（数据契约：输入输出规格）
 │   ├── blueprint <drd>        从 DRD 生成 Blueprint（处理蓝图：工作流步骤）
 │   ├── formalize <md>         md → YAML（保留，继承自 v0.1.0）
-│   └── preview <cue>          CUE → HTML（保留）
+│   └── preview <yaml>          YAML → HTML（保留）
 ├── review <file>              审计 DRD 或 Specification
 ├── contract {list, show}      不变
 ├── pipeline {list, show}      不变
@@ -53,7 +53,7 @@ qtcloud-data
 | Blueprint（模糊） | Requirements + Specification | Blueprint 拆成两层 |
 | `blueprint review` | `review`（提升为顶级命令） | 审计对象从 Blueprint 扩展到 DRD + Specification |
 | `blueprint design new/edit` | `clarify from-chat` + `design contract/blueprint` | 旧 design 混合了需求和技术，新框架分两步 |
-| `blueprint formalize` | `design formalize` | md→CUE 转换归到 design 子命令 |
+| `blueprint formalize` | `design formalize` | md→YAML 转换归到 design 子命令 |
 | `blueprint preview` | `design preview` | 预览归到 design 子命令 |
 | `blueprint version` | `version`（提升为顶级命令） | 版本管理独立出来 |
 | — | `clarify` | 新增：从聊天记录/上下文生成 DRD |

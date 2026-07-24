@@ -41,8 +41,8 @@ qtcloud-data
 ├── design                      ← REDESIGNED
 │   ├── contract <drd>         从 DRD 生成 Contract (.yaml + .md)
 │   ├── blueprint <drd>        从 DRD 生成 Blueprint (.yaml + .md + .html)
-│   ├── formalize <md>         通用 md → CUE 转换
-│   └── preview <cue>          通用 CUE → HTML 渲染
+│   ├── formalize <md>         通用 md → YAML 转换
+│   └── preview <cue>          通用 YAML → HTML 渲染
 ├── review <input>             从 blueprint 子命令提升为顶级
 ├── version {list,show,diff}   从 blueprint 子命令提升为顶级
 ├── blueprint {list,show}      保留，其他子命令迁移
@@ -79,16 +79,16 @@ qtcloud-data
 ### 3.1 功能
 - `design contract <drd>` — 读 DRD .md → LLM → Contract (.yaml + .md)
 - `design blueprint <drd>` — 读 DRD .md → LLM → Blueprint (.yaml + .md + .html)
-- `design formalize <md>` — 通用 md → CUE（保留）
-- `design preview <cue>` — 通用 CUE → HTML（保留）
+- `design formalize <md>` — 通用 md → YAML（保留）
+- `design preview <cue>` — 通用 YAML → HTML（保留）
 
 ### 3.2 实现
 - [ ] `src/design.rs` — 命令入口
   - [ ] `struct DesignArgs` — 子命令枚举
   - [ ] `fn cmd_contract(input: &str, dir: &str)` — DRD → Contract
   - [ ] `fn cmd_blueprint(input: &str, dir: &str)` — DRD → Blueprint
-  - [ ] `fn cmd_formalize(input: &str, output: &Option<String>, dir: &str)` — md → CUE（保留）
-  - [ ] `fn cmd_preview(input: &str, output: &Option<String>)` — CUE → HTML（保留）
+  - [ ] `fn cmd_formalize(input: &str, output: &Option<String>, dir: &str)` — md → YAML（保留）
+  - [ ] `fn cmd_preview(input: &str, output: &Option<String>)` — YAML → HTML（保留）
 - [ ] `src/blueprint_core.rs` — 纯函数
   - [ ] `fn design_contract_prompt(drd: &str) -> String` — Contract prompt
   - [ ] `fn design_blueprint_prompt(drd: &str) -> String` — Blueprint prompt
