@@ -1,0 +1,68 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "cli/v*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/cli
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "value=${GITHUB_REF_NAME#cli/}" >> $GITHUB_OUTPUT
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt, clippy
+
+      - name: Clone dependency repos
+        run: |
+          mkdir -p /home/runner/work/packages
+          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit
+          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Test
+        run: cargo test
+
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Format
+        run: cargo fmt --check
+
+  publish-crate:
+    needs: check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/cli
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Clone dependency repos
+        run: |
+          mkdir -p /home/runner/work/packages
+          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit
+          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit
+
+      - name: Publish to crates.io
+        run: cargo publish --allow-dirty --token ${{ secrets.CRATE_API_KEY }}

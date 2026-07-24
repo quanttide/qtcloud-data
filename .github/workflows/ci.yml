@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/cli
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt, clippy
+
+      - name: Clone dependency repos
+        run: |
+          # Path deps expect: ../../../../packages/ from src/cli/
+          # In CI, checkout = /home/runner/work/qtcloud-data/qtcloud-data
+          # So: /home/runner/work/packages/
+          mkdir -p /home/runner/work/packages
+          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit
+          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit
+
+      - name: Build
+        run: cargo build
+
+      - name: Test
+        run: cargo test
+
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Format
+        run: cargo fmt --check
