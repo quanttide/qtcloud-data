@@ -26,9 +26,9 @@ pub fn run(args: &ReviewArgs) {
         std::process::exit(1);
     });
 
-    let blueprint = quanttide_data_core::serde::cue::from_cue::parse_cue_str(&cue_content)
+    let blueprint: quanttide_data_core::Blueprint = serde_yaml::from_str(&cue_content)
         .unwrap_or_else(|e| {
-            eprintln!("解析 CUE 失败: {e}");
+            eprintln!("解析 YAML 失败: {e}");
             std::process::exit(1);
         });
 

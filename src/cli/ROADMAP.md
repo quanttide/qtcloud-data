@@ -1,6 +1,6 @@
 # ROADMAP
 
-> 当前版本 v0.1.0-alpha.1 | 目标版本 v0.2.0：数据工程框架对齐
+> 当前版本 v0.1.0-alpha.1 | 目标版本 v0.1.0-beta.1：数据工程框架对齐
 > Feature 愿景：CLI 命令对齐工程标准中定义的动词体系，让工程标准成为 CLI 和平台设计的单一事实源。
 
 ## v0.1.0 — Blueprint 五命令集（已完成）
@@ -9,7 +9,7 @@ Blueprint 命令已实现：`review / design / formalize / preview / version`，
 
 ---
 
-## v0.2.0 — 对齐升级版数据工程框架
+## v0.1.0-beta.1 — 对齐升级版数据工程框架
 
 核心目标：CLI 命令从"围绕 Blueprint"升级为"围绕工程标准动词体系"。
 
@@ -28,11 +28,11 @@ CLI 不覆盖全流程——执行层（implement/execute）留给人来做。CL
 
 ```
 qtcloud-data
-├── clarify                     ← NEW（v0.2.0）
+├── clarify                     ← NEW（v0.1.0-beta.1）
 │   ├── from-chat <file>       从聊天记录/上下文生成 DRD
 │   ├── list                   列出已有 DRD
 │   └── show <name>            查看 DRD
-├── design                      ← UPDATED（v0.2.0）
+├── design                      ← UPDATED（v0.1.0-beta.1）
 │   ├── contract <drd>         从 DRD 生成 Contract（数据契约：输入输出规格）
 │   ├── blueprint <drd>        从 DRD 生成 Blueprint（处理蓝图：工作流步骤）
 │   ├── formalize <md>         md → CUE（保留，继承自 v0.1.0）
@@ -48,7 +48,7 @@ qtcloud-data
 
 ### 新旧概念对照
 
-| 旧（v0.1.0） | 新（v0.2.0） | 说明 |
+| 旧（v0.1.0） | 新（v0.1.0-beta.1） | 说明 |
 |-------------|-------------|------|
 | Blueprint（模糊） | Requirements + Specification | Blueprint 拆成两层 |
 | `blueprint review` | `review`（提升为顶级命令） | 审计对象从 Blueprint 扩展到 DRD + Specification |
@@ -82,7 +82,7 @@ qtcloud-data
 
 ## 版本目标
 
-### v0.2.0 — 框架对齐
+### v0.1.0-beta.1 — 框架对齐
 
 **交付标准**：
 - `clarify` 和 `design` 命令可用
@@ -90,7 +90,7 @@ qtcloud-data
 - 命令结构与工程标准动词一一对应
 - `cargo build && cargo test` 通过
 
-**当前位置**：v0.1.0-alpha.1 → 冲向 v0.2.0
+**当前位置**：v0.1.0-alpha.1 → 冲向 v0.1.0-beta.1
 
 ### v0.5.0 — 好用
 

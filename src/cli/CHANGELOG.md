@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## [0.1.0-beta.1] - 2026-07-24
+
+### Added
+- `clarify from-chat <file>` — 从聊天记录/上下文生成数据需求文档（DRD）
+- `design contract <drd>` — 从 DRD 生成数据契约（Contract: .yaml + .md）
+- `design blueprint <drd>` — 从 DRD 生成处理蓝图（Blueprint: .yaml + .md + .html）
+- `review <input>` — 提升为顶级命令，审计 Specification
+- `version {list,show,diff}` — 提升为顶级命令
+
+### Changed
+- `blueprint` 子命令迁移：review/design/formalize/preview/version → clarify/design/review/version
+- `design formalize` 保留，md → YAML 形式化
+- `design preview` 保留，YAML → HTML 渲染
+- CUE 格式全局替换为 YAML
+- `contract_tables_to_yaml` / `blueprint_table_to_yaml`：LLM 输出 Markdown 表格，代码确定性生成 YAML
+- 目录结构：`.quanttide/data/drd/` + `.quanttide/data/spec/`
+
+### Removed
+- `quanttide-data-core` 的 from_cue.rs / to_cue.rs（1716行手写 CUE 解析器）
+
 ## [0.1.0-alpha.1] - 2026-07-17
 
 ### Added

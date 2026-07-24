@@ -1,7 +1,7 @@
-# TODO — CLI v0.2.0 框架对齐
+# TODO — CLI v0.1.0-beta.1 框架对齐
 
-> 目标版本 v0.2.0 | 测试覆盖率 ≥80%  
-> 当前：v0.1.0-alpha.1 → v0.2.0
+> 目标版本 v0.1.0-beta.1 | 测试覆盖率 ≥80%  
+> 当前：v0.1.0-alpha.1 → v0.1.0-beta.1
 
 ---
 
@@ -19,7 +19,7 @@ src/blueprint_core.rs      ← 修改：新增 clarify_prompt / design_contract_
 src/lib.rs                 ← 修改：注册新模块
 src/main.rs                ← 修改：重新定义 CLI 命令树
 Cargo.toml                 ← 不修改（依赖不变）
-tests/blueprint_test.rs    ← 追加 v0.2.0 测试
+tests/blueprint_test.rs    ← 追加 v0.1.0-beta.1 测试
 tests/clarify_test.rs      ← 新增
 tests/design_test.rs       ← 新增
 ```

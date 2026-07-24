@@ -156,18 +156,19 @@ pub fn render_html(
     )
 }
 
-/// Resolve a user input to a .cue file path.
+/// Resolve a user input to a .cue or .yaml file path.
 pub fn resolve_cue_path(input: &str, dir: &str) -> Option<PathBuf> {
     let p = Path::new(input);
     if p.exists() {
         Some(p.to_path_buf())
     } else {
-        let with_ext = Path::new(dir).join(format!("{input}.cue"));
-        if with_ext.exists() {
-            Some(with_ext)
-        } else {
-            None
+        for ext in &["yaml", "cue"] {
+            let with_ext = Path::new(dir).join(format!("{input}.{ext}"));
+            if with_ext.exists() {
+                return Some(with_ext);
+            }
         }
+        None
     }
 }
 
@@ -470,34 +471,36 @@ DRD:
 }
 
 /// Parse contract Markdown tables into a Contract struct, return CUE + MD.
-pub fn contract_tables_to_cue(md_tables: &str) -> (String, String) {
+pub fn contract_tables_to_yaml(md_tables: &str) -> (String, String) {
     let input_fields = parse_md_table(md_tables, "输入契约");
     let output_fields = parse_md_table(md_tables, "输出契约");
+
+    if !input_fields.is_empty() && input_fields == output_fields {
+        eprintln!("错误: 输入契约和输出契约解析到相同字段。LLM 可能跳过了 section 标题，请在 prompt 中要求 LLM 输出 ## 输入契约 和 ## 输出契约 标题。");
+        std::process::exit(1);
+    }
 
     let input_schema = fields_to_schema_desc(&input_fields);
     let output_schema = fields_to_schema_desc(&output_fields);
 
-    let cue = format!(
-        r#"package spec
-
-{{
-    input: {{
-        schema: "{}"
-        format: "CSV"
-    }}
-    output: {{
-        schema: "{}"
-        format: "CSV"
-        rules: ["数据完整性校验", "字段类型校验"]
-    }}
-}}
+    let yaml = format!(
+        r#"contract:
+  input:
+    schema: "{}"
+    format: CSV
+  output:
+    schema: "{}"
+    format: CSV
+    rules:
+      - 数据完整性校验
+      - 字段类型校验
 "#,
-        input_schema.replace('"', "\\\""),
-        output_schema.replace('"', "\\\""),
+        input_schema.replace('"', "'"),
+        output_schema.replace('"', "'"),
     );
 
     let md = render_contract_md(&input_fields, &output_fields);
-    (cue, md)
+    (yaml, md)
 }
 
 fn parse_md_table(text: &str, section: &str) -> Vec<Vec<String>> {
@@ -590,7 +593,7 @@ DRD:
 }
 
 /// Parse blueprint Markdown table into CUE + MD.
-pub fn blueprint_table_to_cue(md_table: &str, project_name: &str) -> (String, String) {
+pub fn blueprint_table_to_yaml(md_table: &str, project_name: &str) -> (String, String) {
     let steps = parse_md_table(md_table, "处理步骤");
 
     let mut steps_cue = String::new();
@@ -608,44 +611,43 @@ pub fn blueprint_table_to_cue(md_table: &str, project_name: &str) -> (String, St
             format!("\n            depends: [{}]", dep_list.join(", "))
         };
 
+        let deps_yaml = if deps.is_empty() || deps == "-" {
+            String::new()
+        } else {
+            let dep_list: String = deps.split(',').map(|d| format!("\n          - {}", d.trim())).collect();
+            format!("\n        depends:{}", dep_list)
+        };
+
         steps_cue.push_str(&format!(
-            r#"        {{
-            name: "{name}"
-            from: "{from}"
-            to: "{to}"
-            desc: "{desc}"{deps}
-        }},
+            r#"      - name: "{name}"
+        from: "{from}"
+        to: "{to}"
+        desc: "{desc}"{deps}
 "#,
             name = name,
             from = from,
             to = to,
             desc = desc,
-            deps = deps_str,
+            deps = deps_yaml,
         ));
     }
 
-    let cue = format!(
-        r#"package spec
-
-{{
-    name: "{name}"
-    description: "从 DRD 自动生成的 Blueprint"
-    pipeline: {{
-        name: "{name}-pipeline"
-        steps: [
-{steps}        ]
-    }}
-    status: "draft"
-    created_at: "2026-07-23T00:00:00+00:00"
-    updated_at: "2026-07-23T00:00:00+00:00"
-}}
+    let yaml = format!(
+        r#"name: "{name}"
+description: "从 DRD 自动生成的 Blueprint"
+pipeline:
+  name: "{name}-pipeline"
+  steps:
+{steps}status: draft
+created_at: "2026-07-24T00:00:00+00:00"
+updated_at: "2026-07-24T00:00:00+00:00"
 "#,
         name = project_name,
         steps = steps_cue,
     );
 
     let md = render_blueprint_md(project_name, &steps);
-    (cue, md)
+    (yaml, md)
 }
 
 fn render_blueprint_md(name: &str, steps: &[Vec<String>]) -> String {
