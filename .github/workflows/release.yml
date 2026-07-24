@@ -134,5 +134,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            qtcloud-data-*.tar.gz
-            qtcloud-data-*.zip
+            src/cli/qtcloud-data-*.tar.gz
+            src/cli/qtcloud-data-*.zip
