@@ -74,5 +74,10 @@ jobs:
           cd /home/runner/work/packages/quanttide-data-toolkit/packages/rust
           cargo publish --allow-dirty --token ${{ secrets.CRATE_API_KEY }}
 
+      - name: Switch deps to crates.io versions
+        run: |
+          sed -i 's|quanttide-agent = { path = ".*" }|quanttide-agent = "0.1"|' src/cli/Cargo.toml
+          sed -i 's|quanttide-data-core = { path = ".*" }|quanttide-data-core = "0.1"|' src/cli/Cargo.toml
+
       - name: Publish qtcloud-data-cli
         run: cargo publish --allow-dirty --token ${{ secrets.CRATE_API_KEY }}
