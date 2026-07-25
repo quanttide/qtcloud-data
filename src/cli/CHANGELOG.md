@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## [0.1.0] - 2026-07-24
+
+### Added
+- `implement <yaml> --lang python` — 从 Blueprint YAML 生成 Python 代码实现
+- CI pipeline: push 自动 build + test + clippy + fmt
+- Release pipeline: tag 触发 crates.io 发布 + 多平台二进制打包
+
+### Changed
+- `rc.1` → `rc.2` → `0.1.0`：tag 不可移动，逐版递增
+- Release workflow: `publish-crate` + `build-binary` 两阶段
+
+### Fixed
+- Release upload glob 路径匹配
+
 ## [0.1.0-beta.1] - 2026-07-24
 
 ### Added

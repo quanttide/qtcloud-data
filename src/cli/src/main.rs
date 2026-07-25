@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use qtcloud_data_cli::{
-    blueprint, catalog, clarify, contract, design, pipeline, process, review, transfer, version,
+    blueprint, catalog, clarify, contract, design, implement, pipeline, process, review, transfer, version,
 };
 
 #[derive(Parser)]
@@ -28,6 +28,8 @@ enum Commands {
     Pipeline(pipeline::PipelineArgs),
     /// 数据目录
     Catalog(catalog::CatalogArgs),
+    /// 从 Specification 生成代码实现
+    Implement(implement::ImplementArgs),
     /// 编排流程（receive → pipeline → send）
     Process(process::ProcessArgs),
     /// 数据传输（send / receive）
@@ -46,6 +48,7 @@ fn main() {
         Commands::Contract(args) => contract::run(args),
         Commands::Pipeline(args) => pipeline::run(args),
         Commands::Catalog(args) => catalog::run(args),
+        Commands::Implement(args) => implement::run(args),
         Commands::Process(args) => process::run(args),
         Commands::Transfer(args) => transfer::run(args),
     }

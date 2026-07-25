@@ -4,6 +4,7 @@ pub mod catalog;
 pub mod clarify;
 pub mod contract;
 pub mod design;
+pub mod implement;
 pub mod pipeline;
 pub mod process;
 pub mod providers;
