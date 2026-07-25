@@ -609,13 +609,6 @@ pub fn blueprint_table_to_yaml(md_table: &str, project_name: &str) -> (String, S
         let desc = row.get(3).map(|s| s.as_str()).unwrap_or("");
         let deps = row.get(4).map(|s| s.as_str()).unwrap_or("");
 
-        let deps_str = if deps.is_empty() || deps == "-" {
-            String::new()
-        } else {
-            let dep_list: Vec<String> = deps.split(',').map(|d| format!("\"{}\"", d.trim())).collect();
-            format!("\n            depends: [{}]", dep_list.join(", "))
-        };
-
         let deps_yaml = if deps.is_empty() || deps == "-" {
             String::new()
         } else {

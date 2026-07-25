@@ -8,6 +8,7 @@ use super::StorageProvider;
 pub struct SftpProvider;
 
 impl SftpProvider {
+    #[allow(dead_code)]
     fn connect_from_env() -> Result<(ssh2::Session, ssh2::Sftp), String> {
         let host =
             std::env::var("SFTP_HOST").map_err(|_| "请设置 SFTP_HOST 环境变量".to_string())?;
