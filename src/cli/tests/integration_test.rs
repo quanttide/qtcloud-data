@@ -144,7 +144,7 @@ async fn test_cloud_providers_receive_path_not_supported() {
 #[tokio::test]
 async fn test_s3_receive_path() {
     let server = MockServer::start().await;
-    let base = server.uri();
+    let _base = server.uri();
 
     // mock 一个 S3 GetObject 请求
     Mock::given(method("GET"))
@@ -156,7 +156,6 @@ async fn test_s3_receive_path() {
         )
         .mount(&server)
         .await;
-    let _base = server.uri();
     let provider = qtcloud_data_cli::providers::S3Provider;
     assert_eq!(provider.name(), "s3");
 }
