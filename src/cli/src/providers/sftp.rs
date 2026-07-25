@@ -77,9 +77,6 @@ impl StorageProvider for SftpProvider {
         let data = tokio::fs::read(local_path)
             .await
             .map_err(|e| format!("读取文件失败: {e}"))?;
-        let data = tokio::fs::read(local_path)
-            .await
-            .map_err(|e| format!("读取文件失败: {e}"))?;
         let size = data.len();
 
         let remote = remote_path.to_string();
