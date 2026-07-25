@@ -33,8 +33,8 @@ pub fn run(args: &ProcessArgs) {
     println!("══════════════════════════════════════════════");
     println!("  客户: {}", args.customer_id);
     println!("  来源: {}", args.source_url);
-    if args.blueprint.is_some() {
-        println!("  Blueprint: {}", args.blueprint.as_ref().unwrap());
+    if let Some(bp) = &args.blueprint {
+        println!("  Blueprint: {}", bp);
     }
     println!("  Pipeline: {}", pipeline);
     println!("══════════════════════════════════════════════");

@@ -124,6 +124,7 @@ pub fn extract_cue(response: &str) -> String {
 }
 
 /// Render a Blueprint to HTML.
+#[allow(clippy::too_many_arguments)]
 pub fn render_html(
     name: &str,
     description: Option<&str>,
