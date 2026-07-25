@@ -67,12 +67,12 @@ jobs:
       - name: Publish quanttide-agent
         run: |
           cd /home/runner/work/packages/quanttide-agent-toolkit/packages/rust
-          cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }}
+          cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }} 2>&1 || true
 
       - name: Publish quanttide-data-core
         run: |
           cd /home/runner/work/packages/quanttide-data-toolkit/packages/rust
-          cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }}
+          cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }} 2>&1 || true
 
       - name: Switch deps to crates.io versions
         run: |
