@@ -33,10 +33,10 @@ pub fn run(args: &ContractArgs) {
                 if let Ok(entries) = std::fs::read_dir(&dir) {
                     println!("可用的 Contract:");
                     for entry in entries.flatten() {
-                        if let Some(name) = entry.file_name().to_str() {
-                            if name.ends_with(".yaml")
+                        if let Some(name) = entry.file_name().to_str()
+                            && (name.ends_with(".yaml")
                                 || name.ends_with(".cue")
-                                || name.ends_with(".json")
+                                || name.ends_with(".json"))
                             {
                                 println!(
                                     "  - {}",
@@ -45,7 +45,6 @@ pub fn run(args: &ContractArgs) {
                                         .trim_end_matches(".json")
                                 );
                             }
-                        }
                     }
                 } else {
                     eprintln!("{stderr}");
@@ -68,12 +67,11 @@ pub fn run(args: &ContractArgs) {
             let output = Command::new("cue")
                 .args(["export", "--out", "yaml", "--expression", &key, &dir])
                 .output();
-            if let Ok(out) = output {
-                if out.status.success() {
+            if let Ok(out) = output
+                && out.status.success() {
                     println!("{}", String::from_utf8_lossy(&out.stdout));
                     return;
                 }
-            }
             // 回退：直接读取文件
             for ext in &["yaml", "yml", "cue", "json"] {
                 let path = format!("{dir}/{name}.{ext}");

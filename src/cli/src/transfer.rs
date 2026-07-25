@@ -47,7 +47,7 @@ pub fn run(args: &TransferArgs) {
             output,
         } => {
             let provider = providers::from_name(&args.provider)
-                .expect(&format!("不支持的提供商: {}", args.provider));
+                .unwrap_or_else(|| panic!("不支持的提供商: {}", args.provider));
 
             let remote_path = remote.clone().unwrap_or_else(|| {
                 format!("/send/{}", file.rsplit('/').next().unwrap_or("result"))
@@ -76,7 +76,7 @@ pub fn run(args: &TransferArgs) {
                 // 手动模式：从 URL 自动识别提供商
                 let provider = providers::detect(source).unwrap_or_else(|| {
                     providers::from_name(&args.provider)
-                        .expect(&format!("不支持的提供商: {}", args.provider))
+                        .unwrap_or_else(|| panic!("不支持的提供商: {}", args.provider))
                 });
                 if let Err(e) = rt.block_on(provider.receive(source, &local_path)) {
                     eprintln!("接收失败: {e}");
@@ -84,7 +84,7 @@ pub fn run(args: &TransferArgs) {
             } else {
                 // 自动模式：使用 --provider 指定的提供商直接拉取
                 let provider = providers::from_name(&args.provider)
-                    .expect(&format!("不支持的提供商: {}", args.provider));
+                    .unwrap_or_else(|| panic!("不支持的提供商: {}", args.provider));
                 if let Err(e) = rt.block_on(provider.receive_path(source, &local_path)) {
                     eprintln!("自动接收失败: {e}");
                 }

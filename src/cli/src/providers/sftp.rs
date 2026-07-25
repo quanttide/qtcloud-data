@@ -93,8 +93,7 @@ impl StorageProvider for SftpProvider {
             Ok::<(), String>(())
         })
         .await
-        .map_err(|e| format!("SFTP 上传失败: {e}"))?
-        .map_err(|e| e)?;
+        .map_err(|e| format!("SFTP 上传失败: {e}"))??;
 
         println!("✓ 已上传: {local_path} → {remote_path} ({size} 字节)");
         Ok(format!("sftp://{user}@{host}:{port}{remote_path}"))
