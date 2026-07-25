@@ -113,7 +113,10 @@ pub fn extract_cue(response: &str) -> String {
     for marker in &["```cue", "```CUE", "```"] {
         if let Some(start) = response.find(marker) {
             let s = start + marker.len();
-            let e = response[s..].find("```").map(|i| s + i).unwrap_or(response.len());
+            let e = response[s..]
+                .find("```")
+                .map(|i| s + i)
+                .unwrap_or(response.len());
             let code = response[s..e].trim();
             if code.contains("package") || code.contains("#Blueprint") {
                 return code.to_string();
@@ -285,7 +288,8 @@ mod tests {
 
     #[test]
     fn test_extract_cue_from_markdown_block() {
-        let response = "Here is the CUE:\n```cue\npackage blueprints\nx: {name: \"test\"}\n```\nDone.";
+        let response =
+            "Here is the CUE:\n```cue\npackage blueprints\nx: {name: \"test\"}\n```\nDone.";
         let cue = extract_cue(response);
         assert!(cue.contains("package blueprints"));
         assert!(!cue.contains("```"));
@@ -309,7 +313,16 @@ mod tests {
 
     #[test]
     fn test_render_html_contains_name() {
-        let html = render_html("test", None, "draft", "2026-01-01", "2026-01-01", "in", "out", &[]);
+        let html = render_html(
+            "test",
+            None,
+            "draft",
+            "2026-01-01",
+            "2026-01-01",
+            "in",
+            "out",
+            &[],
+        );
         assert!(html.contains("<title>test — Blueprint</title>"));
         assert!(html.contains("<h1>test</h1>"));
     }
@@ -317,7 +330,16 @@ mod tests {
     #[test]
     fn test_render_html_with_steps() {
         let steps = [("s1", "a", "b", "do it"), ("s2", "b", "c", "then this")];
-        let html = render_html("bp", Some("desc"), "confirmed", "t1", "t2", "in", "out", &steps);
+        let html = render_html(
+            "bp",
+            Some("desc"),
+            "confirmed",
+            "t1",
+            "t2",
+            "in",
+            "out",
+            &steps,
+        );
         assert!(html.contains("s1"));
         assert!(html.contains("s2"));
         assert!(html.contains("do it"));
@@ -344,7 +366,11 @@ mod tests {
         let tmp = std::env::temp_dir().join("bp-test-resolve");
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
-        std::fs::write(tmp.join("my-bp.cue"), "package blueprints\n{name: \"test\"}").unwrap();
+        std::fs::write(
+            tmp.join("my-bp.cue"),
+            "package blueprints\n{name: \"test\"}",
+        )
+        .unwrap();
 
         let result = resolve_cue_path("my-bp", tmp.to_str().unwrap());
         assert!(result.is_some());
@@ -482,7 +508,9 @@ pub fn contract_tables_to_yaml(md_tables: &str) -> (String, String) {
     let output_fields = parse_md_table(md_tables, "输出契约");
 
     if !input_fields.is_empty() && input_fields == output_fields {
-        eprintln!("错误: 输入契约和输出契约解析到相同字段。LLM 可能跳过了 section 标题，请在 prompt 中要求 LLM 输出 ## 输入契约 和 ## 输出契约 标题。");
+        eprintln!(
+            "错误: 输入契约和输出契约解析到相同字段。LLM 可能跳过了 section 标题，请在 prompt 中要求 LLM 输出 ## 输入契约 和 ## 输出契约 标题。"
+        );
         std::process::exit(1);
     }
 
@@ -519,8 +547,10 @@ fn parse_md_table(text: &str, section: &str) -> Vec<Vec<String>> {
             found_section = true;
             continue;
         }
-        if in_section && line.starts_with('|') && !line.contains("---") && !line.contains("字段名") {
-            let cells: Vec<String> = line.split('|')
+        if in_section && line.starts_with('|') && !line.contains("---") && !line.contains("字段名")
+        {
+            let cells: Vec<String> = line
+                .split('|')
                 .map(|c| c.trim().to_string())
                 .filter(|c| !c.is_empty())
                 .collect();
@@ -536,7 +566,8 @@ fn parse_md_table(text: &str, section: &str) -> Vec<Vec<String>> {
     if !found_section {
         for line in text.lines() {
             if line.starts_with('|') && !line.contains("---") && !line.contains("字段名") {
-                let cells: Vec<String> = line.split('|')
+                let cells: Vec<String> = line
+                    .split('|')
                     .map(|c| c.trim().to_string())
                     .filter(|c| !c.is_empty())
                     .collect();
@@ -550,15 +581,23 @@ fn parse_md_table(text: &str, section: &str) -> Vec<Vec<String>> {
 }
 
 fn fields_to_schema_desc(fields: &[Vec<String>]) -> String {
-    if fields.is_empty() { return "待定义".into(); }
-    let items: Vec<String> = fields.iter()
-        .filter_map(|f| f.first().map(|name| format!("{name}: {}", f.get(1).unwrap_or(&"string".into()))))
+    if fields.is_empty() {
+        return "待定义".into();
+    }
+    let items: Vec<String> = fields
+        .iter()
+        .filter_map(|f| {
+            f.first()
+                .map(|name| format!("{name}: {}", f.get(1).unwrap_or(&"string".into())))
+        })
         .collect();
     format!("{{\n    {}\n  }}", items.join(",\n    "))
 }
 
 fn render_contract_md(input: &[Vec<String>], output: &[Vec<String>]) -> String {
-    let mut md = String::from("## 输入契约\n\n| 字段名 | 类型 | 业务含义 | 约束条件 |\n|--------|------|----------|----------|\n");
+    let mut md = String::from(
+        "## 输入契约\n\n| 字段名 | 类型 | 业务含义 | 约束条件 |\n|--------|------|----------|----------|\n",
+    );
     for row in input {
         let cells: Vec<&str> = row.iter().map(|c| c.as_str()).collect();
         if cells.len() >= 4 {
@@ -613,7 +652,10 @@ pub fn blueprint_table_to_yaml(md_table: &str, project_name: &str) -> (String, S
         let deps_yaml = if deps.is_empty() || deps == "-" {
             String::new()
         } else {
-            let dep_list: String = deps.split(',').map(|d| format!("\n          - {}", d.trim())).collect();
+            let dep_list: String = deps
+                .split(',')
+                .map(|d| format!("\n          - {}", d.trim()))
+                .collect();
             format!("\n        depends:{}", dep_list)
         };
 
@@ -657,10 +699,14 @@ updated_at: "2026-07-24T00:00:00+00:00"
 }
 
 fn render_blueprint_md(name: &str, steps: &[Vec<String>]) -> String {
-    let mut md = format!("# {name}\n\n## 处理步骤\n\n| 步骤名 | 输入 | 输出 | 处理逻辑 | 依赖 |\n|--------|------|------|----------|------|\n");
+    let mut md = format!(
+        "# {name}\n\n## 处理步骤\n\n| 步骤名 | 输入 | 输出 | 处理逻辑 | 依赖 |\n|--------|------|------|----------|------|\n"
+    );
     for row in steps {
         let cells: Vec<&str> = row.iter().map(|c| c.as_str()).collect();
-        let padded: Vec<String> = (0..5).map(|i| cells.get(i).unwrap_or(&"").to_string()).collect();
+        let padded: Vec<String> = (0..5)
+            .map(|i| cells.get(i).unwrap_or(&"").to_string())
+            .collect();
         md.push_str(&format!("| {} |\n", padded.join(" | ")));
     }
     md
@@ -702,7 +748,11 @@ pub fn implement_step_prompt(
         from_desc = from_desc,
         to_desc = to_desc,
         step_desc = step_desc,
-        prev_section = if prev_functions.is_empty() { "无（这是第一步）" } else { prev_functions },
+        prev_section = if prev_functions.is_empty() {
+            "无（这是第一步）"
+        } else {
+            prev_functions
+        },
         func_name = to_snake(step_name),
     )
 }

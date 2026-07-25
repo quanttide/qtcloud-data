@@ -41,7 +41,12 @@ pub fn run(args: &VersionArgs) {
         VersionAction::List { name } => {
             // Try spec/ first, then old blueprint/
             let output = Command::new("git")
-                .args(["log", "--oneline", "--follow", &format!("{name}-blueprint.cue")])
+                .args([
+                    "log",
+                    "--oneline",
+                    "--follow",
+                    &format!("{name}-blueprint.cue"),
+                ])
                 .current_dir(&dir)
                 .output();
             match output {
@@ -81,7 +86,11 @@ pub fn run(args: &VersionArgs) {
         }
         VersionAction::Diff { name, v1, v2 } => {
             let output = Command::new("git")
-                .args(["diff", &format!("{v1}:{name}-blueprint.cue"), &format!("{v2}:{name}-blueprint.cue")])
+                .args([
+                    "diff",
+                    &format!("{v1}:{name}-blueprint.cue"),
+                    &format!("{v2}:{name}-blueprint.cue"),
+                ])
                 .current_dir(&dir)
                 .output();
             match output {

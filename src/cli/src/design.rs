@@ -54,7 +54,10 @@ fn cmd_contract(input: &str) {
     let llm = quanttide_agent::LLM::default();
     let messages = vec![quanttide_agent::Message::new("user", &prompt)];
 
-    let stem = Path::new(input).file_stem().unwrap_or_default().to_string_lossy();
+    let stem = Path::new(input)
+        .file_stem()
+        .unwrap_or_default()
+        .to_string_lossy();
     println!("正在从 DRD 生成 Contract: {stem} ...");
 
     match llm.complete(&messages, quanttide_agent::llm::CompleteOptions::default()) {
@@ -77,12 +80,16 @@ fn cmd_blueprint(input: &str) {
     let llm = quanttide_agent::LLM::default();
     let messages = vec![quanttide_agent::Message::new("user", &prompt)];
 
-    let stem = Path::new(input).file_stem().unwrap_or_default().to_string_lossy();
+    let stem = Path::new(input)
+        .file_stem()
+        .unwrap_or_default()
+        .to_string_lossy();
     println!("正在从 DRD 生成 Blueprint: {stem} ...");
 
     match llm.complete(&messages, quanttide_agent::llm::CompleteOptions::default()) {
         Ok(resp) => {
-            let (yaml_content, md_content) = blueprint_core::blueprint_table_to_yaml(&resp.content, &stem);
+            let (yaml_content, md_content) =
+                blueprint_core::blueprint_table_to_yaml(&resp.content, &stem);
             write_spec_files(&stem, "blueprint", &yaml_content, &md_content);
 
             // Generate HTML preview from YAML
@@ -91,12 +98,28 @@ fn cmd_blueprint(input: &str) {
                     eprintln!("解析 YAML 失败: {e}");
                     std::process::exit(1);
                 });
-            let step_refs: Vec<(&str, &str, &str, &str)> = bp.pipeline.steps.iter()
-                .map(|s| (s.name.as_str(), s.from.as_str(), s.to.as_str(), s.desc.as_str()))
+            let step_refs: Vec<(&str, &str, &str, &str)> = bp
+                .pipeline
+                .steps
+                .iter()
+                .map(|s| {
+                    (
+                        s.name.as_str(),
+                        s.from.as_str(),
+                        s.to.as_str(),
+                        s.desc.as_str(),
+                    )
+                })
                 .collect();
             let html = blueprint_core::render_html(
-                &bp.name, bp.description.as_deref(), bp.status.as_str(),
-                &bp.created_at, &bp.updated_at, "", "", &step_refs,
+                &bp.name,
+                bp.description.as_deref(),
+                bp.status.as_str(),
+                &bp.created_at,
+                &bp.updated_at,
+                "",
+                "",
+                &step_refs,
             );
             let spec_dir = blueprint_core::spec_dir();
             let html_path = Path::new(&spec_dir).join(format!("{stem}-blueprint.html"));
@@ -168,18 +191,34 @@ fn cmd_preview(input: &str, output: &Option<String>) {
         std::process::exit(1);
     });
 
-    let bp: quanttide_data_core::Blueprint = serde_yaml::from_str(&yaml_content)
-        .unwrap_or_else(|e| {
+    let bp: quanttide_data_core::Blueprint =
+        serde_yaml::from_str(&yaml_content).unwrap_or_else(|e| {
             eprintln!("解析 YAML 失败: {e}");
             std::process::exit(1);
         });
 
-    let step_refs: Vec<(&str, &str, &str, &str)> = bp.pipeline.steps.iter()
-        .map(|s| (s.name.as_str(), s.from.as_str(), s.to.as_str(), s.desc.as_str()))
+    let step_refs: Vec<(&str, &str, &str, &str)> = bp
+        .pipeline
+        .steps
+        .iter()
+        .map(|s| {
+            (
+                s.name.as_str(),
+                s.from.as_str(),
+                s.to.as_str(),
+                s.desc.as_str(),
+            )
+        })
         .collect();
     let html = blueprint_core::render_html(
-        &bp.name, bp.description.as_deref(), bp.status.as_str(),
-        &bp.created_at, &bp.updated_at, "", "", &step_refs,
+        &bp.name,
+        bp.description.as_deref(),
+        bp.status.as_str(),
+        &bp.created_at,
+        &bp.updated_at,
+        "",
+        "",
+        &step_refs,
     );
     std::fs::write(&output_path, &html).unwrap_or_else(|e| {
         eprintln!("写入 .html 失败: {e}");

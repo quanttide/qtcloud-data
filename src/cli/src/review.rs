@@ -10,16 +10,14 @@ pub struct ReviewArgs {
 
 pub fn run(args: &ReviewArgs) {
     let dir = blueprint_core::spec_dir();
-    let cue_path = blueprint_core::resolve_cue_path(&args.input, &dir)
-        .unwrap_or_else(|| {
-            // Fallback: try old blueprint_dir
-            let old_dir = blueprint_core::blueprint_dir();
-            blueprint_core::resolve_cue_path(&args.input, &old_dir)
-                .unwrap_or_else(|| {
-                    eprintln!("找不到 Specification: {}", args.input);
-                    std::process::exit(1);
-                })
-        });
+    let cue_path = blueprint_core::resolve_cue_path(&args.input, &dir).unwrap_or_else(|| {
+        // Fallback: try old blueprint_dir
+        let old_dir = blueprint_core::blueprint_dir();
+        blueprint_core::resolve_cue_path(&args.input, &old_dir).unwrap_or_else(|| {
+            eprintln!("找不到 Specification: {}", args.input);
+            std::process::exit(1);
+        })
+    });
 
     let cue_content = std::fs::read_to_string(&cue_path).unwrap_or_else(|e| {
         eprintln!("无法读取文件 {}: {e}", cue_path.display());
@@ -34,7 +32,11 @@ pub fn run(args: &ReviewArgs) {
 
     let validation_issues = match quanttide_data_core::validate(&blueprint) {
         Ok(()) => String::new(),
-        Err(errors) => errors.iter().map(|e| format!("  - {e}")).collect::<Vec<_>>().join("\n"),
+        Err(errors) => errors
+            .iter()
+            .map(|e| format!("  - {e}"))
+            .collect::<Vec<_>>()
+            .join("\n"),
     };
 
     let llm = quanttide_agent::LLM::default();

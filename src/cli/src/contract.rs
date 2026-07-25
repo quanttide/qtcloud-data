@@ -19,7 +19,8 @@ pub enum ContractAction {
 }
 
 pub fn run(args: &ContractArgs) {
-    let dir = std::env::var("CONTRACT_DIR").unwrap_or_else(|_| ".quanttide/data/contract".to_string());
+    let dir =
+        std::env::var("CONTRACT_DIR").unwrap_or_else(|_| ".quanttide/data/contract".to_string());
 
     match &args.action {
         ContractAction::List => {
@@ -37,14 +38,14 @@ pub fn run(args: &ContractArgs) {
                             && (name.ends_with(".yaml")
                                 || name.ends_with(".cue")
                                 || name.ends_with(".json"))
-                            {
-                                println!(
-                                    "  - {}",
-                                    name.trim_end_matches(".yaml")
-                                        .trim_end_matches(".cue")
-                                        .trim_end_matches(".json")
-                                );
-                            }
+                        {
+                            println!(
+                                "  - {}",
+                                name.trim_end_matches(".yaml")
+                                    .trim_end_matches(".cue")
+                                    .trim_end_matches(".json")
+                            );
+                        }
                     }
                 } else {
                     eprintln!("{stderr}");
@@ -68,10 +69,11 @@ pub fn run(args: &ContractArgs) {
                 .args(["export", "--out", "yaml", "--expression", &key, &dir])
                 .output();
             if let Ok(out) = output
-                && out.status.success() {
-                    println!("{}", String::from_utf8_lossy(&out.stdout));
-                    return;
-                }
+                && out.status.success()
+            {
+                println!("{}", String::from_utf8_lossy(&out.stdout));
+                return;
+            }
             // 回退：直接读取文件
             for ext in &["yaml", "yml", "cue", "json"] {
                 let path = format!("{dir}/{name}.{ext}");

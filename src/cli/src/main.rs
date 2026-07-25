@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use qtcloud_data_cli::{
-    blueprint, catalog, clarify, contract, design, implement, pipeline, process, review, transfer, version,
+    blueprint, catalog, clarify, contract, design, implement, pipeline, process, review, transfer,
+    version,
 };
 
 #[derive(Parser)]

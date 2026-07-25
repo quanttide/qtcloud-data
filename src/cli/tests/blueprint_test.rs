@@ -30,7 +30,12 @@ fn test_clarify_help() {
 
 #[test]
 fn test_clarify_from_chat_help() {
-    let output = cli().arg("clarify").arg("from-chat").arg("--help").output().unwrap();
+    let output = cli()
+        .arg("clarify")
+        .arg("from-chat")
+        .arg("--help")
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 

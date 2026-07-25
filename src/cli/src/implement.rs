@@ -34,8 +34,8 @@ fn cmd_implement_python(input: &str, output: &Option<String>) {
         std::process::exit(1);
     });
 
-    let bp: quanttide_data_core::Blueprint = serde_yaml::from_str(&yaml_content)
-        .unwrap_or_else(|e| {
+    let bp: quanttide_data_core::Blueprint =
+        serde_yaml::from_str(&yaml_content).unwrap_or_else(|e| {
             eprintln!("解析 YAML 失败: {e}");
             std::process::exit(1);
         });
@@ -52,7 +52,11 @@ fn cmd_implement_python(input: &str, output: &Option<String>) {
     let mut generated_functions = String::new();
     let mut prev_signatures = String::new();
 
-    println!("正在生成 {} 的 Python 实现 ({} 个步骤)...", bp.name, bp.pipeline.steps.len());
+    println!(
+        "正在生成 {} 的 Python 实现 ({} 个步骤)...",
+        bp.name,
+        bp.pipeline.steps.len()
+    );
 
     for (i, step) in bp.pipeline.steps.iter().enumerate() {
         let prompt = blueprint_core::implement_step_prompt(
@@ -63,7 +67,12 @@ fn cmd_implement_python(input: &str, output: &Option<String>) {
             &prev_signatures,
         );
 
-        println!("  [{}/{}] 正在生成: {} ...", i + 1, bp.pipeline.steps.len(), step.name);
+        println!(
+            "  [{}/{}] 正在生成: {} ...",
+            i + 1,
+            bp.pipeline.steps.len(),
+            step.name
+        );
 
         let messages = vec![quanttide_agent::Message::new("user", &prompt)];
         match llm.complete(&messages, quanttide_agent::llm::CompleteOptions::default()) {
@@ -118,7 +127,10 @@ fn extract_python_fn(response: &str) -> String {
     for marker in &["```python", "```py", "```"] {
         if let Some(start) = response.find(marker) {
             let s = start + marker.len();
-            let e = response[s..].find("```").map(|i| s + i).unwrap_or(response.len());
+            let e = response[s..]
+                .find("```")
+                .map(|i| s + i)
+                .unwrap_or(response.len());
             return response[s..e].trim().to_string();
         }
     }
