@@ -61,7 +61,7 @@ jobs:
       - name: Switch deps to crates.io versions
         run: |
           sed -i 's|quanttide-agent = { path = ".*" }|quanttide-agent = "0.1"|' Cargo.toml
-          sed -i 's|quanttide-data-core = { path = ".*" }|quanttide-data-core = "0.1"|' Cargo.toml
+          sed -i 's|quanttide-data = { path = ".*" }|quanttide-data = "0.1"|' Cargo.toml
 
       - name: Publish qtcloud-data-cli
         run: cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }}

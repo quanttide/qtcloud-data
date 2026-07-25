@@ -1734,7 +1734,7 @@ dependencies = [
 
 [[package]]
 name = "qtcloud-data-cli"
-version = "0.1.5"
+version = "0.1.12"
 dependencies = [
  "async-trait",
  "aws-config",
@@ -1742,7 +1742,7 @@ dependencies = [
  "clap",
  "mime_guess",
  "quanttide-agent",
- "quanttide-data-core",
+ "quanttide-data",
  "reqwest",
  "serde",
  "serde_json",
@@ -1763,7 +1763,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "quanttide-data-core"
+name = "quanttide-data"
 version = "0.1.0"
 dependencies = [
  "serde",

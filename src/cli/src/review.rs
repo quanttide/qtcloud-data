@@ -24,13 +24,13 @@ pub fn run(args: &ReviewArgs) {
         std::process::exit(1);
     });
 
-    let blueprint: quanttide_data_core::Blueprint = serde_yaml::from_str(&cue_content)
+    let blueprint: quanttide_data::Blueprint = serde_yaml::from_str(&cue_content)
         .unwrap_or_else(|e| {
             eprintln!("解析 YAML 失败: {e}");
             std::process::exit(1);
         });
 
-    let validation_issues = match quanttide_data_core::validate(&blueprint) {
+    let validation_issues = match quanttide_data::validate(&blueprint) {
         Ok(()) => String::new(),
         Err(errors) => errors
             .iter()

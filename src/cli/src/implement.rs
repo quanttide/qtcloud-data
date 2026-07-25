@@ -34,7 +34,7 @@ fn cmd_implement_python(input: &str, output: &Option<String>) {
         std::process::exit(1);
     });
 
-    let bp: quanttide_data_core::Blueprint =
+    let bp: quanttide_data::Blueprint =
         serde_yaml::from_str(&yaml_content).unwrap_or_else(|e| {
             eprintln!("解析 YAML 失败: {e}");
             std::process::exit(1);
