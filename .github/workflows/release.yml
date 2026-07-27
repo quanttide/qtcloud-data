@@ -68,7 +68,18 @@ jobs:
 
   build-binary:
     needs: check
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: ""
+            archive: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: ".exe"
+            archive: zip
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: src/cli
@@ -78,23 +89,34 @@ jobs:
           ref: ${{ github.ref }}
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: ${{ matrix.target }}
 
       - name: Clone dependency repos
         run: |
-          mkdir -p /home/runner/work/packages
-          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit
-          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit
+          mkdir -p ../../../packages
+          cd ../../../packages
+          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git
+          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git
 
       - name: Build binary
-        run: cargo build --release
+        run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Package
+      - name: Package (tar.gz)
+        if: matrix.archive == 'tar.gz'
         run: |
-          cd target/release
-          tar czf ../../qtcloud-data-x86_64-linux.tar.gz qtcloud-data
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../qtcloud-data-${{ matrix.target }}.tar.gz qtcloud-data
+
+      - name: Package (zip)
+        if: matrix.archive == 'zip'
+        run: |
+          cd target/${{ matrix.target }}/release
+          7z a ../../../qtcloud-data-${{ matrix.target }}.zip qtcloud-data.exe
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            src/cli/qtcloud-data-x86_64-linux.tar.gz
+            qtcloud-data-*.tar.gz
+            qtcloud-data-*.zip
