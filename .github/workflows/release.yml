@@ -64,10 +64,10 @@ jobs:
           cd ../../../../packages
           git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git
 
-      - name: Publish quanttide-data
+      - name: Publish quanttide-data (skip if exists)
         run: |
           cd ../../../../packages/quanttide-data-toolkit/packages/rust
-          cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }}
+          cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }} 2>&1 || echo "already published, skip"
 
       - name: Switch deps to crates.io versions
         run: |
