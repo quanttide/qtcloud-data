@@ -24,8 +24,8 @@ pub fn run(args: &ReviewArgs) {
         std::process::exit(1);
     });
 
-    let blueprint: quanttide_data::Blueprint = serde_yaml::from_str(&cue_content)
-        .unwrap_or_else(|e| {
+    let blueprint: quanttide_data::Blueprint =
+        serde_yaml::from_str(&cue_content).unwrap_or_else(|e| {
             eprintln!("解析 YAML 失败: {e}");
             std::process::exit(1);
         });

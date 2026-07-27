@@ -93,8 +93,8 @@ fn cmd_blueprint(input: &str) {
             write_spec_files(&stem, "blueprint", &yaml_content, &md_content);
 
             // Generate HTML preview from YAML
-            let bp: quanttide_data::Blueprint = serde_yaml::from_str(&yaml_content)
-                .unwrap_or_else(|e| {
+            let bp: quanttide_data::Blueprint =
+                serde_yaml::from_str(&yaml_content).unwrap_or_else(|e| {
                     eprintln!("解析 YAML 失败: {e}");
                     std::process::exit(1);
                 });
@@ -191,11 +191,10 @@ fn cmd_preview(input: &str, output: &Option<String>) {
         std::process::exit(1);
     });
 
-    let bp: quanttide_data::Blueprint =
-        serde_yaml::from_str(&yaml_content).unwrap_or_else(|e| {
-            eprintln!("解析 YAML 失败: {e}");
-            std::process::exit(1);
-        });
+    let bp: quanttide_data::Blueprint = serde_yaml::from_str(&yaml_content).unwrap_or_else(|e| {
+        eprintln!("解析 YAML 失败: {e}");
+        std::process::exit(1);
+    });
 
     let step_refs: Vec<(&str, &str, &str, &str)> = bp
         .pipeline
