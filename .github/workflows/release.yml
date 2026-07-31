@@ -5,6 +5,9 @@ on:
     tags:
       - "cli/v*"
 
+permissions:
+  contents: write
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -21,17 +24,16 @@ jobs:
 
       - name: Extract version from tag
         id: version
-        run: echo "value=${GITHUB_REF_NAME#cli/}" >> $GITHUB_OUTPUT
+        run: echo "value=${GITHUB_REF_NAME#cli/v}" >> $GITHUB_OUTPUT
+
+      - name: Verify Cargo version matches tag
+        run: |
+          cargo_version=$(grep '^version = ' Cargo.toml | head -1 | sed -E 's/version = "([^"]+)"/\1/')
+          test "$cargo_version" = "${{ steps.version.outputs.value }}"
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt, clippy
-
-      - name: Clone dependency repos
-        run: |
-          mkdir -p /home/runner/work/packages
-          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit
-          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit
 
       - name: Build
         run: cargo build --release
@@ -40,7 +42,7 @@ jobs:
         run: cargo test
 
       - name: Clippy
-        run: cargo clippy -- -A warnings
+        run: cargo clippy -- -D warnings
 
       - name: Format
         run: cargo fmt --check
@@ -58,24 +60,8 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: Clone dep repos
-        run: |
-          mkdir -p ../../../../packages
-          cd ../../../../packages
-          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git
-
-      - name: Publish quanttide-data (skip if exists)
-        run: |
-          cd ../../../../packages/quanttide-data-toolkit/packages/rust
-          cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }} 2>&1 || echo "already published, skip"
-
-      - name: Switch deps to crates.io versions
-        run: |
-          sed -i 's|quanttide-agent = { path = ".*" }|quanttide-agent = "0.1"|' Cargo.toml
-          sed -i 's|quanttide-data = { path = ".*" }|quanttide-data = "0.1"|' Cargo.toml
-
       - name: Publish qtcloud-data-cli
-        run: cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }}
+        run: cargo publish --token ${{ secrets.CRATES_API_TOKEN }}
 
   build-binary:
     needs: check
@@ -102,13 +88,6 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: ${{ matrix.target }}
-
-      - name: Clone dependency repos
-        run: |
-          mkdir -p ../../../../packages
-          cd ../../../../packages
-          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git
-          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git
 
       - name: Build binary
         run: cargo build --release --target ${{ matrix.target }}

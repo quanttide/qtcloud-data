@@ -105,7 +105,7 @@ pipeline:
 设计约定：
 
 - `design` 阶段产出 YAML/JSON 规格，不直接产出业务代码。
-- CLI 本地 `[Unreleased]` 的 `design blueprint` 会给每个 state/step 默认写入 `resource: builtin:copy`，用于 Provider smoke test；实际业务实现生成后再替换为 `python:<script>` 等真实执行资源。
+- CLI v0.2.0 的 `design blueprint` 会给每个 state/step 默认写入 `resource: builtin:copy`，用于 Provider smoke test；实际业务实现生成后再替换为 `python:<script>` 等真实执行资源。
 - `implement` 阶段读取 Blueprint/Specification，再生成目标语言实现。
 - `execute`/Provider 阶段优先读取 `start_at/states`，旧代码仍可读取 `steps`。
 - `resource` 是执行绑定字段；纯设计蓝图可以没有 `resource`，但 Provider run API 只执行带 `resource` 的步骤。
@@ -113,7 +113,7 @@ pipeline:
 
 ## Provider 执行边界
 
-Provider 本地 `[Unreleased]` 支持：
+Provider v0.2.0 支持：
 
 - `builtin:copy`：把当前输入复制到当前步骤输出，适合 smoke test 和演示。
 - `python:<script>`：使用 `PYTHON_BIN` 或系统默认 Python 执行脚本。

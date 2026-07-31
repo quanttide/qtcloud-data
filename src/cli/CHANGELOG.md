@@ -17,6 +17,9 @@
 - `spec wrap` / `spec validate`：把已有 Blueprint YAML 包装为稳定 Specification envelope，并校验旧 YAML 或 envelope，供 Provider 后续对齐读取。
 - `design blueprint` 生成 Step Functions 风格的 `pipeline.start_at` / `pipeline.states`，并默认给 state/step 写入 `resource: builtin:copy`，供 Provider 做最小可执行 smoke test。
 
+### Changed
+- 包许可证元数据与仓库根目录 `LICENSE` 对齐为 Apache 2.0。
+
 ## [0.1.0] - 2026-07-24
 
 ### Added

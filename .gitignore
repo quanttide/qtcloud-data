@@ -3,6 +3,10 @@ _build/
 .vscode/
 .idea/
 
+.env
+.env.*
+!.env.example
+
 .pytest_cache/
 __pycache__/
 *.pyc
@@ -10,3 +14,7 @@ __pycache__/
 
 target/
 .DS_Store
+
+.codex-run/
+deliverables/
+.quanttide/data/

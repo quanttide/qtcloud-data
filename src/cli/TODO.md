@@ -1,130 +1,32 @@
-# TODO — CLI v0.1.0-beta.1 框架对齐
+# TODO — CLI v0.2.1 真实项目执行闭环
 
-> 目标版本 v0.1.0-beta.1 | 测试覆盖率 ≥80%  
-> 当前：v0.1.0-alpha.1 → v0.1.0-beta.1
+> 对应 ROADMAP：`[0.2.1]`
+> v0.2.0 已归档到 `CHANGELOG.md`，本文件只保留下一版本可执行拆解。
 
----
+## manifest
 
-## 交付边界（必读）
+- [ ] 定义 manifest YAML/JSON 最小字段（`docs/dev/specification.md`）
+- [ ] 增加 manifest 解析与校验纯函数（`src/spec.rs`）
+- [ ] 增加 manifest 校验命令或合入 `spec validate`（`src/main.rs`、`src/spec.rs`）
+- [ ] 补充 manifest 单元测试和错误用例（`tests/blueprint_test.rs`）
 
-### 允许创建/修改的文件
+## runner
 
-```
-src/clarify.rs             ← 新增：clarify 命令
-src/design.rs              ← 新增：design 命令（contract/blueprint/formalize/preview）
-src/review.rs              ← 新增：review 命令（从 blueprint/review 迁移 + 升级）
-src/version.rs             ← 新增：version 命令（从 blueprint/version 迁移）
-src/blueprint.rs           ← 修改：只剩 list/show，其他子命令迁移走
-src/blueprint_core.rs      ← 修改：新增 clarify_prompt / design_contract_prompt / design_blueprint_prompt
-src/lib.rs                 ← 修改：注册新模块
-src/main.rs                ← 修改：重新定义 CLI 命令树
-Cargo.toml                 ← 不修改（依赖不变）
-tests/blueprint_test.rs    ← 追加 v0.1.0-beta.1 测试
-tests/clarify_test.rs      ← 新增
-tests/design_test.rs       ← 新增
-```
+- [ ] 设计 CLI 本地运行入口参数（`src/main.rs`）
+- [ ] 实现按 Specification/Blueprint 发起 Provider run 的客户端调用（`src/process.rs`）
+- [ ] 支持本地 runner smoke test，默认仍可执行 `builtin:copy`（`src/process.rs`）
+- [ ] 补充端到端命令测试，覆盖输入、输出和 job 记录（`tests/blueprint_test.rs`）
 
-### 禁止操作
+## resources
 
-- **禁止修改** transfer、process、pipeline、contract、catalog、providers 模块
-- **禁止删除** blueprint.rs（list/show 保留）
-- **禁止修改** 测试 fixture 文件
+- [ ] 为真实业务脚本约定 `python:<script>` resource 绑定方式（`docs/dev/specification.md`）
+- [ ] 设计 huangjian 类项目的 smoke/e2e fixture 目录（`tests/`）
+- [ ] 增加 stdout/stderr 摘要记录字段（`src/process.rs`）
+- [ ] 更新 catalog/job 记录文档（`README.md`、`docs/user/transfer.md`）
 
----
+## release
 
-## 1. 新命令结构（对齐工程标准）
-
-```
-qtcloud-data
-├── clarify                     ← NEW
-│   └── from-chat <file>       从聊天记录/上下文生成 DRD (.md)
-├── design                      ← REDESIGNED
-│   ├── contract <drd>         从 DRD 生成 Contract (.yaml + .md)
-│   ├── blueprint <drd>        从 DRD 生成 Blueprint (.yaml + .md + .html)
-│   ├── formalize <md>         通用 md → YAML 转换
-│   └── preview <cue>          通用 YAML → HTML 渲染
-├── review <input>             从 blueprint 子命令提升为顶级
-├── version {list,show,diff}   从 blueprint 子命令提升为顶级
-├── blueprint {list,show}      保留，其他子命令迁移
-├── contract {list,show}       不变
-├── pipeline {list,show}       不变
-├── catalog {}                 不变
-├── process {}                 不变
-└── transfer {send,receive,ls} 不变
-```
-
----
-
-## 2. `clarify` 命令
-
-### 2.1 功能
-- `clarify from-chat <file>` — 读聊天记录 .txt/.md，调 LLM 生成 DRD (.md) 到 `drd/` 目录
-
-### 2.2 实现
-- [ ] `src/clarify.rs` — 命令入口
-  - [ ] `struct ClarifyArgs` — from-chat 子命令
-  - [ ] `fn cmd_from_chat(input: &str, dir: &str)` — 读聊天记录 → LLM → 写 DRD
-- [ ] `src/blueprint_core.rs` — 纯函数
-  - [ ] `fn clarify_prompt(chat: &str) -> String` — 构造 clarify prompt
-  - [ ] `fn drd_dir() -> String` — DRD 目录（`.quanttide/data/drd/`）
-- [ ] 集成测试
-  - [ ] `clarify from-chat` help 正常
-  - [ ] `clarify_prompt` 包含 DRD 模板结构
-  - [ ] `drd_dir` 返回正确默认值
-
----
-
-## 3. `design` 命令（重新设计）
-
-### 3.1 功能
-- `design contract <drd>` — 读 DRD .md → LLM → Contract (.yaml + .md)
-- `design blueprint <drd>` — 读 DRD .md → LLM → Blueprint (.yaml + .md + .html)
-- `design formalize <md>` — 通用 md → YAML（保留）
-- `design preview <cue>` — 通用 YAML → HTML（保留）
-
-### 3.2 实现
-- [ ] `src/design.rs` — 命令入口
-  - [ ] `struct DesignArgs` — 子命令枚举
-  - [ ] `fn cmd_contract(input: &str, dir: &str)` — DRD → Contract
-  - [ ] `fn cmd_blueprint(input: &str, dir: &str)` — DRD → Blueprint
-  - [ ] `fn cmd_formalize(input: &str, output: &Option<String>, dir: &str)` — md → YAML（保留）
-  - [ ] `fn cmd_preview(input: &str, output: &Option<String>)` — YAML → HTML（保留）
-- [ ] `src/blueprint_core.rs` — 纯函数
-  - [ ] `fn design_contract_prompt(drd: &str) -> String` — Contract prompt
-  - [ ] `fn design_blueprint_prompt(drd: &str) -> String` — Blueprint prompt
-  - [ ] `fn design_formalize_prompt(md: &str) -> String` — 原有 formalize_prompt 重命名
-  - [ ] `fn spec_dir() -> String` — 规格目录（`.quanttide/data/spec/`）
-- [ ] 集成测试
-  - [ ] 四个子命令 help 正常
-  - [ ] prompt 包含对应的模板结构
-  - [ ] `spec_dir` 返回正确默认值
-
----
-
-## 4. 旧命令迁移
-
-- [ ] `review` — 从 `blueprint review` 迁移为顶级 `review`
-- [ ] `version` — 从 `blueprint version` 迁移为顶级 `version`
-- [ ] `blueprint.rs` — 删除 review/design/formalize/preview/version 代码，只保留 list/show
-- [ ] `main.rs` — 注册新顶级命令，移除旧 blueprint 子命令
-
----
-
-## 5. 纯函数层更新
-
-- [ ] `src/blueprint_core.rs`
-  - [ ] 新增：`clarify_prompt`, `drd_dir`
-  - [ ] 新增：`design_contract_prompt`, `design_blueprint_prompt`, `spec_dir`
-  - [ ] 重命名：`formalize_prompt` → `design_formalize_prompt`
-  - [ ] 保留：`review_prompt`, `extract_cue`, `render_html`, `design_template`, `to_camel`, `blueprint_dir`, `resolve_*`
-  - [ ] 删除：无
-
----
-
-## 6. Build & CI
-
-- [ ] `cargo build` 通过
-- [ ] `cargo test` 全量通过
-- [ ] `cargo clippy` 无 warning
-- [ ] `cargo fmt` 检查通过
-- [ ] 测试覆盖率 ≥80%（纯逻辑层）
+- [ ] 发布前确认 `Cargo.toml`、`CHANGELOG.md`、`ROADMAP.md`、Git tag 一致
+- [ ] 创建并推送 `cli/v0.2.0` tag
+- [ ] 由 crates.io owner 发布 `qtcloud-data-cli` v0.2.0
+- [ ] 基于 `CHANGELOG.md` 创建 GitHub Release

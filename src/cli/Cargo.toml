@@ -6,7 +6,7 @@ authors = ["QuantTide Inc. <opensource@quanttide.com>"]
 description = "量潮数据云 CLI"
 homepage = "https://github.com/quanttide/qtcloud-data"
 repository = "https://github.com/quanttide/qtcloud-data"
-license = "MIT"
+license = "Apache-2.0"
 
 [[bin]]
 name = "qtcloud-data"

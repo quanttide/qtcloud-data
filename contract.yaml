@@ -1,0 +1,52 @@
+# QuantTide Data Cloud component contract.
+#
+# This file is the repository-level source of truth for independently planned,
+# built, tested, and released scopes.
+scopes:
+  cli:
+    dir: src/cli
+    language: rust
+    build_tool: cargo
+    registry: crates
+    package:
+      name: qtcloud-data-cli
+      version_file: src/cli/Cargo.toml
+    facts:
+      roadmap: src/cli/ROADMAP.md
+      todo: src/cli/TODO.md
+      changelog: src/cli/CHANGELOG.md
+    ci:
+      workflow: .github/workflows/ci.yml
+      release_workflow: .github/workflows/release.yml
+      tag_prefix: cli/
+
+  provider:
+    dir: src/provider
+    language: go
+    build_tool: go
+    registry: none
+    package:
+      name: qtcloud-provider
+      version_file: src/provider/internal/provider/version.go
+    facts:
+      roadmap: src/provider/ROADMAP.md
+      todo: src/provider/TODO.md
+      changelog: src/provider/CHANGELOG.md
+    ci:
+      workflow: .github/workflows/ci.yml
+      tag_prefix: provider/
+
+  studio:
+    dir: src/studio
+    language: dart
+    build_tool: flutter
+    registry: none
+    package:
+      name: qtcloud_data_studio
+      version_file: src/studio/pubspec.yaml
+    facts:
+      roadmap: src/studio/ROADMAP.md
+      changelog: none
+    ci:
+      workflow: none
+      tag_prefix: studio/

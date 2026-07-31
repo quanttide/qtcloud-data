@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check:
+  cli:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,15 +22,6 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Clone dependency repos
-        run: |
-          # Path deps expect: ../../../../packages/ from src/cli/
-          # In CI, checkout = /home/runner/work/qtcloud-data/qtcloud-data
-          # So: /home/runner/work/packages/
-          mkdir -p /home/runner/work/packages
-          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit
-          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit
-
       - name: Build
         run: cargo build
 
@@ -38,7 +29,25 @@ jobs:
         run: cargo test
 
       - name: Clippy
-        run: cargo clippy -- -A warnings
+        run: cargo clippy -- -D warnings
 
       - name: Format
         run: cargo fmt --check
+
+  provider:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/provider
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: src/provider/go.mod
+
+      - name: Test
+        run: go test ./...
+
+      - name: Vet
+        run: go vet ./...

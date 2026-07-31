@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+暂无。
+
+## [0.2.0] - 2026-07-31
+
 ### Added
 - 读取 CLI 生成的 legacy Blueprint YAML 与 Specification envelope YAML。
 - 新增 `GET /blueprints` 和 `GET /blueprints/{name}`，供 Studio 浏览蓝图列表和详情。

@@ -1,6 +1,6 @@
 # `qtcloud-provider`
 
-`qtcloud-provider` 是 Data Cloud 的 Go 后端服务。当前发布版 `v0.0.1` 仍是骨架；本地 `[Unreleased]` 已开始承接 CLI 生成的 Specification/Blueprint YAML，并提供最小可运行的 Pipeline API，供 Studio 浏览和演示。
+`qtcloud-provider` 是 Data Cloud 的 Go 后端服务。当前源码版本 `v0.2.0` 已开始承接 CLI 生成的 Specification/Blueprint YAML，并提供最小可运行的 Pipeline API，供 Studio 浏览和演示。已发布 tag 仍停在 `provider/v0.0.1`，v0.2.0 待单独打 tag/Release。
 
 ## 当前能力
 

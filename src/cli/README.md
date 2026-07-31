@@ -2,8 +2,8 @@
 
 量潮数据云命令行工具，用来把数据交付里容易卡住的碎片环节串成可重复命令。
 
-当前 crates.io 发布准备版本：`qtcloud-data-cli` v0.2.0。
-v0.2.0 补齐 `doctor`、`process` job 记录、catalog 产物登记和 Provider 对齐能力。
+当前源码版本：`qtcloud-data-cli` v0.2.0。
+v0.2.0 补齐 `doctor`、`process` job 记录、catalog 产物登记和 Provider 对齐能力。crates.io 已发布版本仍为 v0.1.16，v0.2.0 待 owner 权限完成发布。
 
 ## 命令一览
 
@@ -30,6 +30,8 @@ v0.2.0 补齐 `doctor`、`process` job 记录、catalog 产物登记和 Provider
 ```bash
 cargo install qtcloud-data-cli
 ```
+
+在 v0.2.0 发布到 crates.io 前，上述命令安装的是当前线上最新稳定版 v0.1.16。需要使用 v0.2.0 时走源码安装。
 
 ### 本地开发
 
@@ -133,4 +135,4 @@ qtcloud-data process ABC "https://..." --blueprint csv-standardization
 
 ## 许可
 
-MIT
+Apache 2.0
