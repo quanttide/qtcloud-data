@@ -1,7 +1,0 @@
-<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><title>context — Blueprint</title>
-<style>body{font-family:sans-serif;max-width:960px;margin:0 auto;padding:2rem}h1{color:#2563eb}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.5rem;border-bottom:1px solid #ddd}th{color:#6c757d}</style></head>
-<body><h1>context</h1><p>从 DRD 自动生成的 Blueprint</p><p>状态: draft | 创建: 2026-07-24T00:00:00+00:00 | 更新: 2026-07-24T00:00:00+00:00</p>
-<h2>契约</h2><h3>输入</h3><pre></pre><h3>输出</h3><pre></pre>
-<h2>管道 (6 步)</h2><table><tr><th>#</th><th>名称</th><th>From</th><th>To</th><th>描述</th></tr><tr><td>1</td><td>步骤名</td><td>输入(from)</td><td>输出(to)</td><td>处理逻辑(desc)</td></tr><tr><td>2</td><td>PDF解析与文本提取</td><td>原始PDF检测报告</td><td>结构化文本数据</td><td>解析PDF文件，提取表格文本及元数据（页码、表格位置），生成包含来源机构、报告编号、样品信息、检测指标原始名称、时间点、分组、数值等原始文本记录</td></tr><tr><td>3</td><td>指标名称标准化</td><td>结构化文本数据</td><td>标准化指标映射后数据</td><td>根据标准指标映射表，将各机构原始指标名称（如“皮肤水分含量”、“角质层水分含量”）统一映射为标准名称；保留原始名称作为溯源字段</td></tr><tr><td>4</td><td>数值精度与格式清洗</td><td>标准化指标映射后数据</td><td>清洗后数值数据</td><td>保留原始数值精度（不四舍五入），去除单位符号（如“%”），将非数值字段转为标准格式（如日期、时间点），确保可追溯性的元数据字段完整</td></tr><tr><td>5</td><td>去重与长表组装</td><td>清洗后数值数据</td><td>最终标准化长表数据集</td><td>按（报告编号、样品编号、标准指标名称、检测时间点、分组）去重，保留完整记录，组合成每行一次观测值的长表格式，包含均值、标准差、变化率、P值等字段，并追加溯源字段（报告文件名称、页码、表格位置）</td></tr><tr><td>6</td><td>异常识别与复核清单输出</td><td>清洗后数值数据及最终数据集</td><td>异常问题清单及标注PDF</td><td>检测数值异常（如超出合理范围、缺失关键指标），生成问题清单文件，同时在原PDF对应位置标注以便人工复核</td></tr></table>
-</body></html>
