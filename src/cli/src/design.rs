@@ -1,7 +1,7 @@
 use clap::{Args, Subcommand};
 use std::path::{Path, PathBuf};
 
-use crate::blueprint_core;
+use crate::{blueprint_core, spec};
 
 #[derive(Args)]
 pub struct DesignArgs {
@@ -191,8 +191,8 @@ fn cmd_preview(input: &str, output: &Option<String>) {
         std::process::exit(1);
     });
 
-    let bp: quanttide_data::Blueprint = serde_yaml::from_str(&yaml_content).unwrap_or_else(|e| {
-        eprintln!("解析 YAML 失败: {e}");
+    let bp = spec::load_blueprint_from_yaml(&yaml_content).unwrap_or_else(|e| {
+        eprintln!("{e}");
         std::process::exit(1);
     });
 

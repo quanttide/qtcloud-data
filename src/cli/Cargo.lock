@@ -1734,7 +1734,7 @@ dependencies = [
 
 [[package]]
 name = "qtcloud-data-cli"
-version = "0.1.16"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "aws-config",
@@ -1756,6 +1756,8 @@ dependencies = [
 [[package]]
 name = "quanttide-agent"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cde6812ca9db74e0748ccc9f0c041c175d049f2ba688d68d8170b173a39e5fce"
 dependencies = [
  "serde",
  "serde_json",
@@ -1765,6 +1767,8 @@ dependencies = [
 [[package]]
 name = "quanttide-data"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2689b2f847a624da33667ea3eaf222b02357ab10434aeeb5e1608ee490ca454"
 dependencies = [
  "serde",
  "serde_json",

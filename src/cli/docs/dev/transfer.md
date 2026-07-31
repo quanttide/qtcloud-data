@@ -47,6 +47,8 @@ pub trait StorageProvider: Send + Sync {
 }
 ```
 
+`transfer send` 成功后会把 provider、源文件、远程路径、分享链接和可选 `--output` 链接文件路径写入 `CATALOG_DIR/delivery-links.json`。记录失败只输出 warning，不影响已经成功的上传和链接输出。
+
 ## process 编排
 
 `process` 命令串联三步：
@@ -56,6 +58,10 @@ pub trait StorageProvider: Send + Sync {
 3. **send** — shell 调用 `transfer send`
 
 Pipeline 定义在 CUE 文件中，通过 `--pipeline` 或 `--blueprint` 引用。
+
+本地源码构建版本中，`process` 会把 job 记录追加/覆盖到 `CATALOG_DIR/jobs.json`。该文件沿用 catalog 的 pretty JSON registry 风格，顶层是以 job id 为 key 的对象；每条记录包含 `customer_id`、脱敏后的 `source_url`、`blueprint`、`pipeline`、`raw_path`、`output_path`、`link_path`、`status`、`started_at`、`finished_at` 和 `log_path`。对应日志写在 `CATALOG_DIR/jobs/<job-id>.log`。
+
+成功交付后，`process` 会通过 catalog 的登记逻辑把最终产物写入 `CATALOG_DIR/registry.json`，volume 的 `provider` 为 `process`，`source` 为 `process:<job-id>`，`status` 为 `delivered`。登记失败只输出 warning，不反转已经完成的交付结果。
 
 ## 添加新平台
 
@@ -82,11 +88,12 @@ Pipeline 定义在 CUE 文件中，通过 `--pipeline` 或 `--blueprint` 引用�
 | 变量 | 默认值 | 用途 |
 |---|---|---|
 | `PIPELINE` | `csv-standard` | 默认 pipeline 名称 |
-| `PIPELINES_DIR` | `./pipelines` | CUE 管道定义目录 |
-| `BLUEPRINTS_DIR` | `./blueprints` | CUE 蓝图定义目录 |
-| `CONTRACTS_DIR` | `./contracts` | 契约定义目录 |
-| `WORKDIR` | `./work` | 流程执行工作目录 |
+| `PIPELINE_DIR` | `.quanttide/data/pipeline` | CUE 管道定义目录 |
+| `BLUEPRINT_DIR` | `.quanttide/data/blueprint` | CUE 蓝图定义目录 |
+| `CONTRACT_DIR` | `.quanttide/data/contract` | 契约定义目录 |
+| `WORKDIR` | 系统临时目录下的 `qtcloud-data` | 流程执行工作目录 |
 | `QTDATA_CLI` | `qtcloud-data` | 自身命令路径（process 调用） |
+| `CATALOG_DIR` | `.quanttide/data/catalog` | catalog registry、process job 记录和 delivery link 记录目录 |
 
 ## 测试
 

@@ -53,13 +53,24 @@ pub struct Volume {
     pub status: String,
 }
 
+pub struct RegisterVolume<'a> {
+    pub path: &'a str,
+    pub name: Option<&'a str>,
+    pub provider: Option<&'a str>,
+    pub source: Option<&'a str>,
+    pub status: &'a str,
+}
+
 fn default_status() -> String {
     "received".to_string()
 }
 
 fn registry_path() -> PathBuf {
-    let dir =
-        std::env::var("CATALOG_DIR").unwrap_or_else(|_| ".quanttide/data/catalog".to_string());
+    let dir = std::env::var("CATALOG_DIR").unwrap_or_else(|_| {
+        std::env::var("DATA_ROOT")
+            .map(|root| format!("{root}/catalog"))
+            .unwrap_or_else(|_| ".quanttide/data/catalog".to_string())
+    });
     let p = PathBuf::from(&dir);
     std::fs::create_dir_all(&p).ok();
     p.join("registry.json")
@@ -81,6 +92,45 @@ fn save_registry(registry: &BTreeMap<String, Volume>) {
     let path = registry_path();
     let json = serde_json::to_string_pretty(registry).expect("序列化失败");
     std::fs::write(&path, json).expect("写入 registry 失败");
+}
+
+pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, String> {
+    let path = PathBuf::from(input.path);
+    if !path.exists() {
+        return Err(format!("文件不存在: {}", input.path));
+    }
+
+    let meta = std::fs::metadata(&path).map_err(|err| format!("读取文件元数据失败: {err}"))?;
+
+    let file_name = path
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    let volume_name = input
+        .name
+        .map(|name| name.to_string())
+        .unwrap_or_else(|| file_name);
+
+    let volume = Volume {
+        name: volume_name.clone(),
+        path: path
+            .canonicalize()
+            .unwrap_or(path)
+            .to_string_lossy()
+            .to_string(),
+        size: meta.len(),
+        received_at: chrono_now(),
+        provider: input.provider.map(|provider| provider.to_string()),
+        source: input.source.map(|source| source.to_string()),
+        status: input.status.to_string(),
+    };
+
+    let mut registry = load_registry();
+    registry.insert(volume_name, volume.clone());
+    save_registry(&registry);
+
+    Ok(volume)
 }
 
 pub fn run(args: &CatalogArgs) {
@@ -145,48 +195,19 @@ fn show(name: &str) {
 }
 
 fn add(path_str: &str, name: Option<&str>, provider: Option<&str>, source: Option<&str>) {
-    let path = PathBuf::from(path_str);
-    if !path.exists() {
-        eprintln!("文件不存在: {path_str}");
+    let volume = register_volume(RegisterVolume {
+        path: path_str,
+        name,
+        provider,
+        source,
+        status: "received",
+    })
+    .unwrap_or_else(|err| {
+        eprintln!("{err}");
         std::process::exit(1);
-    }
+    });
 
-    let meta = match std::fs::metadata(&path) {
-        Ok(m) => m,
-        Err(e) => {
-            eprintln!("读取文件元数据失败: {e}");
-            std::process::exit(1);
-        }
-    };
-
-    let file_name = path
-        .file_name()
-        .map(|s| s.to_string_lossy().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
-
-    let volume_name = name.map(|s| s.to_string()).unwrap_or_else(|| file_name);
-
-    let now = chrono_now();
-
-    let volume = Volume {
-        name: volume_name.clone(),
-        path: path
-            .canonicalize()
-            .unwrap_or(path)
-            .to_string_lossy()
-            .to_string(),
-        size: meta.len(),
-        received_at: now,
-        provider: provider.map(|s| s.to_string()),
-        source: source.map(|s| s.to_string()),
-        status: "received".to_string(),
-    };
-
-    let mut registry = load_registry();
-    registry.insert(volume_name.clone(), volume);
-    save_registry(&registry);
-
-    println!("✓ 已注册 volume: {volume_name}");
+    println!("✓ 已注册 volume: {}", volume.name);
 }
 
 fn rm(name: &str) {
@@ -247,4 +268,72 @@ fn days_to_date(mut days: i64) -> (i64, u32, u32) {
     let m = if mp < 10 { mp + 3 } else { mp - 9 };
     let y = if m <= 2 { y + 1 } else { y };
     (y, m as u32, d as u32)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
+        std::fs::remove_dir_all(&dir).ok();
+        dir
+    }
+
+    #[test]
+    fn register_volume_writes_registry_entry() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-catalog-register");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+        let file = root.join("final.csv");
+        std::fs::write(&file, "a,b\n1,2\n").unwrap();
+
+        unsafe {
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+        }
+        let volume = register_volume(RegisterVolume {
+            path: file.to_str().unwrap(),
+            name: Some("ABC-001-final"),
+            provider: Some("process"),
+            source: Some("process:ABC-001-123"),
+            status: "delivered",
+        })
+        .unwrap();
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+        }
+
+        assert_eq!(volume.name, "ABC-001-final");
+        assert_eq!(volume.provider.as_deref(), Some("process"));
+        assert_eq!(volume.source.as_deref(), Some("process:ABC-001-123"));
+        assert_eq!(volume.status, "delivered");
+
+        let registry = std::fs::read_to_string(catalog_dir.join("registry.json")).unwrap();
+        assert!(registry.contains("ABC-001-final"));
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn registry_path_uses_data_root_when_catalog_dir_missing() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-catalog-data-root");
+
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+            std::env::set_var("DATA_ROOT", &root);
+        }
+        let path = registry_path();
+        unsafe {
+            std::env::remove_var("DATA_ROOT");
+        }
+
+        assert_eq!(path, root.join("catalog").join("registry.json"));
+
+        std::fs::remove_dir_all(&root).ok();
+    }
 }

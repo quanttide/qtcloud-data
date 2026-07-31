@@ -1,6 +1,6 @@
 [package]
 name = "qtcloud-data-cli"
-version = "0.1.16"
+version = "0.2.0"
 edition = "2024"
 authors = ["QuantTide Inc. <opensource@quanttide.com>"]
 description = "量潮数据云 CLI"
@@ -25,8 +25,8 @@ ssh2 = "0.9"
 whoami = "1"
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio"] }
-quanttide-agent = { path = "../../../../packages/quanttide-agent-toolkit/packages/rust" }
-quanttide-data = { path = "../../../../packages/quanttide-data-toolkit/packages/rust" }
+quanttide-agent = "0.1.1"
+quanttide-data = "0.1.0"
 
 [dev-dependencies]
 wiremock = "0.6"
