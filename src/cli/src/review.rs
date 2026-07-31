@@ -1,6 +1,6 @@
 use clap::Args;
 
-use crate::{blueprint_core, spec};
+use crate::blueprint_core;
 
 #[derive(Args)]
 pub struct ReviewArgs {
@@ -24,10 +24,11 @@ pub fn run(args: &ReviewArgs) {
         std::process::exit(1);
     });
 
-    let blueprint = spec::load_blueprint_from_yaml(&cue_content).unwrap_or_else(|e| {
-        eprintln!("{e}");
-        std::process::exit(1);
-    });
+    let blueprint: quanttide_data::Blueprint =
+        serde_yaml::from_str(&cue_content).unwrap_or_else(|e| {
+            eprintln!("解析 YAML 失败: {e}");
+            std::process::exit(1);
+        });
 
     let validation_issues = match quanttide_data::validate(&blueprint) {
         Ok(()) => String::new(),

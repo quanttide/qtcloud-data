@@ -17,10 +17,7 @@ func main() {
 		port = "8080"
 	}
 
-	s, err := store.NewFromEnv()
-	if err != nil {
-		log.Fatalf("加载 process job store 失败: %v", err)
-	}
+	s := store.New()
 	handler := api.Router(s)
 
 	addr := fmt.Sprintf(":%s", port)

@@ -547,11 +547,7 @@ fn parse_md_table(text: &str, section: &str) -> Vec<Vec<String>> {
             found_section = true;
             continue;
         }
-        if in_section
-            && line.starts_with('|')
-            && !line.contains("---")
-            && !line.contains("字段名")
-            && !line.contains("步骤名")
+        if in_section && line.starts_with('|') && !line.contains("---") && !line.contains("字段名")
         {
             let cells: Vec<String> = line
                 .split('|')
@@ -569,11 +565,7 @@ fn parse_md_table(text: &str, section: &str) -> Vec<Vec<String>> {
     // Fallback: if section header not found, parse all | lines as table data
     if !found_section {
         for line in text.lines() {
-            if line.starts_with('|')
-                && !line.contains("---")
-                && !line.contains("字段名")
-                && !line.contains("步骤名")
-            {
+            if line.starts_with('|') && !line.contains("---") && !line.contains("字段名") {
                 let cells: Vec<String> = line
                     .split('|')
                     .map(|c| c.trim().to_string())
@@ -628,8 +620,6 @@ pub fn design_blueprint_prompt(drd: &str) -> String {
     format!(
         r#"你是一个数据工程规格设计师。请根据以下数据需求文档（DRD），生成处理蓝图（Blueprint）的工作流步骤。
 
-Blueprint 是设计与实现之间的中间规格，参考 AWS Step Functions 的状态机思路：先描述工作流结构，再由 implement/execute 转换为代码或执行计划。当前 CLI 会根据表格生成 YAML，其中包含兼容旧实现的 steps，以及更明确的 start_at/states 状态机结构。
-
 输出一个 Markdown 表格（只输出表格，不要输出任何 CUE 代码或解释文字）：
 
 ## 处理步骤
@@ -650,21 +640,9 @@ DRD:
 /// Parse blueprint Markdown table into CUE + MD.
 pub fn blueprint_table_to_yaml(md_table: &str, project_name: &str) -> (String, String) {
     let steps = parse_md_table(md_table, "处理步骤");
-    let workflow_rows: Vec<Vec<String>> = steps
-        .iter()
-        .filter(|row| {
-            let name = row.first().map(|s| s.as_str()).unwrap_or("unnamed");
-            let name_lower = name.trim().to_lowercase();
-            !matches!(
-                name_lower.as_str(),
-                "步骤名" | "步骤" | "step name" | "step" | "unnamed"
-            )
-        })
-        .cloned()
-        .collect();
 
     let mut steps_cue = String::new();
-    for row in &workflow_rows {
+    for row in &steps {
         let name = row.first().map(|s| s.as_str()).unwrap_or("unnamed");
         let from = row.get(1).map(|s| s.as_str()).unwrap_or("");
         let to = row.get(2).map(|s| s.as_str()).unwrap_or("");
@@ -685,59 +663,13 @@ pub fn blueprint_table_to_yaml(md_table: &str, project_name: &str) -> (String, S
             r#"      - name: "{name}"
         from: "{from}"
         to: "{to}"
-        desc: "{desc}"
-        resource: builtin:copy{deps}
+        desc: "{desc}"{deps}
 "#,
             name = name,
             from = from,
             to = to,
             desc = desc,
             deps = deps_yaml,
-        ));
-    }
-
-    let start_at = workflow_rows
-        .first()
-        .and_then(|row| row.first())
-        .map(|s| s.as_str())
-        .unwrap_or("");
-    let mut states_yaml = String::new();
-    for (i, row) in workflow_rows.iter().enumerate() {
-        let name = row.first().map(|s| s.as_str()).unwrap_or("unnamed");
-        let from = row.get(1).map(|s| s.as_str()).unwrap_or("");
-        let to = row.get(2).map(|s| s.as_str()).unwrap_or("");
-        let desc = row.get(3).map(|s| s.as_str()).unwrap_or("");
-        let deps = row.get(4).map(|s| s.as_str()).unwrap_or("");
-        let deps_yaml = if deps.is_empty() || deps == "-" {
-            String::new()
-        } else {
-            let dep_items: String = deps
-                .split(',')
-                .map(|d| format!("\n        - {}", d.trim()))
-                .collect();
-            format!("\n      depends:{dep_items}")
-        };
-        let transition = workflow_rows
-            .get(i + 1)
-            .and_then(|next| next.first())
-            .map(|next_name| format!("next: \"{next_name}\""))
-            .unwrap_or_else(|| "end: true".to_string());
-
-        states_yaml.push_str(&format!(
-            r#"    "{name}":
-      type: task
-      from: "{from}"
-      to: "{to}"
-      desc: "{desc}"
-      resource: builtin:copy
-      {transition}{depends}
-"#,
-            name = name,
-            from = from,
-            to = to,
-            desc = desc,
-            transition = transition,
-            depends = deps_yaml,
         ));
     }
 
@@ -753,17 +685,12 @@ contract:
     format: ""
 pipeline:
   name: "{name}-pipeline"
-  start_at: "{start_at}"
-  states:
-{states}
   steps:
 {steps}status: draft
 created_at: "2026-07-24T00:00:00+00:00"
 updated_at: "2026-07-24T00:00:00+00:00"
 "#,
         name = project_name,
-        start_at = start_at,
-        states = states_yaml,
         steps = steps_cue,
     );
 
@@ -903,43 +830,9 @@ mod tests_v020 {
     fn test_design_blueprint_prompt() {
         let prompt = design_blueprint_prompt("清洗订单数据");
         assert!(prompt.contains("处理步骤"));
-        assert!(prompt.contains("状态机"));
-        assert!(prompt.contains("start_at"));
-        assert!(prompt.contains("states"));
         assert!(prompt.contains("from"));
         assert!(prompt.contains("desc"));
         assert!(prompt.contains("Markdown 表格"));
         assert!(prompt.contains("清洗订单"));
-    }
-
-    #[test]
-    fn test_blueprint_table_to_yaml_includes_state_machine() {
-        let table = r#"
-## 处理步骤
-
-| 步骤名 | 输入(from) | 输出(to) | 处理逻辑(desc) | 依赖(depends) |
-|--------|-----------|----------|---------------|--------------|
-| 数据加载与校验 | 原始 CSV 文件 | 校验后的数据 | 检查必填字段 | - |
-| 字段标准化 | 校验后的数据 | 标准化数据 | 统一日期格式 | 数据加载与校验 |
-"#;
-
-        let (yaml, _md) = blueprint_table_to_yaml(table, "customer-chat");
-
-        assert!(yaml.contains("start_at: \"数据加载与校验\""));
-        assert!(yaml.contains("states:"));
-        assert!(yaml.contains("type: task"));
-        assert!(yaml.contains("resource: builtin:copy"));
-        assert!(yaml.contains("next: \"字段标准化\""));
-        assert!(yaml.contains("end: true"));
-
-        let parsed: serde_yaml::Value = serde_yaml::from_str(&yaml).unwrap();
-        assert_eq!(
-            parsed["pipeline"]["states"]["数据加载与校验"]["resource"].as_str(),
-            Some("builtin:copy")
-        );
-        assert_eq!(
-            parsed["pipeline"]["states"]["字段标准化"]["end"].as_bool(),
-            Some(true)
-        );
     }
 }

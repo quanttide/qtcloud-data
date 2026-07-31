@@ -1,18 +1,5 @@
 # CHANGELOG
 
-## [Unreleased]
-
-### Added
-- `doctor` 命令：检查本机 DataOps 环境、常用工具、数据目录和传输凭证配置状态。
-- `doctor --fix-dirs`：自动创建常用 `.quanttide/data/` 目录。
-- `doctor --json`：输出机器可读诊断报告，便于 CI、Studio 或脚本集成。
-- `DATA_ROOT`：统一覆盖默认数据根目录，子目录环境变量仍可单独覆盖。
-- `process` 成功或失败后写入 job 记录到 `CATALOG_DIR/jobs.json`，并生成对应日志路径，便于交付追踪。
-- `process` 成功交付后自动把最终产物登记到 `CATALOG_DIR/registry.json`，provider 为 `process`，状态为 `delivered`。
-- `transfer send` 成功后写入交付链接记录到 `CATALOG_DIR/delivery-links.json`；使用 `--output` 时仍会同时写入指定链接文件。
-- `spec wrap` / `spec validate`：把已有 Blueprint YAML 包装为稳定 Specification envelope，并校验旧 YAML 或 envelope，供 Provider 后续对齐读取。
-- `design blueprint` 生成 Step Functions 风格的 `pipeline.start_at` / `pipeline.states`，并默认给 state/step 写入 `resource: builtin:copy`，供 Provider 做最小可执行 smoke test。
-
 ## [0.1.0] - 2026-07-24
 
 ### Added

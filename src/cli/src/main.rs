@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use qtcloud_data_cli::{
-    blueprint, catalog, clarify, contract, design, doctor, implement, pipeline, process, review,
-    spec, transfer, version,
+    blueprint, catalog, clarify, contract, design, implement, pipeline, process, review, transfer,
+    version,
 };
 
 #[derive(Parser)]
@@ -19,12 +19,8 @@ enum Commands {
     Design(design::DesignArgs),
     /// 审计 Specification 完整性和一致性
     Review(review::ReviewArgs),
-    /// Specification YAML 契约工具
-    Spec(spec::SpecArgs),
     /// 版本管理（list / show / diff）
     Version(version::VersionArgs),
-    /// 检查本机 DataOps 环境
-    Doctor(doctor::DoctorArgs),
     /// 蓝图管理（list / show）
     Blueprint(blueprint::BlueprintArgs),
     /// 契约查看
@@ -48,9 +44,7 @@ fn main() {
         Commands::Clarify(args) => clarify::run(args),
         Commands::Design(args) => design::run(args),
         Commands::Review(args) => review::run(args),
-        Commands::Spec(args) => spec::run(args),
         Commands::Version(args) => version::run(args),
-        Commands::Doctor(args) => doctor::run(args),
         Commands::Blueprint(args) => blueprint::run(args),
         Commands::Contract(args) => contract::run(args),
         Commands::Pipeline(args) => pipeline::run(args),

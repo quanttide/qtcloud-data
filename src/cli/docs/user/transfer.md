@@ -5,7 +5,7 @@
 ## 安装
 
 ```bash
-cd src/cli
+cd apps/qtcloud-data/src/cli
 cargo build --release
 ```
 
@@ -30,9 +30,6 @@ export DROPBOX_ACCESS_TOKEN=你的token
 qtcloud-data transfer send ./report.pdf
 # 输出: https://www.dropbox.com/s/abc/report.pdf?dl=1
 
-# 同时把链接写入文件
-qtcloud-data transfer send ./report.pdf --output .quanttide/data/catalog/share-link.txt
-
 # 接收文件 ← 分享链接（手动模式）
 qtcloud-data transfer receive "https://dropbox.com/s/xxx/data.csv"
 
@@ -41,8 +38,6 @@ qtcloud-data transfer receive /remote/data.csv --provider s3
 ```
 
 支持平台：`dropbox`（默认）| `baidu` | `google` | `onedrive` | `s3` | `sftp`
-
-本地源码构建版本中，`transfer send` 成功后会把交付链接记录到 `CATALOG_DIR/delivery-links.json`；使用 `--output` 时仍会同时写入指定链接文件。
 
 ### process — 编排流程
 
@@ -59,14 +54,7 @@ qtcloud-data process ABC-001 "https://..." --pipeline csv-standard
 qtcloud-data process ABC-001 "https://..." --blueprint csv-standardization
 ```
 
-环境变量：`PIPELINE`（默认 pipeline）、`QTDATA_CLI`、`WORKDIR`（默认系统临时目录下的 `qtcloud-data`）、`CATALOG_DIR`
-
-本地源码构建版本中，执行完成后会写入交付记录：
-
-- `CATALOG_DIR/jobs.json`：job 记录索引，默认 `.quanttide/data/catalog/jobs.json`
-- `CATALOG_DIR/jobs/<job-id>.log`：对应执行日志
-- `CATALOG_DIR/registry.json`：成功交付后的最终产物登记，provider 为 `process`，status 为 `delivered`
-- 记录字段包含客户、来源、blueprint、pipeline、原始文件、最终结果、分享链接文件、状态和日志路径
+环境变量：`PIPELINE`（默认 pipeline）、`QTDATA_CLI`、`WORKDIR`
 
 ### pipeline — 管道管理
 
@@ -80,7 +68,7 @@ qtcloud-data pipeline show csv-standard
 # 显示步骤详情：processor → enricher
 ```
 
-环境变量：`PIPELINE_DIR`（默认 `.quanttide/data/pipeline`，需 `cue`）
+环境变量：`PIPELINES_DIR`（默认 `./pipelines`，需 `cue`）
 
 ### blueprint — 蓝图管理
 
@@ -94,7 +82,7 @@ qtcloud-data blueprint show csv-standardization
 # 显示契约、管道、验收规则
 ```
 
-环境变量：`BLUEPRINT_DIR`（默认 `.quanttide/data/blueprint`，需 `cue`）
+环境变量：`BLUEPRINTS_DIR`（默认 `./blueprints`，需 `cue`）
 
 ### contract — 契约查看
 
@@ -105,7 +93,7 @@ qtcloud-data contract list
 qtcloud-data contract show source-questionnaire
 ```
 
-环境变量：`CONTRACT_DIR`（默认 `.quanttide/data/contract`，支持 .yaml / .cue / .json）
+环境变量：`CONTRACTS_DIR`（默认 `./contracts`，支持 .yaml / .cue / .json）
 
 ## 命令关系
 
