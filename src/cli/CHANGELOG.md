@@ -4,6 +4,18 @@
 
 暂无。
 
+## [0.2.1]
+
+### Added
+- 统一 `store` 模块：合并 catalog/process/transfer 三份路径解析、UTC 时间格式化和 JSON 注册表读写（`Registry<T>`），写盘原子化（临时文件 + rename），替代三份重复拷贝。
+- `catalog` 新增 `VolumeStatus` 状态枚举，替代魔法字符串；`registry.json` 落盘格式保持不变，未知状态字符串安全降级为 `unknown`，兼容旧数据。
+- 基线 smoke/e2e：新增 `tests/fixtures/github-activity/` 真实业务 fixture 与 `process` 全链路回归测试（内容级产物断言 + URL 脱敏校验），验证记录见 `docs/dev/e2e-baseline.md`。
+
+### Changed
+- `pipeline list/show` 与 `blueprint list/show`：cue 输出改 `--out json` 结构化解析，替代文本 grep。
+- `process` 的 blueprint pipeline 解析（`resolve_blueprint_pipeline`）：改结构化 JSON 解析，替代文本 trim。
+- `contract list/show`：以文件直读为主路径（cue 为可选增强），不再依赖 cue 解析 YAML。
+
 ## [0.2.0] - 2026-08-01
 
 ### Added
