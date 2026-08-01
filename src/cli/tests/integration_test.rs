@@ -41,7 +41,9 @@ async fn test_dropbox_send() {
     mock_upload_ok(&server).await;
     mock_shared_link_ok(&server).await;
 
-    dropbox::upload("fake", tmp.to_str().unwrap(), "/test.txt", Some(&base)).await;
+    dropbox::upload("fake", tmp.to_str().unwrap(), "/test.txt", Some(&base))
+            .await
+            .unwrap();
 
     let link = dropbox::create_shared_link("fake", "/test.txt", Some(&base))
         .await
@@ -114,17 +116,9 @@ async fn test_dropbox_upload_500() {
     let tmp = std::env::temp_dir().join("test_err.txt");
     std::fs::write(&tmp, b"data").unwrap();
 
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(dropbox::upload(
-            "fake",
-            tmp.to_str().unwrap(),
-            "/fail",
-            Some(&base),
-        ));
-    }));
+    let result = dropbox::upload("fake", tmp.to_str().unwrap(), "/fail", Some(&base)).await;
 
-    assert!(result.is_err(), "500 应触发 panic");
+    assert!(result.is_err(), "500 应返回错误");
     std::fs::remove_file(&tmp).ok();
 }
 
