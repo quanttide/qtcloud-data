@@ -9,7 +9,9 @@ description: 使用 qtcloud-devops CLI 执行本项目的 DevOps 流程：子模
 
 `qtcloud-devops` 是量潮数据工程的 DevOps 命令行工具，覆盖从代码到发布的完整生命周期。
 
-**核心流程：** `code → build → test → release`
+**完整生命周期：** `plan → code → build → test → release → deploy → operate → monitor`
+
+**当前 CLI 自动化范围：** `plan → code → build → test → release`
 
 **当前版本：** v0.11.0（安装于 `~/.cargo/bin/qtcloud-devops`，源码在 `domains/quanttide-devops/apps/qtcloud-devops`）
 
@@ -23,7 +25,17 @@ description: 使用 qtcloud-devops CLI 执行本项目的 DevOps 流程：子模
 
 ## Stage 说明
 
-### 1. code — 代码管理
+### 1. plan — 规划管理
+
+规划阶段使用 `ROADMAP.md` 和 `TODO.md` 作为事实源：
+
+```sh
+qtcloud-devops plan status [--scope <scope>] # 查看版本规划和执行进度
+qtcloud-devops plan audit                    # 检查 ROADMAP/TODO 对应关系
+qtcloud-devops plan doctor [--scope <scope>] # 修复规划文件格式
+```
+
+### 2. code — 代码管理
 
 在提交代码前运行审计，确保代码质量：
 
@@ -32,7 +44,7 @@ qtcloud-devops code status [PATH]    # 查看子模块同步状态（--offline �
 qtcloud-devops code audit [PATH]     # 审计：scope 目录、TODO/FIXME 密度、语法检查（--json 输出供 plan 消费）
 ```
 
-### 2. build — 构建
+### 3. build — 构建
 
 ```sh
 qtcloud-devops build status          # 查看构建状态
@@ -40,7 +52,7 @@ qtcloud-devops build clean           # 清理构建产物（target/、dist/ 等�
 qtcloud-devops build audit           # 审计：编译器配置、CI 工作流、依赖声明
 ```
 
-### 3. test — 测试
+### 4. test — 测试
 
 ```sh
 qtcloud-devops test status           # 查看测试状态
@@ -48,9 +60,9 @@ qtcloud-devops test clean            # 清理测试产物（覆盖率报告等�
 qtcloud-devops test audit            # 审计：测试覆盖率、错误变体覆盖、门禁达标
 ```
 
-### 4. release — 发布
+### 5. release — 发布
 
-发布前必须完成 build 和 test 审计。发布流程：
+发布前必须完成 plan、code、build 和 test 审计，并完成 feature branch → Pull Request → code review → `main` merge 流程。发布流程：
 
 ```sh
 qtcloud-devops release status                              # 查看当前版本状态（版本号、标签、CHANGELOG）
@@ -69,17 +81,6 @@ qtcloud-devops release publish [-v vX.Y.Z] [-y] [-f] [--dry-run] [--registry <ta
 | `--registry <REGISTRY>` | CI 发布目标（`py-pi` / `pub-dev` / `crates`），仅打印提示不执行发布 |
 
 ## 跨 Stage 命令
-
-### plan — 规划管理（ROADMAP.md / TODO.md）
-
-| 命令 | 用途 |
-|---|---|
-| `qtcloud-devops plan status [--scope <scope>]` | 查看 scope 规划进度（省略 scope 时自动检测当前目录所属 scope） |
-| `qtcloud-devops plan audit` | 审计 ROADMAP 与 TODO 的关系：ROADMAP 是完整规划，TODO 是待办 |
-| `qtcloud-devops plan doctor [--scope <scope>]` | 修复 ROADMAP 和 TODO 的格式：标准化版本头、分类、checkbox |
-| `qtcloud-devops plan clean [--scope <scope>]` | 删除 scope 已完成条目 |
-| `qtcloud-devops plan todo-from-audit [--scope <scope>]` | 从审计 JSON 更新 TODO.md（stdin 读 JSON，配合 `code audit --json`） |
-| `qtcloud-devops plan roadmap-from-audit [--scope <scope>]` | 从审计 JSON 更新 ROADMAP.md（stdin 读 JSON） |
 
 ### contract — 契约状态
 
@@ -121,19 +122,32 @@ qtcloud-devops code audit --json | qtcloud-devops plan todo-from-audit
 ### 发布新版本
 
 ```sh
-# 1. 预检
+# 1. 计划与代码审计
+qtcloud-devops plan status --scope cli
+qtcloud-devops plan audit --scope cli
+qtcloud-devops code audit src/cli
+
+# 2. 构建与测试
+qtcloud-devops build status
+qtcloud-devops test status
+
+# 3. 发布预检
 qtcloud-devops release status
+qtcloud-devops release audit -v cli/v0.2.0 --scope cli
+qtcloud-devops release publish -v cli/v0.2.0 --registry crates --dry-run
 
-# 2. 发布
-qtcloud-devops release publish -v v0.2.0 -y
+# 4. 合并到 main 后，经过维护者确认再发布
+qtcloud-devops release publish -v cli/v0.2.0 --registry crates -y
 
-# 3. 验证
+# 5. 验证
 qtcloud-devops release status
 ```
 
 ## 注意事项
 
-- 发布前建议运行 `release status` 预检版本状态；`publish` 内部自带校验，不强制要求 `release audit`
+- 发布前必须确认工作区干净、版本号与 CHANGELOG 一致、tag 不存在，并且 tag 对应提交已经合并到 `main`
+- Tag 一旦推送不可移动；CHANGELOG 是 Release notes 的事实源
+- 发布前先运行 `release publish --dry-run`，不要在本机直接执行 `cargo publish`
 - `code audit` 应在每次提交前运行，确保子模块同步和代码质量
 - `plan doctor` 可自动修复 ROADMAP.md 和 TODO.md 的格式问题
 - `plan todo-from-audit` / `roadmap-from-audit` 依赖 `code audit --json` 的输出，通过 stdin 管道传入
