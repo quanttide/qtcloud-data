@@ -242,6 +242,108 @@ updated_at: "2026-07-30T00:00:00+00:00"
     }
 
     #[test]
+    fn wrap_file_writes_spec_yaml_to_output() {
+        let root = crate::test_support::temp_dir("qtcloud-spec-wrap-file");
+        let input = root.join("abc-blueprint.yaml");
+        std::fs::write(&input, blueprint_yaml()).unwrap();
+        let output = root.join("out-spec.yaml");
+
+        run(&SpecArgs {
+            action: SpecAction::Wrap {
+                input: input.to_string_lossy().to_string(),
+                output: Some(output.to_string_lossy().to_string()),
+            },
+        })
+        .unwrap();
+
+        let content = std::fs::read_to_string(&output).unwrap();
+        assert!(
+            content.contains("api_version: qtcloud.quanttide.com/v1alpha1"),
+            "{content}"
+        );
+        assert!(content.contains("kind: Specification"), "{content}");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn wrap_file_reports_unreadable_input() {
+        let root = crate::test_support::temp_dir("qtcloud-spec-wrap-missing");
+        let err = run(&SpecArgs {
+            action: SpecAction::Wrap {
+                input: root.join("ghost.yaml").to_string_lossy().to_string(),
+                output: None,
+            },
+        })
+        .unwrap_err();
+        assert!(err.to_string().contains("无法读取 YAML"), "{err}");
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn validate_file_accepts_valid_blueprint() {
+        let root = crate::test_support::temp_dir("qtcloud-spec-validate-ok");
+        let input = root.join("ok.yaml");
+        std::fs::write(&input, blueprint_yaml()).unwrap();
+
+        run(&SpecArgs {
+            action: SpecAction::Validate {
+                input: input.to_string_lossy().to_string(),
+            },
+        })
+        .unwrap();
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn validate_file_rejects_invalid_blueprint() {
+        let root = crate::test_support::temp_dir("qtcloud-spec-validate-bad");
+        let input = root.join("bad.yaml");
+        // 缺 pipeline.steps 等字段，结构校验失败
+        std::fs::write(&input, "name: x\nstatus: draft\n").unwrap();
+
+        let err = run(&SpecArgs {
+            action: SpecAction::Validate {
+                input: input.to_string_lossy().to_string(),
+            },
+        })
+        .unwrap_err();
+        assert!(err.to_string().contains("失败"), "{err}");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn default_spec_output_path_replaces_blueprint_suffix() {
+        assert_eq!(
+            default_spec_output_path("spec/abc-blueprint.yaml"),
+            PathBuf::from("spec/abc-spec.yaml")
+        );
+        assert_eq!(
+            default_spec_output_path("abc.yaml"),
+            PathBuf::from("abc-spec.yaml")
+        );
+        // 无扩展名输入回退 specification
+        assert_eq!(
+            default_spec_output_path("spec/abc"),
+            PathBuf::from("spec/abc-spec.yaml")
+        );
+    }
+
+    #[test]
+    fn parse_specification_rejects_unknown_api_version() {
+        let yaml = wrap_blueprint_yaml(blueprint_yaml(), None)
+            .unwrap()
+            .replace(
+                "api_version: qtcloud.quanttide.com/v1alpha1",
+                "api_version: example.com/v1",
+            );
+        let err = parse_specification_yaml(&yaml).unwrap_err();
+        assert!(err.to_string().contains("api_version"), "{err}");
+    }
+
+    #[test]
     fn rejects_unknown_specification_kind() {
         let yaml = wrap_blueprint_yaml(blueprint_yaml(), None)
             .unwrap()

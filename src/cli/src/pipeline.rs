@@ -70,3 +70,76 @@ fn cmd_show(dir: &str, name: &str) -> Result<(), CliError> {
     );
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ENV_LOCK;
+    use crate::test_support::{temp_dir, write_script};
+
+    fn fake_cue_env() -> (std::path::PathBuf, Option<std::ffi::OsString>) {
+        let root = temp_dir("qtcloud-pipeline-fake-cue");
+        let bin = root.join("bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        write_script(
+            &bin.join("cue"),
+            "#!/bin/sh\ncase \"$*\" in\n  *--expression*) echo '{\"name\": \"pipe1\"}' ;;\n  *) echo '{\"pipe1\": {\"name\": \"pipe1\"}}' ;;\nesac\n",
+        );
+        let old_path = std::env::var_os("PATH");
+        unsafe {
+            std::env::set_var("PATH", &bin);
+        }
+        (root, old_path)
+    }
+
+    fn restore_path(old_path: Option<std::ffi::OsString>) {
+        unsafe {
+            match old_path {
+                Some(p) => std::env::set_var("PATH", p),
+                None => std::env::remove_var("PATH"),
+            }
+        }
+    }
+
+    #[test]
+    fn cmd_list_parses_cue_json_names() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let (root, old_path) = fake_cue_env();
+
+        let result = cmd_list(root.to_str().unwrap());
+        restore_path(old_path);
+
+        assert!(result.is_ok(), "{result:?}");
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn cmd_show_prints_expression_json() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let (root, old_path) = fake_cue_env();
+
+        let result = cmd_show(root.to_str().unwrap(), "pipe1");
+        restore_path(old_path);
+
+        assert!(result.is_ok(), "{result:?}");
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn cmd_list_reports_cue_missing_as_error() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-pipeline-no-cue");
+        let empty_bin = root.join("empty-bin");
+        std::fs::create_dir_all(&empty_bin).unwrap();
+
+        let old_path = std::env::var_os("PATH");
+        unsafe {
+            std::env::set_var("PATH", &empty_bin);
+        }
+        let err = cmd_list(root.to_str().unwrap()).unwrap_err();
+        restore_path(old_path);
+
+        assert!(err.to_string().contains("需要 cue"), "{err}");
+        std::fs::remove_dir_all(&root).ok();
+    }
+}

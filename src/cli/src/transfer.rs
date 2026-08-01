@@ -464,6 +464,23 @@ mod tests {
     }
 
     #[test]
+    fn receive_rejects_unknown_provider() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-transfer-unknown-provider");
+        let out = root.join("x.csv");
+        let err = receive("https://example.invalid/share/file.csv", &out, "unknown").unwrap_err();
+        assert!(err.to_string().contains("不支持的提供商"), "{err}");
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn send_rejects_unknown_provider() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let err = send("/tmp/qtcloud-nonexistent.csv", None, None, "unknown").unwrap_err();
+        assert!(err.to_string().contains("不支持的提供商"), "{err}");
+    }
+
+    #[test]
     fn sanitize_id_replaces_invalid_chars_and_trims_dashes() {
         assert_eq!(sanitize_id("report-2024.csv"), "report-2024-csv");
         assert_eq!(sanitize_id("annual report v2"), "annual-report-v2");

@@ -381,6 +381,135 @@ mod tests {
         std::fs::remove_dir_all(&root).ok();
     }
 
+    /// 在临时 CATALOG_DIR 中注册一个 volume 作为测试数据。
+    fn seed_volume(catalog_dir: &std::path::Path) -> String {
+        let file = catalog_dir.parent().unwrap().join("final.csv");
+        std::fs::write(&file, "a,b\n1,2\n").unwrap();
+        let volume = register_volume(RegisterVolume {
+            path: file.to_str().unwrap(),
+            name: Some("ABC-001"),
+            provider: Some("process"),
+            source: None,
+            status: VolumeStatus::Delivered,
+        })
+        .unwrap();
+        volume.name
+    }
+
+    #[test]
+    fn list_prints_non_empty_catalog_without_error() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-catalog-list");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+
+        unsafe {
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+        }
+        seed_volume(&catalog_dir);
+        let result = list();
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+        }
+        assert!(result.is_ok(), "{result:?}");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn list_prints_empty_message_for_empty_catalog() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-catalog-list-empty");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+
+        unsafe {
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+        }
+        let result = list();
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+        }
+        assert!(result.is_ok(), "{result:?}");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn show_prints_volume_details_for_existing_volume() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-catalog-show");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+
+        unsafe {
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+        }
+        let name = seed_volume(&catalog_dir);
+        let result = show(&name);
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+        }
+        assert!(result.is_ok(), "{result:?}");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn add_registers_volume_and_returns_ok() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-catalog-add-ok");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+        let file = root.join("data.csv");
+        std::fs::write(&file, "a,b\n").unwrap();
+
+        unsafe {
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+        }
+        let result = add(
+            file.to_str().unwrap(),
+            Some("DATA-1"),
+            Some("process"),
+            None,
+        );
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+        }
+        assert!(result.is_ok(), "{result:?}");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn rm_removes_existing_volume_and_returns_ok() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-catalog-rm-ok");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+
+        unsafe {
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+        }
+        let name = seed_volume(&catalog_dir);
+        let result = rm(&name);
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+        }
+        assert!(result.is_ok(), "{result:?}");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn volume_status_display_covers_all_variants() {
+        assert_eq!(format!("{}", VolumeStatus::Received), "received");
+        assert_eq!(format!("{}", VolumeStatus::Processing), "processing");
+        assert_eq!(format!("{}", VolumeStatus::Processed), "processed");
+        assert_eq!(format!("{}", VolumeStatus::Delivered), "delivered");
+        assert_eq!(format!("{}", VolumeStatus::Unknown), "unknown");
+    }
+
     #[test]
     fn rm_reports_missing_volume_without_exiting() {
         let _guard = ENV_LOCK.lock().unwrap();

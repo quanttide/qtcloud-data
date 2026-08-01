@@ -2,7 +2,7 @@
 
 > 格式：Keep a Changelog + checkbox 任务清单。
 > ROADMAP 面向未来计划；发布后将已完成条目迁移到 CHANGELOG。
-> 覆盖率基线：v0.2.1 变更面行覆盖 >85%；整体行覆盖 71.4%（53.2% 起），0% 存量模块补测目标 ≥70%（见 [0.2.1]）。
+> 覆盖率基线：v0.2.1 变更面行覆盖 >85%；整体行覆盖 83.7%（53.2% 起），0% 存量模块补测目标 ≥70%（见 [0.2.1]）。
 
 ## [0.2.1]
 
@@ -27,10 +27,10 @@
 - [ ] `src/catalog.rs` catalog/job 记录区分预审核产物、审核决策文件和最终交付产物（status 枚举已在 v0.2.1 落地）
 - [ ] `tests/` 增加业务 e2e：raw + map.dta → review_master 全链路（依赖 Provider merge_review / export）
 - [x] `tests/` 查看类命令补测（第一部分）：contract 67% / version 96% / transfer 80%，fixture + wiremock 已落地
-- [ ] `tests/` 查看类命令补测（第二部分）：blueprint/pipeline（依赖 cue）、main（CLI 分发，仅子进程流可测）0% → ≥70%
+- [x] `tests/` 查看类命令补测（第二部分）：blueprint 85% / pipeline 82%（fake cue 脚本注入 PATH）；main 仍仅子进程流可测
 - [x] `src/` LLM 命令注入 Handler 补测：clarify 80% / design 63% / implement 82% / review 66%（复用 quanttide-agent 的 `HttpClient` 抽象，`test_support::fake_llm`）
 - [x] `src/providers/` wiremock 补测：google_drive 80% / onedrive 77% / s3 43%
-- [ ] `src/providers/` baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%）
+- [ ] `src/providers/` baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%，需 CI 起 sshd 或本地模拟）
 
 ## [0.3.0]
 

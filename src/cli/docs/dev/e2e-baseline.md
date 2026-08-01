@@ -48,7 +48,9 @@ cargo test --test e2e_baseline
 |------|-----------|------|
 | v0.2.1 | 53.2% | 基线（`cargo llvm-cov test --workspace`，不含子进程 CLI 覆盖） |
 | v0.2.2 第一轮 | 62.5% | error 100% / version 96% / transfer 80% / google_drive 80% / onedrive 77% / contract 67% / s3 43% |
-| v0.2.2 第二轮（Handler 注入） | **71.4%** | clarify 80% / implement 82% / review 66% / design 63% / blueprint_core 95% |
+| v0.2.2 第二轮（Handler 注入） | 71.4% | clarify 80% / implement 82% / review 66% / design 63% / blueprint_core 95% |
+| v0.2.1 错误收尾后 | 73.8% | 全部命令统一 CliError，错误路径可测 |
+| v0.2.1 补测（fake cue + doctor） | **83.7%** | blueprint 85% / pipeline 82% / doctor 89% / catalog 93% / spec 93% / transfer 84% |
 
 补测方式：`cargo llvm-cov test --workspace`（lib + harness 数据）。
 子进程 CLI 覆盖（main.rs 等）需要插桩二进制 + 手动合并 profraw。
@@ -57,5 +59,4 @@ LLM 命令测试：命令模块改为 `XxxHandler { llm }` 构造器注入，测
 quanttide-agent 的 `HttpClient` 抽象构造 fake（`lib.rs test_support::fake_llm`），
 不发起真实网络请求，生产路径 `LLM::default()` 行为不变。
 
-剩余 0% 模块：blueprint/pipeline（依赖 cue）、baidu_drive/sftp（需要真实服务）、
-main（CLI 分发，仅子进程流可测）。
+剩余 0% 模块：main（CLI 分发，仅子进程插桩流可测）、baidu_drive/sftp（需要真实服务，需 CI 起 sshd 或本地模拟）。

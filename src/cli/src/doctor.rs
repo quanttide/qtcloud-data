@@ -386,6 +386,7 @@ fn executable_extensions() -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ENV_LOCK;
 
     #[test]
     fn render_report_shows_summary_without_secret_values() {
@@ -496,6 +497,161 @@ mod tests {
         ];
 
         assert!(has_failures(&checks));
+    }
+
+    fn fake_path_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
+        std::fs::remove_dir_all(&dir).ok();
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn command_exists_respects_path_env() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let dir = fake_path_dir("qtcloud-doctor-path");
+        let fake = dir.join("fakecmd");
+        std::fs::write(&fake, "#!/bin/sh\nexit 0\n").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+
+        unsafe {
+            std::env::set_var("PATH", &dir);
+        }
+        assert!(command_exists("fakecmd"));
+        assert!(!command_exists("ghostcmd"));
+        unsafe {
+            std::env::remove_var("PATH");
+        }
+
+        // PATH 未设置时返回 false（不 panic）
+        assert!(!command_exists("fakecmd"));
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn check_command_status_reflects_required_and_presence() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let dir = fake_path_dir("qtcloud-doctor-check-cmd");
+        let fake = dir.join("toolx");
+        std::fs::write(&fake, "#!/bin/sh\nexit 0\n").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+
+        unsafe {
+            std::env::set_var("PATH", &dir);
+        }
+        // 存在：无论 required 与否都 pass
+        assert_eq!(
+            check_command("toolx", true, "测试工具").status,
+            CheckStatus::Pass
+        );
+        // 缺失 + required → fail
+        assert_eq!(
+            check_command("ghostcmd", true, "测试工具").status,
+            CheckStatus::Fail
+        );
+        // 缺失 + optional → warn
+        assert_eq!(
+            check_command("ghostcmd", false, "测试工具").status,
+            CheckStatus::Warn
+        );
+        unsafe {
+            std::env::remove_var("PATH");
+        }
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn check_directory_exists_passes_and_missing_warns() {
+        let root = crate::test_support::temp_dir("qtcloud-doctor-check-dir");
+        let exists = root.join("exists");
+        std::fs::create_dir_all(&exists).unwrap();
+        let missing = root.join("missing");
+
+        assert_eq!(check_directory(&exists, "EXISTS").status, CheckStatus::Pass);
+        assert_eq!(
+            check_directory(&missing, "MISSING").status,
+            CheckStatus::Warn
+        );
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn checks_with_dirs_builds_full_check_list() {
+        let root = crate::test_support::temp_dir("qtcloud-doctor-checks");
+        let dirs = vec![
+            DataDir {
+                name: "DRD".to_string(),
+                path: root.join("drd"),
+            },
+            DataDir {
+                name: "SPEC".to_string(),
+                path: root.join("spec"),
+            },
+        ];
+
+        let checks = checks_with_dirs(&dirs);
+        let names: Vec<&str> = checks.iter().map(|c| c.name.as_str()).collect();
+
+        // 6 个工具检查
+        for tool in ["git", "cargo", "rustc", "python3", "bash", "cue"] {
+            assert!(names.contains(&tool), "缺工具检查: {tool}");
+        }
+        // 2 个目录检查
+        assert!(names.contains(&"DRD"));
+        assert!(names.contains(&"SPEC"));
+        // 6 个 env 检查
+        for env in [
+            "DROPBOX_ACCESS_TOKEN",
+            "BAIDU_ACCESS_TOKEN",
+            "GOOGLE_DRIVE_ACCESS_TOKEN",
+            "ONEDRIVE_ACCESS_TOKEN",
+            "SFTP_HOST",
+            "AWS",
+        ] {
+            assert!(names.contains(&env), "缺 env 检查: {env}");
+        }
+        assert_eq!(checks.len(), 6 + 2 + 6);
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn render_json_report_produces_machine_readable_json() {
+        let checks = vec![Check::pass("git", "found"), Check::fail("cue", "not found")];
+        let json = render_json_report(&checks);
+        assert!(json.contains("\"status\""), "{json}");
+        assert!(json.contains("\"pass\""), "{json}");
+        assert!(json.contains("\"fail\""), "{json}");
+        // 不泄露 secret 值（这里没有 secret）
+        assert!(!json.contains("SECRET"), "{json}");
+    }
+
+    #[test]
+    fn create_data_dirs_creates_directories_and_reports() {
+        let root = crate::test_support::temp_dir("qtcloud-doctor-create-dirs");
+        let target = root.join("sub");
+        let dirs = vec![DataDir {
+            name: "SUB".to_string(),
+            path: target.clone(),
+        }];
+
+        let checks = create_data_dirs(&dirs);
+        assert!(target.is_dir(), "目录应被创建");
+        assert_eq!(checks[0].status, CheckStatus::Pass);
+        assert_eq!(checks[0].name, "SUB");
+
+        std::fs::remove_dir_all(&root).ok();
     }
 
     #[test]
