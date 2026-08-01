@@ -37,7 +37,7 @@ cargo test --test e2e_baseline
 |------|------|------|
 | 2026-08-02 | ✅ 通过 | `e2e_process_full_chain_delivers_normalized_activity` 1 passed；全量 `cargo test` 46+19+1+9 全绿 |
 
-## 后续扩展（v0.2.3 业务 e2e）
+## 后续扩展（v0.2.2 业务 e2e）
 
-基线 e2e 只验证现有 `process` 全链路机制。v0.2.3 引入 manifest 与 Provider run 后，
+基线 e2e 只验证现有 `process` 全链路机制。v0.2.2 引入 manifest 与 Provider run 后，
 新增 `raw + map.dta → review_master` 业务链路测试（依赖 Provider `merge_review` / `export`）。
