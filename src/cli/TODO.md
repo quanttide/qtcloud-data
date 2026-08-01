@@ -10,25 +10,25 @@
 - [ ] 在 main 合并完成后运行 qtcloud-devops release publish -v cli/v0.X.Y --registry crates -y（`docs/dev/release.md`）
 - [ ] 验证 crates.io、GitHub Release 和 Linux/Windows 二进制制品（`docs/dev/release.md`）
 
-## [0.2.2] manifest + Provider 打通
+## [0.2.2] manifest 契约与 catalog 产物类型
 
 - [ ] manifest：定义输入契约，声明 raw、map、配置表和 review decisions（`docs/dev/`）
 - [ ] manifest：增加 YAML 校验和错误提示（`src/spec.rs`）
-- [ ] provider：增加 `PROVIDER_URL` 配置 Provider 服务地址（`src/`、`docs/dev/`）
-- [ ] provider：增加调用 Provider run API 的 CLI 入口，按 Specification/Blueprint 发起执行（`src/`）
-- [ ] provider：增加 run 请求参数的 CLI 校验和错误提示（`src/`、`docs/dev/specification.md`）
 - [ ] catalog：记录区分预审核产物、审核决策文件和最终交付产物（`src/catalog.rs`）
-- [ ] testing：业务 e2e raw + map.dta → review_master 全链路（`tests/`）
-- [ ] testing：保存业务 e2e 的输入、输出和验证记录（`docs/`）
 - [x] coverage：查看类命令 fixture 补测（第一部分）：contract / version / transfer 已落地（contract 67%、version 96%、transfer 80%，`tests/`）
 - [x] coverage：查看类命令补测（第二部分）：blueprint 85% / pipeline 82%（fake cue 注入 PATH，`src/blueprint.rs` / `src/pipeline.rs`）
 - [x] coverage：LLM 命令注入 Handler 补测：clarify 80% / design 63% / implement 82% / review 66%（`src/*.rs`，复用 quanttide-agent `HttpClient`，见 `lib.rs test_support`）
 - [x] coverage：非 dropbox provider wiremock 补测：google_drive 80% / onedrive 77% / s3 43%（`src/providers/`、`tests/provider_test.rs`）
 - [ ] coverage：baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%，需 CI 起 sshd 或本地模拟，`src/providers/`）
-- [x] coverage：更新覆盖率基线到 71.4%（`docs/dev/` 见 e2e-baseline.md 覆盖率基线）
+- [x] coverage：更新覆盖率基线（`docs/dev/` 见 e2e-baseline.md 覆盖率基线）
 
-- [ ] 路径拼接改 `PathBuf::with_extension`（`src/design.rs` / `src/spec.rs`）
-- [ ] 测试 helper 抽共享已完成：`lib.rs test_support::{temp_dir, write_script, fake_llm}`（原 8 份重复定义已删除）
+### 待排期（不阻塞 v0.2.2，依赖 Provider ROADMAP [0.0.3]）
+
+- [ ] provider：增加 `PROVIDER_URL` 配置 Provider 服务地址（`src/`、`docs/dev/`）
+- [ ] provider：增加调用 Provider run API 的 CLI 入口，按 Specification/Blueprint 发起执行（`src/`）
+- [ ] provider：增加 run 请求参数的 CLI 校验和错误提示（`src/`、`docs/dev/specification.md`）
+- [ ] testing：业务 e2e raw + map.dta → review_master 全链路（`tests/`，依赖 Provider merge_review / export）
+- [ ] testing：保存业务 e2e 的输入、输出和验证记录（`docs/`）
 
 ## [0.3.0]
 

@@ -6,19 +6,19 @@
 
 ## [0.2.2]
 
-> manifest + Provider 打通；新功能版本，依赖 v0.2.1 的 store/catalog 枚举化，与 Provider ROADMAP [0.0.3] 协同。
+> manifest 契约与 catalog 产物类型；不依赖 Provider。Provider run 入口与业务 e2e 待 Provider 侧稳定后另行排期（见下方注记）。
 
 ### Added
 
 - [ ] `docs/dev/` 定义 manifest 输入契约（raw[] / map / review_decisions[]），`src/spec.rs` 增加 manifest YAML 校验和错误提示
-- [ ] `src/process.rs` 增加通过 CLI 发起 Provider run 的执行入口（`PROVIDER_URL` 配置 + run 请求参数校验）
 - [ ] `src/catalog.rs` catalog/job 记录区分预审核产物、审核决策文件和最终交付产物（status 枚举已在 v0.2.1 落地）
-- [ ] `tests/` 增加业务 e2e：raw + map.dta → review_master 全链路（依赖 Provider merge_review / export）
 - [x] `tests/` 查看类命令补测（第一部分）：contract 67% / version 96% / transfer 80%，fixture + wiremock 已落地
 - [x] `tests/` 查看类命令补测（第二部分）：blueprint 85% / pipeline 82%（fake cue 脚本注入 PATH）；main 仍仅子进程流可测
 - [x] `src/` LLM 命令注入 Handler 补测：clarify 80% / design 63% / implement 82% / review 66%（复用 quanttide-agent 的 `HttpClient` 抽象，`test_support::fake_llm`）
 - [x] `src/providers/` wiremock 补测：google_drive 80% / onedrive 77% / s3 43%
 - [ ] `src/providers/` baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%，需 CI 起 sshd 或本地模拟）
+
+> **待排期（不阻塞 v0.2.2）**：CLI 发起 Provider run 的执行入口（`PROVIDER_URL` 配置 + run 请求参数校验），以及业务 e2e（raw + map.dta → review_master，依赖 Provider merge_review / export）——待 Provider ROADMAP [0.0.3] 的 merge_review/export 落地后启动。
 
 ## [0.3.0]
 
