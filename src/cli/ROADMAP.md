@@ -2,6 +2,7 @@
 
 > 格式：Keep a Changelog + checkbox 任务清单。
 > ROADMAP 面向未来计划；发布后将已完成条目迁移到 CHANGELOG。
+> 覆盖率基线：v0.2.1 变更面行覆盖 >85%；整体行覆盖 53.2%，0% 存量模块补测目标 ≥70%（见 [0.2.2]）。
 
 ## [0.2.2]
 
@@ -13,6 +14,9 @@
 - [ ] `src/process.rs` 增加通过 CLI 发起 Provider run 的执行入口（`PROVIDER_URL` 配置 + run 请求参数校验）
 - [ ] `src/catalog.rs` catalog/job 记录区分预审核产物、审核决策文件和最终交付产物（status 枚举已在 v0.2.1 落地）
 - [ ] `tests/` 增加业务 e2e：raw + map.dta → review_master 全链路（依赖 Provider merge_review / export）
+- [ ] `tests/` 查看类命令补测：blueprint/contract/pipeline/review/version/main fixture 测试（0% → ≥70%）
+- [ ] `src/clarify.rs` LLM 命令注入 LlmClient fake 补测（clarify/design/implement 0% → ≥60%）
+- [ ] `src/providers/` baidu/google/onedrive/sftp wiremock 补测（0% → ≥50%）
 
 ## [0.3.0]
 
