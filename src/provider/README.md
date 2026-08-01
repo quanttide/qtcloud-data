@@ -11,6 +11,12 @@
 - `GET /process/jobs`：返回 Provider 侧执行记录。
 - `GET /process/jobs/{id}`：返回单条执行记录、输入输出和 step 详情。
 
+## 文档
+
+- [ROADMAP](ROADMAP.md)：Provider scope 的版本计划和待办。
+- [TODO](TODO.md)：Provider scope 未完成任务和对应文件位置。
+- [CHANGELOG](CHANGELOG.md)：Provider scope 的已完成变更记录。
+
 ## Pipeline 模型
 
 Provider 优先读取 `pipeline.start_at` / `pipeline.states`，并兼容旧的 `pipeline.steps` 线性步骤。这个模型参考 AWS Step Functions / Amazon States Language 的核心结构，但只是内部简化 YAML DSL，不是完整 ASL 实现。
