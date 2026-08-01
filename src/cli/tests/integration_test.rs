@@ -42,8 +42,8 @@ async fn test_dropbox_send() {
     mock_shared_link_ok(&server).await;
 
     dropbox::upload("fake", tmp.to_str().unwrap(), "/test.txt", Some(&base))
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
     let link = dropbox::create_shared_link("fake", "/test.txt", Some(&base))
         .await
