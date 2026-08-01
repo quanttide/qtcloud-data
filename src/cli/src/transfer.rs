@@ -42,61 +42,122 @@ pub enum TransferAction {
 }
 
 pub fn run(args: &TransferArgs) {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
     match &args.action {
         TransferAction::Send {
             file,
             remote,
             output,
         } => {
-            let provider = providers::from_name(&args.provider)
-                .unwrap_or_else(|| panic!("不支持的提供商: {}", args.provider));
-
-            let remote_path = remote.clone().unwrap_or_else(|| {
-                format!("/send/{}", file.rsplit('/').next().unwrap_or("result"))
-            });
-
-            match rt.block_on(provider.send(file, &remote_path)) {
-                Ok(link) => {
-                    if let Err(err) = handle_sent_link(SentLinkInput {
-                        provider: &args.provider,
-                        file,
-                        remote_path: &remote_path,
-                        link: &link,
-                        output: output.as_deref(),
-                    }) {
-                        eprintln!("{err}");
-                        std::process::exit(1);
-                    }
-                }
-                Err(e) => eprintln!("发送失败: {e}"),
+            let output_path = output.as_deref().map(Path::new);
+            if let Err(err) = send(file, remote.as_deref(), output_path, &args.provider) {
+                eprintln!("发送失败: {err}");
             }
         }
         TransferAction::Receive { source, output } => {
-            let local_path = output
-                .clone()
-                .unwrap_or_else(|| source.rsplit('/').next().unwrap_or("received").to_string());
-
-            let is_url = source.starts_with("http://") || source.starts_with("https://");
-
-            if is_url {
-                // 手动模式：从 URL 自动识别提供商
-                let provider = providers::detect(source).unwrap_or_else(|| {
-                    providers::from_name(&args.provider)
-                        .unwrap_or_else(|| panic!("不支持的提供商: {}", args.provider))
-                });
-                if let Err(e) = rt.block_on(provider.receive(source, &local_path)) {
-                    eprintln!("接收失败: {e}");
-                }
-            } else {
-                // 自动模式：使用 --provider 指定的提供商直接拉取
-                let provider = providers::from_name(&args.provider)
-                    .unwrap_or_else(|| panic!("不支持的提供商: {}", args.provider));
-                if let Err(e) = rt.block_on(provider.receive_path(source, &local_path)) {
-                    eprintln!("自动接收失败: {e}");
-                }
+            let output_path = output
+                .as_deref()
+                .map(Path::new)
+                .unwrap_or_else(|| Path::new(source.rsplit('/').next().unwrap_or("received")));
+            if let Err(err) = receive(source, output_path, &args.provider) {
+                eprintln!("{err}");
             }
+        }
+    }
+}
+
+/// 进程内传输服务：接收数据到本地文件。
+///
+/// `QTDATA_CLI` 环境变量设置时委派给外部 CLI（测试与部署逃生舱），
+/// 否则走进程内 provider（替代 process 自我 re-exec）。
+pub fn receive(source: &str, output: &Path, provider: &str) -> Result<(), String> {
+    let output_str = output.to_string_lossy().to_string();
+
+    if let Some(bin) = std::env::var("QTDATA_CLI").ok() {
+        return run_delegated(
+            &bin,
+            &["transfer", "receive", source, "--output", &output_str],
+        );
+    }
+
+    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("创建运行时失败: {e}"))?;
+    let is_url = source.starts_with("http://") || source.starts_with("https://");
+    if is_url {
+        // 手动模式：从 URL 自动识别提供商
+        let p = providers::detect(source)
+            .or_else(|| providers::from_name(provider))
+            .ok_or_else(|| format!("不支持的提供商: {provider}"))?;
+        return rt
+            .block_on(p.receive(source, &output_str))
+            .map_err(|e| format!("接收失败: {e}"));
+    }
+    // 自动模式：使用指定提供商直接拉取
+    let p = providers::from_name(provider).ok_or_else(|| format!("不支持的提供商: {provider}"))?;
+    rt.block_on(p.receive_path(source, &output_str))
+        .map_err(|e| format!("自动接收失败: {e}"))
+}
+
+/// 进程内传输服务：发送文件并返回交付链接。
+///
+/// `QTDATA_CLI` 环境变量设置时委派给外部 CLI，否则走进程内 provider。
+pub fn send(
+    file: &str,
+    remote: Option<&str>,
+    output: Option<&Path>,
+    provider: &str,
+) -> Result<String, String> {
+    let remote_path = remote
+        .map(str::to_string)
+        .unwrap_or_else(|| format!("/send/{}", file.rsplit('/').next().unwrap_or("result")));
+
+    if let Some(bin) = std::env::var("QTDATA_CLI").ok() {
+        return send_delegated(&bin, file, output);
+    }
+
+    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("创建运行时失败: {e}"))?;
+    let p = providers::from_name(provider).ok_or_else(|| format!("不支持的提供商: {provider}"))?;
+    let link = rt
+        .block_on(p.send(file, &remote_path))
+        .map_err(|e| format!("发送失败: {e}"))?;
+    handle_sent_link(SentLinkInput {
+        provider,
+        file,
+        remote_path: &remote_path,
+        link: &link,
+        output: output.map(|p| p.to_string_lossy().to_string()).as_deref(),
+    })?;
+    Ok(link)
+}
+
+fn run_delegated(bin: &str, args: &[&str]) -> Result<(), String> {
+    let status = std::process::Command::new(bin)
+        .args(args)
+        .status()
+        .map_err(|e| format!("执行 {bin} 失败: {e}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("{bin} 执行失败: {status}"))
+    }
+}
+
+fn send_delegated(bin: &str, file: &str, output: Option<&Path>) -> Result<String, String> {
+    match output {
+        Some(out) => {
+            run_delegated(
+                bin,
+                &["transfer", "send", file, "--output", &out.to_string_lossy()],
+            )?;
+            std::fs::read_to_string(out).map_err(|e| format!("读取交付链接失败: {e}"))
+        }
+        None => {
+            let output = std::process::Command::new(bin)
+                .args(["transfer", "send", file])
+                .output()
+                .map_err(|e| format!("执行 {bin} 失败: {e}"))?;
+            if !output.status.success() {
+                return Err(format!("{bin} 执行失败: {}", output.status));
+            }
+            Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
         }
     }
 }
@@ -215,9 +276,7 @@ fn path_for_record(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    use crate::ENV_LOCK;
 
     fn temp_dir(name: &str) -> std::path::PathBuf {
         let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));

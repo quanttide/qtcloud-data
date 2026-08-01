@@ -27,13 +27,13 @@
 
 ### Added
 
-- [ ] `src/process.rs` 统一错误模型（CliError），命令入口返回 `Result<(), CliError>`，`src/main.rs` 顶层统一格式化
-- [ ] `src/process.rs` 抽取 StepExecutor 状态机（Receive → Pipeline → Send），收敛重复失败处理
-- [ ] `src/process.rs` StepExecutor 单元测试（tempfile + 注入式路径）
+- [x] `src/process.rs` 统一错误模型（CliError），命令入口返回 `Result<(), CliError>`，`src/main.rs` 顶层统一格式化
+- [x] `src/process.rs` 抽取 StepExecutor 状态机（Receive → Pipeline → Send），收敛重复失败处理
+- [x] `src/process.rs` StepExecutor 单元测试（tempfile + 注入式路径）
 
 ### Changed
 
-- [ ] `src/transfer.rs` send/receive 抽为进程内服务函数，process 库内组合替代自我 re-exec
+- [x] `src/transfer.rs` send/receive 抽为进程内服务函数，process 库内组合替代自我 re-exec
 
 ## [0.2.3]
 

@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use qtcloud_data_cli::error::CliError;
 use qtcloud_data_cli::{
     blueprint, catalog, clarify, contract, design, doctor, implement, pipeline, process, review,
     spec, transfer, version,
@@ -43,20 +44,64 @@ enum Commands {
 
 fn main() {
     let cli = Cli::parse();
+    if let Err(err) = run_command(&cli.command) {
+        eprintln!("错误: {err}");
+        std::process::exit(1);
+    }
+}
 
-    match &cli.command {
-        Commands::Clarify(args) => clarify::run(args),
-        Commands::Design(args) => design::run(args),
-        Commands::Review(args) => review::run(args),
-        Commands::Spec(args) => spec::run(args),
-        Commands::Version(args) => version::run(args),
-        Commands::Doctor(args) => doctor::run(args),
-        Commands::Blueprint(args) => blueprint::run(args),
-        Commands::Contract(args) => contract::run(args),
-        Commands::Pipeline(args) => pipeline::run(args),
-        Commands::Catalog(args) => catalog::run(args),
-        Commands::Implement(args) => implement::run(args),
+/// 命令分发：返回 `Result<(), CliError>` 的命令由顶层统一格式化；
+/// 其余命令保持内部 exit 处理（逐步迁移中）。
+fn run_command(command: &Commands) -> Result<(), CliError> {
+    match command {
+        Commands::Clarify(args) => {
+            clarify::run(args);
+            Ok(())
+        }
+        Commands::Design(args) => {
+            design::run(args);
+            Ok(())
+        }
+        Commands::Review(args) => {
+            review::run(args);
+            Ok(())
+        }
+        Commands::Spec(args) => {
+            spec::run(args);
+            Ok(())
+        }
+        Commands::Version(args) => {
+            version::run(args);
+            Ok(())
+        }
+        Commands::Doctor(args) => {
+            doctor::run(args);
+            Ok(())
+        }
+        Commands::Blueprint(args) => {
+            blueprint::run(args);
+            Ok(())
+        }
+        Commands::Contract(args) => {
+            contract::run(args);
+            Ok(())
+        }
+        Commands::Pipeline(args) => {
+            pipeline::run(args);
+            Ok(())
+        }
+        Commands::Catalog(args) => {
+            catalog::run(args);
+            Ok(())
+        }
+        Commands::Implement(args) => {
+            implement::run(args);
+            Ok(())
+        }
         Commands::Process(args) => process::run(args),
-        Commands::Transfer(args) => transfer::run(args),
+        Commands::Transfer(args) => {
+            transfer::run(args);
+            Ok(())
+        }
     }
 }

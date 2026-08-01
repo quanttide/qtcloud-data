@@ -43,13 +43,13 @@
 
 ### error-model
 
-- [ ] `src/main.rs` 命令入口改为 `Result<(), CliError>`，顶层统一错误格式化
-- [ ] `src/process.rs` 抽取 StepExecutor 状态机（Receive → Pipeline → Send），收敛 5 份重复失败处理
-- [ ] `src/transfer.rs` send/receive 抽为进程内服务函数，process 库内组合替代自我 re-exec
+- [x] `src/main.rs` 命令入口改为 `Result<(), CliError>`，顶层统一错误格式化
+- [x] `src/process.rs` 抽取 StepExecutor 状态机（Receive → Pipeline → Send），收敛 5 份重复失败处理
+- [x] `src/transfer.rs` send/receive 抽为进程内服务函数，process 库内组合替代自我 re-exec
 
 ### testing
 
-- [ ] `src/process.rs` StepExecutor 单元测试（tempfile + 注入式路径）
+- [x] `src/process.rs` StepExecutor 单元测试（tempfile + 注入式路径）
 
 ## [v0.2.3] manifest + Provider 打通
 

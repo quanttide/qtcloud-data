@@ -299,6 +299,7 @@ fn test_doctor_fix_dirs_creates_configured_data_dirs() {
     let catalog = root.join("catalog");
 
     let output = cli()
+        .env("DATA_ROOT", &root)
         .env("DRD_DIR", &drd)
         .env("SPEC_DIR", &spec)
         .env("BLUEPRINT_DIR", &blueprint)

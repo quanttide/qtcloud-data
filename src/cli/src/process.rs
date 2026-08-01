@@ -5,7 +5,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::catalog::{self, RegisterVolume};
+use crate::error::CliError;
 use crate::store;
+use crate::transfer;
 
 #[derive(Args)]
 pub struct ProcessArgs {
@@ -79,21 +81,14 @@ impl ProcessJobRecord {
     }
 }
 
-pub fn run(args: &ProcessArgs) {
-    let pipeline = if let Some(bp) = &args.blueprint {
-        resolve_blueprint_pipeline(bp)
-    } else {
-        args.pipeline.clone().unwrap_or_else(|| {
-            std::env::var("PIPELINE").unwrap_or_else(|_| "csv-standard".to_string())
-        })
-    };
-
-    let qtdata = std::env::var("QTDATA_CLI").unwrap_or_else(|_| "qtcloud-data".to_string());
+pub fn run(args: &ProcessArgs) -> Result<(), CliError> {
+    let pipeline = resolve_pipeline(args)?;
     let started_at = store::now_utc();
     let job_id = new_job_id(&args.customer_id);
     let work_dir = work_dir();
     let customer_dir = work_dir.join(&args.customer_id);
-    std::fs::create_dir_all(&customer_dir).expect("创建工作目录失败");
+    std::fs::create_dir_all(&customer_dir)
+        .map_err(|e| CliError::new(format!("创建工作目录失败: {e}")))?;
 
     let raw_path = customer_dir.join("raw.csv");
     let expected_output_path = customer_dir.join("final.csv");
@@ -102,21 +97,14 @@ pub fn run(args: &ProcessArgs) {
         .join("jobs")
         .join(format!("{job_id}.log"));
 
-    let paths = ProcessJobPaths {
-        raw: path_string(&raw_path),
-        expected_output: path_string(&expected_output_path),
-        link: path_string(&link_path),
-        log: path_string(&log_path),
-    };
-
     let mut log_lines = vec![
         format!("started_at={started_at}"),
         format!("customer_id={}", args.customer_id),
         format!("source_url={}", redact_source(&args.source_url)),
         format!("pipeline={pipeline}"),
-        format!("raw_path={}", paths.raw),
-        format!("output_path={}", paths.expected_output),
-        format!("link_path={}", paths.link),
+        format!("raw_path={}", path_string(&raw_path)),
+        format!("output_path={}", path_string(&expected_output_path)),
+        format!("link_path={}", path_string(&link_path)),
     ];
     if let Some(bp) = &args.blueprint {
         log_lines.push(format!("blueprint={bp}"));
@@ -128,165 +116,139 @@ pub fn run(args: &ProcessArgs) {
     if let Some(bp) = &args.blueprint {
         println!("  Blueprint: {}", bp);
     }
-    println!("  Pipeline: {}", pipeline);
+    println!("  Pipeline: {pipeline}");
     println!("══════════════════════════════════════════════");
     println!();
 
-    // Step 1: Receive
-    println!("▶ Step 1: 接收数据");
-    let status = Command::new(&qtdata)
-        .args([
-            "transfer",
-            "receive",
-            &args.source_url,
-            "--output",
-            &paths.raw,
-        ])
-        .status();
-    let status = match status {
-        Ok(status) => status,
-        Err(err) => {
-            log_lines.push(format!("receive failed to start: {err}"));
-            save_final_job_record(
-                FinalJobRecord {
-                    args,
-                    job_id: &job_id,
-                    pipeline: &pipeline,
-                    raw_path: &paths.raw,
-                    output_path: &paths.expected_output,
-                    link_path: &paths.link,
-                    log_path: &paths.log,
-                    started_at: &started_at,
-                    status: "failed",
-                },
-                &log_lines,
-            );
-            eprintln!("执行 receive 失败: {err}");
-            std::process::exit(1);
-        }
+    let mut executor = StepExecutor {
+        args,
+        job_id,
+        pipeline,
+        customer_dir,
+        raw_path,
+        expected_output_path,
+        link_path,
+        log_path,
+        started_at,
+        log_lines,
     };
-    if !status.success() {
-        log_lines.push("receive failed".to_string());
-        save_final_job_record(
-            FinalJobRecord {
-                args,
-                job_id: &job_id,
-                pipeline: &pipeline,
-                raw_path: &paths.raw,
-                output_path: &paths.expected_output,
-                link_path: &paths.link,
-                log_path: &paths.log,
-                started_at: &started_at,
-                status: "failed",
-            },
-            &log_lines,
-        );
-        eprintln!("接收失败");
-        std::process::exit(1);
-    }
-    log_lines.push("receive completed".to_string());
-    println!("✓ 已接收");
-    println!();
+    executor.run()
+}
 
-    // Step 2: Pipeline
-    println!("▶ Step 2: 执行 Pipeline");
-    let customer_dir = path_string(&customer_dir);
-    let result_path = match run_pipeline(&paths.raw, &customer_dir, &pipeline) {
-        Ok(path) => path,
-        Err(err) => {
-            log_lines.push(format!("pipeline failed: {err}"));
-            save_final_job_record(
-                FinalJobRecord {
-                    args,
-                    job_id: &job_id,
-                    pipeline: &pipeline,
-                    raw_path: &paths.raw,
-                    output_path: &paths.expected_output,
-                    link_path: &paths.link,
-                    log_path: &paths.log,
-                    started_at: &started_at,
-                    status: "failed",
-                },
-                &log_lines,
-            );
-            eprintln!("{err}");
-            std::process::exit(1);
-        }
-    };
-    log_lines.push(format!("pipeline completed output={result_path}"));
-    println!("✓ Pipeline 完成");
-    println!();
-
-    // Step 3: Send
-    println!("▶ Step 3: 交付结果");
-    let status = Command::new(&qtdata)
-        .args(["transfer", "send", &result_path, "--output", &paths.link])
-        .status();
-    let status = match status {
-        Ok(status) => status,
-        Err(err) => {
-            log_lines.push(format!("send failed to start: {err}"));
-            save_final_job_record(
-                FinalJobRecord {
-                    args,
-                    job_id: &job_id,
-                    pipeline: &pipeline,
-                    raw_path: &paths.raw,
-                    output_path: &result_path,
-                    link_path: &paths.link,
-                    log_path: &paths.log,
-                    started_at: &started_at,
-                    status: "failed",
-                },
-                &log_lines,
-            );
-            eprintln!("执行 send 失败: {err}");
-            std::process::exit(1);
-        }
-    };
-    if !status.success() {
-        log_lines.push("send failed".to_string());
-        save_final_job_record(
-            FinalJobRecord {
-                args,
-                job_id: &job_id,
-                pipeline: &pipeline,
-                raw_path: &paths.raw,
-                output_path: &result_path,
-                link_path: &paths.link,
-                log_path: &paths.log,
-                started_at: &started_at,
-                status: "failed",
-            },
-            &log_lines,
-        );
-        eprintln!("交付失败");
-        std::process::exit(1);
+fn resolve_pipeline(args: &ProcessArgs) -> Result<String, CliError> {
+    if let Some(bp) = &args.blueprint {
+        resolve_blueprint_pipeline(bp)
+    } else {
+        Ok(args.pipeline.clone().unwrap_or_else(|| {
+            std::env::var("PIPELINE").unwrap_or_else(|_| "csv-standard".to_string())
+        }))
     }
-    let link = std::fs::read_to_string(&paths.link).unwrap_or_default();
-    log_lines.push("send completed".to_string());
-    register_process_output(&job_id, &result_path);
-    log_lines.push(format!("catalog registered source=process:{job_id}"));
-    save_final_job_record(
-        FinalJobRecord {
-            args,
-            job_id: &job_id,
-            pipeline: &pipeline,
-            raw_path: &paths.raw,
-            output_path: &result_path,
-            link_path: &paths.link,
-            log_path: &paths.log,
-            started_at: &started_at,
-            status: "delivered",
-        },
-        &log_lines,
-    );
-    println!("✓ 结果已交付: {link}");
-    println!();
-    println!("────────────────────────────────────────────");
-    println!("✓ 完成: {}", args.customer_id);
-    println!("  原始数据: {}", paths.raw);
-    println!("  最终结果: {result_path}");
+}
+
+/// Receive → Pipeline → Send 状态机：统一失败处理（记录 failed job + 日志后返回 Err）。
+struct StepExecutor<'a> {
+    args: &'a ProcessArgs,
+    job_id: String,
+    pipeline: String,
+    customer_dir: PathBuf,
+    raw_path: PathBuf,
+    expected_output_path: PathBuf,
+    link_path: PathBuf,
+    log_path: PathBuf,
+    started_at: String,
+    log_lines: Vec<String>,
+}
+
+impl StepExecutor<'_> {
+    fn run(&mut self) -> Result<(), CliError> {
+        self.receive()?;
+        let result_path = path_string(&self.pipeline()?);
+        let link = self.send(&result_path)?;
+        self.finish_delivered(&result_path, &link)
+    }
+
+    fn receive(&mut self) -> Result<(), CliError> {
+        println!("▶ Step 1: 接收数据");
+        transfer::receive(&self.args.source_url, &self.raw_path, "dropbox")
+            .map_err(|err| self.fail(format!("receive failed: {err}")))?;
+        self.log_lines.push("receive completed".to_string());
+        println!("✓ 已接收");
+        println!();
+        Ok(())
+    }
+
+    fn pipeline(&mut self) -> Result<PathBuf, CliError> {
+        println!("▶ Step 2: 执行 Pipeline");
+        let result_path = run_pipeline(
+            &path_string(&self.raw_path),
+            &path_string(&self.customer_dir),
+            &self.pipeline,
+        )
+        .map_err(|err| self.fail(format!("pipeline failed: {err}")))?;
+        self.log_lines
+            .push(format!("pipeline completed output={result_path}"));
+        println!("✓ Pipeline 完成");
+        println!();
+        Ok(PathBuf::from(result_path))
+    }
+
+    fn send(&mut self, result_path: &str) -> Result<String, CliError> {
+        println!("▶ Step 3: 交付结果");
+        let link = transfer::send(result_path, None, Some(&self.link_path), "dropbox")
+            .map_err(|err| self.fail(format!("send failed: {err}")))?;
+        self.log_lines.push("send completed".to_string());
+        Ok(link)
+    }
+
+    fn finish_delivered(&mut self, result_path: &str, link: &str) -> Result<(), CliError> {
+        register_process_output(&self.job_id, result_path);
+        self.log_lines
+            .push(format!("catalog registered source=process:{}", self.job_id));
+        let record = ProcessJobRecord::delivered(self.record_input(result_path));
+        self.persist_record(&record);
+
+        println!("✓ 结果已交付: {link}");
+        println!();
+        println!("────────────────────────────────────────────");
+        println!("✓ 完成: {}", self.args.customer_id);
+        println!("  原始数据: {}", self.raw_path.to_string_lossy());
+        println!("  最终结果: {result_path}");
+        Ok(())
+    }
+
+    /// 失败统一出口：记录日志、落 failed job 记录，返回 CliError。
+    fn fail(&mut self, log_line: String) -> CliError {
+        let output_path = path_string(&self.expected_output_path);
+        self.log_lines.push(log_line.clone());
+        let record = ProcessJobRecord::failed(self.record_input(&output_path));
+        self.persist_record(&record);
+        CliError::new(log_line)
+    }
+
+    fn record_input(&self, output_path: &str) -> ProcessJobRecordInput {
+        ProcessJobRecordInput {
+            id: self.job_id.clone(),
+            customer_id: self.args.customer_id.clone(),
+            source_url: self.args.source_url.clone(),
+            blueprint: self.args.blueprint.clone(),
+            pipeline: self.pipeline.clone(),
+            raw_path: path_string(&self.raw_path),
+            output_path: output_path.to_string(),
+            link_path: path_string(&self.link_path),
+            log_path: path_string(&self.log_path),
+            started_at: self.started_at.clone(),
+            finished_at: store::now_utc(),
+        }
+    }
+
+    fn persist_record(&self, record: &ProcessJobRecord) {
+        if let Err(err) = write_job_log(&self.log_path, &self.log_lines) {
+            eprintln!("写入 process 日志失败: {err}");
+        }
+        if let Err(err) = save_job_record(record) {
+            eprintln!("写入 process job 记录失败: {err}");
+        }
+    }
 }
 
 fn register_process_output(job_id: &str, result_path: &str) {
@@ -304,7 +266,7 @@ fn register_process_output(job_id: &str, result_path: &str) {
     }
 }
 
-fn resolve_blueprint_pipeline(name: &str) -> String {
+fn resolve_blueprint_pipeline(name: &str) -> Result<String, CliError> {
     let dir =
         std::env::var("BLUEPRINT_DIR").unwrap_or_else(|_| ".quanttide/data/blueprint".to_string());
     let key = to_camel(name);
@@ -318,21 +280,19 @@ fn resolve_blueprint_pipeline(name: &str) -> String {
             &dir,
         ])
         .output()
-        .expect("执行 cue 失败，请先安装 cue (v0.16+)");
+        .map_err(|err| CliError::new(format!("执行 cue 失败，请先安装 cue (v0.16+): {err}")))?;
     if !output.status.success() {
-        eprintln!("找不到 Blueprint: {name}");
-        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
-        std::process::exit(1);
+        return Err(CliError::new(format!(
+            "找不到 Blueprint: {name}\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        )));
     }
-    let pipe: String = serde_json::from_slice(&output.stdout).unwrap_or_else(|err| {
-        eprintln!("解析 Blueprint pipeline 失败: {err}");
-        std::process::exit(1);
-    });
+    let pipe: String = serde_json::from_slice(&output.stdout)
+        .map_err(|err| CliError::new(format!("解析 Blueprint pipeline 失败: {err}")))?;
     if pipe.trim().is_empty() {
-        eprintln!("Blueprint {name} 中未定义 pipeline");
-        std::process::exit(1);
+        return Err(CliError::new(format!("Blueprint {name} 中未定义 pipeline")));
     }
-    pipe
+    Ok(pipe)
 }
 
 /// 从 cue 导出的 JSON 顶层收集各定义的 `name` 字段（结构化解析，替代文本 grep）。
@@ -364,56 +324,6 @@ pub fn to_camel(s: &str) -> String {
         }
     }
     result
-}
-
-struct FinalJobRecord<'a> {
-    args: &'a ProcessArgs,
-    job_id: &'a str,
-    pipeline: &'a str,
-    raw_path: &'a str,
-    output_path: &'a str,
-    link_path: &'a str,
-    log_path: &'a str,
-    started_at: &'a str,
-    status: &'a str,
-}
-
-struct ProcessJobPaths {
-    raw: String,
-    expected_output: String,
-    link: String,
-    log: String,
-}
-
-fn save_final_job_record(input: FinalJobRecord<'_>, log_lines: &[String]) {
-    let status = input.status;
-    let log_path = input.log_path;
-    let record_input = ProcessJobRecordInput {
-        id: input.job_id.to_string(),
-        customer_id: input.args.customer_id.clone(),
-        source_url: input.args.source_url.clone(),
-        blueprint: input.args.blueprint.clone(),
-        pipeline: input.pipeline.to_string(),
-        raw_path: input.raw_path.to_string(),
-        output_path: input.output_path.to_string(),
-        link_path: input.link_path.to_string(),
-        log_path: input.log_path.to_string(),
-        started_at: input.started_at.to_string(),
-        finished_at: store::now_utc(),
-    };
-
-    let record = if status == "delivered" {
-        ProcessJobRecord::delivered(record_input)
-    } else {
-        ProcessJobRecord::failed(record_input)
-    };
-
-    if let Err(err) = write_job_log(Path::new(log_path), log_lines) {
-        eprintln!("写入 process 日志失败: {err}");
-    }
-    if let Err(err) = save_job_record(&record) {
-        eprintln!("写入 process job 记录失败: {err}");
-    }
 }
 
 pub fn redact_source(source: &str) -> String {
@@ -530,6 +440,7 @@ fn run_pipeline(input: &str, work_dir: &str, pipeline_spec: &str) -> Result<Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ENV_LOCK;
     use std::collections::BTreeMap;
     use std::path::PathBuf;
 
@@ -537,6 +448,46 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
         std::fs::remove_dir_all(&dir).ok();
         dir
+    }
+
+    fn script_path(dir: &Path, stem: &str) -> PathBuf {
+        let ext = if cfg!(windows) { "cmd" } else { "sh" };
+        dir.join(format!("{stem}.{ext}"))
+    }
+
+    fn write_script(path: &Path, content: &str) {
+        std::fs::write(path, content).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut permissions = std::fs::metadata(path).unwrap().permissions();
+            permissions.set_mode(0o755);
+            std::fs::set_permissions(path, permissions).unwrap();
+        }
+    }
+
+    fn fake_qtdata_script() -> &'static str {
+        if cfg!(windows) {
+            "@echo off\r\nif \"%1\"==\"transfer\" if \"%2\"==\"receive\" (\r\n  echo raw,data>\"%5\"\r\n  exit /b 0\r\n)\r\nif \"%1\"==\"transfer\" if \"%2\"==\"send\" (\r\n  echo https://delivery.example/link>\"%5\"\r\n  exit /b 0\r\n)\r\nexit /b 1\r\n"
+        } else {
+            "#!/bin/sh\nif [ \"$1\" = \"transfer\" ] && [ \"$2\" = \"receive\" ]; then\n  printf 'raw,data\\n' > \"$5\"\n  exit 0\nfi\nif [ \"$1\" = \"transfer\" ] && [ \"$2\" = \"send\" ]; then\n  printf 'https://delivery.example/link\\n' > \"$5\"\n  exit 0\nfi\nexit 1\n"
+        }
+    }
+
+    fn copy_pipeline_script() -> &'static str {
+        if cfg!(windows) {
+            "@echo off\r\ncopy /Y \"%1\" \"%2\" >NUL\r\nexit /b %ERRORLEVEL%\r\n"
+        } else {
+            "#!/bin/sh\ncp \"$1\" \"$2\"\n"
+        }
+    }
+
+    fn failing_pipeline_script() -> &'static str {
+        if cfg!(windows) {
+            "@echo off\r\nexit /b 7\r\n"
+        } else {
+            "#!/bin/sh\nexit 7\n"
+        }
     }
 
     #[test]
@@ -592,6 +543,95 @@ mod tests {
 
         assert_eq!(record.status, "failed");
         assert_eq!(record.source_url, "sftp://example.com/raw.csv");
+    }
+
+    #[test]
+    fn step_executor_delivers_and_writes_delivered_record() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_catalog_dir("qtcloud-executor-delivered");
+        std::fs::create_dir_all(&root).unwrap();
+
+        let fake_qtdata = script_path(&root, "fake-qtdata");
+        let pipeline = script_path(&root, "copy-pipeline");
+        write_script(&fake_qtdata, fake_qtdata_script());
+        write_script(&pipeline, copy_pipeline_script());
+
+        let catalog_dir = root.join("catalog");
+        let work_dir = root.join("work");
+        unsafe {
+            std::env::set_var("QTDATA_CLI", &fake_qtdata);
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+            std::env::set_var("WORKDIR", &work_dir);
+        }
+
+        let args = ProcessArgs {
+            customer_id: "EXEC-001".to_string(),
+            source_url: "https://example.com/raw.csv?token=secret".to_string(),
+            blueprint: None,
+            pipeline: Some(pipeline.to_string_lossy().to_string()),
+        };
+        let result = run(&args);
+
+        unsafe {
+            std::env::remove_var("QTDATA_CLI");
+            std::env::remove_var("CATALOG_DIR");
+            std::env::remove_var("WORKDIR");
+        }
+
+        assert!(result.is_ok(), "run 应成功: {:?}", result);
+        let content = std::fs::read_to_string(catalog_dir.join("jobs.json")).unwrap();
+        let jobs: BTreeMap<String, ProcessJobRecord> = serde_json::from_str(&content).unwrap();
+        let record = jobs.values().next().unwrap();
+        assert_eq!(record.customer_id, "EXEC-001");
+        assert_eq!(record.status, "delivered");
+        assert_eq!(record.source_url, "https://example.com/raw.csv");
+        assert!(work_dir.join("EXEC-001").join("final.csv").is_file());
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn step_executor_propagates_pipeline_failure_and_writes_failed_record() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_catalog_dir("qtcloud-executor-failed");
+        std::fs::create_dir_all(&root).unwrap();
+
+        let fake_qtdata = script_path(&root, "fake-qtdata");
+        let pipeline = script_path(&root, "failing-pipeline");
+        write_script(&fake_qtdata, fake_qtdata_script());
+        write_script(&pipeline, failing_pipeline_script());
+
+        let catalog_dir = root.join("catalog");
+        let work_dir = root.join("work");
+        unsafe {
+            std::env::set_var("QTDATA_CLI", &fake_qtdata);
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+            std::env::set_var("WORKDIR", &work_dir);
+        }
+
+        let args = ProcessArgs {
+            customer_id: "EXEC-002".to_string(),
+            source_url: "https://example.com/raw.csv".to_string(),
+            blueprint: None,
+            pipeline: Some(pipeline.to_string_lossy().to_string()),
+        };
+        let result = run(&args);
+
+        unsafe {
+            std::env::remove_var("QTDATA_CLI");
+            std::env::remove_var("CATALOG_DIR");
+            std::env::remove_var("WORKDIR");
+        }
+
+        assert!(result.is_err(), "pipeline 失败应返回 Err");
+        let content = std::fs::read_to_string(catalog_dir.join("jobs.json")).unwrap();
+        let jobs: BTreeMap<String, ProcessJobRecord> = serde_json::from_str(&content).unwrap();
+        let record = jobs.values().next().unwrap();
+        assert_eq!(record.customer_id, "EXEC-002");
+        assert_eq!(record.status, "failed");
+        assert!(record.output_path.ends_with("final.csv"));
+
+        std::fs::remove_dir_all(&root).ok();
     }
 
     #[test]
