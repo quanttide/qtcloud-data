@@ -298,7 +298,7 @@ fn register_process_output(job_id: &str, result_path: &str) {
         name: Some(&volume_name),
         provider: Some("process"),
         source: Some(&source),
-        status: "delivered",
+        status: catalog::VolumeStatus::Delivered,
     }) {
         eprintln!("登记 process 产物到 catalog 失败: {err}");
     }

@@ -32,7 +32,7 @@
 
 ### catalog
 
-- [ ] `src/catalog.rs` status 枚举化，替代魔法字符串
+- [x] `src/catalog.rs` status 枚举化，替代魔法字符串
 
 ### testing
 

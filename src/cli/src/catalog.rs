@@ -1,5 +1,6 @@
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::path::PathBuf;
 
 use crate::store;
@@ -40,6 +41,38 @@ pub enum CatalogAction {
     },
 }
 
+/// Volume 状态，序列化保持既有字符串（`registry.json` 落盘格式不变）。
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VolumeStatus {
+    Received,
+    Processing,
+    Processed,
+    Delivered,
+    /// 未知状态（兼容旧数据或未来新增状态）。
+    #[serde(other)]
+    Unknown,
+}
+
+impl Default for VolumeStatus {
+    fn default() -> Self {
+        VolumeStatus::Received
+    }
+}
+
+impl fmt::Display for VolumeStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let text = match self {
+            VolumeStatus::Received => "received",
+            VolumeStatus::Processing => "processing",
+            VolumeStatus::Processed => "processed",
+            VolumeStatus::Delivered => "delivered",
+            VolumeStatus::Unknown => "unknown",
+        };
+        f.write_str(text)
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Volume {
     pub name: String,
@@ -50,8 +83,8 @@ pub struct Volume {
     pub provider: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
-    #[serde(default = "default_status")]
-    pub status: String,
+    #[serde(default)]
+    pub status: VolumeStatus,
 }
 
 pub struct RegisterVolume<'a> {
@@ -59,11 +92,7 @@ pub struct RegisterVolume<'a> {
     pub name: Option<&'a str>,
     pub provider: Option<&'a str>,
     pub source: Option<&'a str>,
-    pub status: &'a str,
-}
-
-fn default_status() -> String {
-    "received".to_string()
+    pub status: VolumeStatus,
 }
 
 fn registry_path() -> PathBuf {
@@ -103,7 +132,7 @@ pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, String> {
         received_at: store::now_utc(),
         provider: input.provider.map(|provider| provider.to_string()),
         source: input.source.map(|source| source.to_string()),
-        status: input.status.to_string(),
+        status: input.status,
     };
 
     let mut registry = open_registry();
@@ -141,12 +170,12 @@ fn list() {
     }
     println!("Volume:");
     for v in registry.entries().values() {
-        let status_icon = match v.status.as_str() {
-            "received" => "📥",
-            "processing" => "⏳",
-            "processed" => "✅",
-            "delivered" => "📤",
-            _ => "📄",
+        let status_icon = match v.status {
+            VolumeStatus::Received => "📥",
+            VolumeStatus::Processing => "⏳",
+            VolumeStatus::Processed => "✅",
+            VolumeStatus::Delivered => "📤",
+            VolumeStatus::Unknown => "📄",
         };
         println!("  {status_icon} {}  ({})", v.name, v.path);
     }
@@ -181,7 +210,7 @@ fn add(path_str: &str, name: Option<&str>, provider: Option<&str>, source: Optio
         name,
         provider,
         source,
-        status: "received",
+        status: VolumeStatus::Received,
     })
     .unwrap_or_else(|err| {
         eprintln!("{err}");
@@ -251,7 +280,7 @@ mod tests {
             name: Some("ABC-001-final"),
             provider: Some("process"),
             source: Some("process:ABC-001-123"),
-            status: "delivered",
+            status: VolumeStatus::Delivered,
         })
         .unwrap();
         unsafe {
@@ -261,12 +290,37 @@ mod tests {
         assert_eq!(volume.name, "ABC-001-final");
         assert_eq!(volume.provider.as_deref(), Some("process"));
         assert_eq!(volume.source.as_deref(), Some("process:ABC-001-123"));
-        assert_eq!(volume.status, "delivered");
+        assert_eq!(volume.status, VolumeStatus::Delivered);
 
         let registry = std::fs::read_to_string(catalog_dir.join("registry.json")).unwrap();
         assert!(registry.contains("ABC-001-final"));
 
         std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn volume_status_serializes_to_legacy_strings() {
+        assert_eq!(
+            serde_json::to_string(&VolumeStatus::Delivered).unwrap(),
+            "\"delivered\""
+        );
+        assert_eq!(
+            serde_json::to_string(&VolumeStatus::Received).unwrap(),
+            "\"received\""
+        );
+    }
+
+    #[test]
+    fn volume_status_deserializes_unknown_strings_as_unknown() {
+        // 旧数据/未来新增状态不应导致整表加载失败
+        assert_eq!(
+            serde_json::from_str::<VolumeStatus>("\"future-status\"").unwrap(),
+            VolumeStatus::Unknown
+        );
+        assert_eq!(
+            serde_json::from_str::<VolumeStatus>("\"delivered\"").unwrap(),
+            VolumeStatus::Delivered
+        );
     }
 
     #[test]
