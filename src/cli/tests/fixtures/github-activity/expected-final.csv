@@ -1,0 +1,6 @@
+user_seq,date,push_count,pr_count,issue_comments,pr_comments,pr_merges,commit_comments,bot
+1,2026-07-01,2,0,1,0,0,1,0
+1,2026-07-03,3,1,2,0,1,0,0
+2,2026-07-01,1,0,0,2,0,0,1
+2,2026-07-03,0,0,3,0,0,0,1
+3,2026-07-02,0,2,0,0,1,0,0

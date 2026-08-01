@@ -36,8 +36,8 @@
 
 ### testing
 
-- [ ] 基线 smoke/e2e：现有 `process` 命令全链路回归，fixture 落 `tests/fixtures/`
-- [ ] 保存基线 smoke/e2e 的输入、输出和验证记录（`docs/`）
+- [x] 基线 smoke/e2e：现有 `process` 命令全链路回归，fixture 落 `tests/fixtures/`
+- [x] 保存基线 smoke/e2e 的输入、输出和验证记录（`docs/`）
 
 ## [v0.2.2] 错误模型与执行器
 
