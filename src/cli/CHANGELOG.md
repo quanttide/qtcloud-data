@@ -17,6 +17,9 @@
 - `spec wrap` / `spec validate`：把已有 Blueprint YAML 包装为稳定 Specification envelope，并校验旧 YAML 或 envelope，供 Provider 后续对齐读取。
 - `design blueprint` 生成 Step Functions 风格的 `pipeline.start_at` / `pipeline.states`，并默认给 state/step 写入 `resource: builtin:copy`，供 Provider 做最小可执行 smoke test。
 
+### Fixed
+- 修复 CLI release workflow 的 package dry-run：CHANGELOG release notes 预检改写入 runner 临时目录，避免生成未提交的 `release-notes.md` 导致 crates.io dry-run 失败。
+
 ## [0.1.16] - 2026-07-27
 
 ### Fixed

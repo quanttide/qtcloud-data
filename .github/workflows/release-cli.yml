@@ -63,11 +63,11 @@ jobs:
             capture && /^## \[/ { exit }
             capture { print }
             END { if (!found) exit 1 }
-          ' CHANGELOG.md > release-notes.md; then
+          ' CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"; then
             echo "::error::CHANGELOG.md missing ## [$TAG_VERSION] entry"
             exit 1
           fi
-          if ! grep -Eq '[^[:space:]]' release-notes.md; then
+          if ! grep -Eq '[^[:space:]]' "$RUNNER_TEMP/release-notes.md"; then
             echo "::error::CHANGELOG.md entry for $TAG_VERSION has no release notes"
             exit 1
           fi
