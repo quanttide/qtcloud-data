@@ -12,6 +12,8 @@
 
 ## [v0.2.1] 行为不变的内部治理
 
+> 开工顺序：先补基线 e2e 的 fixture（对现有 `process` 命令建立回归保护），再开始 store 模块重构。
+
 ### store
 
 - [ ] `src/lib.rs` 新增 store 模块：Registry<T> 合并 catalog/process/transfer 三份 JSON 读写
