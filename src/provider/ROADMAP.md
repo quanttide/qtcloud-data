@@ -17,10 +17,13 @@
 
 ## [0.0.3]
 
-### Changed
-- [ ] 将真实业务资源替换为可配置处理脚本。
-- [ ] 扩充失败 job 的 stdout/stderr 摘要和失败步骤上下文。
-- [ ] 稳定 Provider run 与 CLI catalog/job 的字段契约。
-
 ### Added
+- [ ] 定义 review 决策文件格式（与 CLI manifest 契约对齐，参考 `../cli/docs/dev/`）。
+- [ ] 新增 `merge_review` builtin resource：将审核结果合并回匹配明细。
+- [ ] 新增 `export` builtin resource：生成最终客户交付文件。
 - [ ] 增加真实交付链路的 Provider smoke/e2e 测试。
+
+### Changed
+- [ ] 将真实业务资源替换为可配置处理脚本，补齐 resource 绑定工作流（避免交付项目长期停留在 `resource: builtin:copy`）。
+- [ ] 扩充失败 job 的 stdout/stderr 摘要和失败步骤上下文（当前 `executeScript` 直接把 stdout/stderr 接到进程输出，需改为 buffer 并写入 job 记录）。
+- [ ] 稳定 Provider run 与 CLI catalog/job 的字段契约（当前 provider JobRecord 含 input/output/steps/error，CLI jobs.json 含 raw_path/link_path/log_path，两侧字段不一致）。
