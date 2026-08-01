@@ -10,6 +10,18 @@
 - [ ] 在 main 合并完成后运行 qtcloud-devops release publish -v cli/v0.X.Y --registry crates -y（`docs/dev/release.md`）
 - [ ] 验证 crates.io、GitHub Release 和 Linux/Windows 二进制制品（`docs/dev/release.md`）
 
+## [v0.2.1] 错误模型收尾（自 v0.2.2 并入）
+
+> 行为变化集中在本版本：剩余命令错误输出统一 `错误: {err}` 格式，错误路径变为可测。
+
+### error-model
+
+- [ ] 剩余 45 处 `std::process::exit(1)` 改 `Result<(), CliError>` + `?` 传播（design/spec/implement/clarify/catalog/review/contract/version/pipeline/blueprint/doctor，错误路径可测）
+- [ ] dropbox upload 失败 `panic!` 改返回 `Result`（`src/providers/dropbox.rs`）
+- [ ] blueprint cue 缺失/解析 `.expect()` 改优雅错误（`src/blueprint.rs`）
+- [ ] `Result<_, String>` 收敛到 `CliError`（`src/transfer.rs` / `src/catalog.rs` / `src/spec.rs`）
+- [ ] 路径拼接改 `PathBuf::with_extension`（`src/design.rs` / `src/spec.rs`）
+
 ## [0.2.2] manifest + Provider 打通
 
 - [ ] manifest：定义输入契约，声明 raw、map、配置表和 review decisions（`docs/dev/`）
@@ -27,12 +39,6 @@
 - [ ] coverage：baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%，`src/providers/`）
 - [x] coverage：更新覆盖率基线到 71.4%（`docs/dev/` 见 e2e-baseline.md 覆盖率基线）
 
-### error-model（v0.2.2 收尾：CliError 迁移扩展到全部命令）
-
-- [ ] 剩余 45 处 `std::process::exit(1)` 改 `Result<(), CliError>` + `?` 传播（design/spec/implement/clarify/catalog/review/contract/version/pipeline/blueprint/doctor，错误路径可测）
-- [ ] dropbox upload 失败 `panic!` 改返回 `Result`（`src/providers/dropbox.rs`）
-- [ ] blueprint cue 缺失/解析 `.expect()` 改优雅错误（`src/blueprint.rs`）
-- [ ] `Result<_, String>` 收敛到 `CliError`（`src/transfer.rs` / `src/catalog.rs` / `src/spec.rs`）
 - [ ] 路径拼接改 `PathBuf::with_extension`（`src/design.rs` / `src/spec.rs`）
 - [ ] 测试 helper 抽共享已完成：`lib.rs test_support::{temp_dir, write_script, fake_llm}`（原 8 份重复定义已删除）
 
