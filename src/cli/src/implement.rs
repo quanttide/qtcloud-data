@@ -46,8 +46,8 @@ impl ImplementHandler {
         let output_path = match output {
             Some(o) => PathBuf::from(o),
             None => {
-                let stem = yaml_path.file_stem().unwrap_or_default().to_string_lossy();
-                PathBuf::from(format!("{stem}.py"))
+                let stem = yaml_path.file_stem().unwrap_or_default();
+                PathBuf::from(stem).with_extension("py")
             }
         };
 

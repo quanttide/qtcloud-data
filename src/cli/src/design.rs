@@ -152,8 +152,10 @@ impl DesignHandler {
         let output_path = match output {
             Some(o) => PathBuf::from(o),
             None => {
-                let stem = md_path.file_stem().unwrap_or_default().to_string_lossy();
-                Path::new(&blueprint_core::spec_dir()).join(format!("{stem}.yaml"))
+                let stem = md_path.file_stem().unwrap_or_default();
+                Path::new(&blueprint_core::spec_dir())
+                    .join(stem)
+                    .with_extension("yaml")
             }
         };
 

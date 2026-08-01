@@ -14,7 +14,7 @@
 - [x] `src/providers/dropbox.rs` upload 失败 `panic!` 改为返回 `Result`
 - [x] `src/blueprint.rs` / `src/pipeline.rs` cue 缺失/输出解析 `.expect()` 改为优雅错误
 - [x] `Result<_, String>` 公开面收敛到 `CliError`（receive/send/register_volume/load_blueprint 等）
-- [ ] `src/spec.rs` / `src/design.rs` 路径拼接改 `PathBuf::with_extension`，避免 `format!("{stem}.yaml")` 的路径分隔符问题
+- [x] `src/design.rs` / `src/implement.rs` 默认输出路径改 `PathBuf::with_extension`（spec 的 `-spec` 后缀文件名保留）
 
 ## [0.2.2]
 
