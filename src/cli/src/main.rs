@@ -52,18 +52,19 @@ fn main() {
 
 /// 命令分发：返回 `Result<(), CliError>` 的命令由顶层统一格式化；
 /// 其余命令保持内部 exit 处理（逐步迁移中）。
+/// LLM 命令通过 Handler 注入：生产路径构造 `LLM::default()`，测试替换为 fake。
 fn run_command(command: &Commands) -> Result<(), CliError> {
     match command {
         Commands::Clarify(args) => {
-            clarify::run(args);
+            clarify::ClarifyHandler::new(quanttide_agent::LLM::default()).run(args);
             Ok(())
         }
         Commands::Design(args) => {
-            design::run(args);
+            design::DesignHandler::new(quanttide_agent::LLM::default()).run(args);
             Ok(())
         }
         Commands::Review(args) => {
-            review::run(args);
+            review::ReviewHandler::new(quanttide_agent::LLM::default()).run(args);
             Ok(())
         }
         Commands::Spec(args) => {
@@ -95,7 +96,7 @@ fn run_command(command: &Commands) -> Result<(), CliError> {
             Ok(())
         }
         Commands::Implement(args) => {
-            implement::run(args);
+            implement::ImplementHandler::new(quanttide_agent::LLM::default()).run(args);
             Ok(())
         }
         Commands::Process(args) => process::run(args),

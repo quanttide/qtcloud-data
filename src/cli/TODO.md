@@ -21,11 +21,11 @@
 - [ ] testing：业务 e2e raw + map.dta → review_master 全链路（`tests/`）
 - [ ] testing：保存业务 e2e 的输入、输出和验证记录（`docs/`）
 - [x] coverage：查看类命令 fixture 补测（第一部分）：contract / version / transfer 已落地（contract 67%、version 96%、transfer 80%，`tests/`）
-- [ ] coverage：查看类命令补测（第二部分）：blueprint/pipeline（依赖 cue）、review（依赖 LLM）、main（CLI 分发）0% → ≥70%（`tests/`）
-- [ ] coverage：LLM 命令注入 LlmClient fake 补测，0% → ≥60%（`src/clarify.rs` / `src/design.rs` / `src/implement.rs`）
+- [ ] coverage：查看类命令补测（第二部分）：blueprint/pipeline（依赖 cue）、main（CLI 分发，仅子进程流可测）0% → ≥70%（`tests/`）
+- [x] coverage：LLM 命令注入 Handler 补测：clarify 80% / design 63% / implement 82% / review 66%（`src/*.rs`，复用 quanttide-agent `HttpClient`，见 `lib.rs test_support`）
 - [x] coverage：非 dropbox provider wiremock 补测：google_drive 80% / onedrive 77% / s3 43%（`src/providers/`、`tests/provider_test.rs`）
 - [ ] coverage：baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%，`src/providers/`）
-- [x] coverage：更新覆盖率基线到 62.5%（`docs/dev/` 见 e2e-baseline.md 后续扩展）
+- [x] coverage：更新覆盖率基线到 71.4%（`docs/dev/` 见 e2e-baseline.md 覆盖率基线）
 
 ## [0.3.0]
 
