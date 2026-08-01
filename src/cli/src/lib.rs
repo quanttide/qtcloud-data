@@ -5,6 +5,7 @@ pub mod clarify;
 pub mod contract;
 pub mod design;
 pub mod doctor;
+pub mod error;
 pub mod implement;
 pub mod pipeline;
 pub mod process;
