@@ -5,6 +5,9 @@ on:
     tags:
       - "cli/v*"
 
+permissions:
+  contents: write
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -14,27 +17,25 @@ jobs:
     defaults:
       run:
         working-directory: src/cli
-    outputs:
-      version: ${{ steps.version.outputs.value }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract version from tag
-        id: version
-        run: echo "value=${GITHUB_REF_NAME#cli/}" >> $GITHUB_OUTPUT
+      - name: Verify tag matches Cargo.toml version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#cli/v}"
+          CARGO_VERSION="$(grep -m1 '^version' Cargo.toml | sed 's/.*= *"\(.*\)"/\1/')"
+          if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
+            echo "::error::tag $GITHUB_REF_NAME != Cargo.toml version $CARGO_VERSION"
+            exit 1
+          fi
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt, clippy
-
-      - name: Clone dependency repos
-        run: |
-          mkdir -p /home/runner/work/packages
-          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git /home/runner/work/packages/quanttide-agent-toolkit
-          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git /home/runner/work/packages/quanttide-data-toolkit
+          cache: true
 
       - name: Build
-        run: cargo build --release
+        run: cargo build
 
       - name: Test
         run: cargo test
@@ -53,29 +54,11 @@ jobs:
         working-directory: src/cli
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: Clone dep repos
-        run: |
-          mkdir -p ../../../../packages
-          cd ../../../../packages
-          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git
-
-      - name: Publish quanttide-data (skip if exists)
-        run: |
-          cd ../../../../packages/quanttide-data-toolkit/packages/rust
-          cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }} 2>&1 || echo "already published, skip"
-
-      - name: Switch deps to crates.io versions
-        run: |
-          sed -i 's|quanttide-agent = { path = ".*" }|quanttide-agent = "0.1"|' Cargo.toml
-          sed -i 's|quanttide-data = { path = ".*" }|quanttide-data = "0.1"|' Cargo.toml
-
       - name: Publish qtcloud-data-cli
-        run: cargo publish --allow-dirty --token ${{ secrets.CRATES_API_TOKEN }}
+        run: cargo publish --token ${{ secrets.CRATES_API_TOKEN }}
 
   build-binary:
     needs: check
@@ -84,50 +67,39 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            ext: ""
             archive: tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            ext: ".exe"
             archive: zip
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: src/cli
+        shell: bash
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: ${{ matrix.target }}
-
-      - name: Clone dependency repos
-        run: |
-          mkdir -p ../../../../packages
-          cd ../../../../packages
-          git clone --depth 1 https://github.com/quanttide/quanttide-agent-toolkit.git
-          git clone --depth 1 https://github.com/quanttide/quanttide-data-toolkit.git
+          cache: true
 
       - name: Build binary
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Package (tar.gz)
-        if: matrix.archive == 'tar.gz'
+      - name: Package
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ../../../qtcloud-data-${{ matrix.target }}.tar.gz qtcloud-data
-
-      - name: Package (zip)
-        if: matrix.archive == 'zip'
-        run: |
-          cd target/${{ matrix.target }}/release
-          7z a ../../../qtcloud-data-${{ matrix.target }}.zip qtcloud-data.exe
+          if [ "${{ matrix.archive }}" = "tar.gz" ]; then
+            tar czf ../../../qtcloud-data-${{ matrix.target }}.tar.gz qtcloud-data
+          else
+            7z a ../../../qtcloud-data-${{ matrix.target }}.zip qtcloud-data.exe
+          fi
 
       - name: Upload to Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             src/cli/qtcloud-data-*.tar.gz
             src/cli/qtcloud-data-*.zip
+          fail_on_unmatched_files: true
