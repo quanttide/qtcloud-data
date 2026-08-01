@@ -2,6 +2,7 @@ use clap::{Args, Subcommand};
 use std::path::Path;
 
 use crate::blueprint_core;
+use crate::error::CliError;
 
 #[derive(Args)]
 pub struct ClarifyArgs {
@@ -27,18 +28,16 @@ impl ClarifyHandler {
         Self { llm }
     }
 
-    pub fn run(&self, args: &ClarifyArgs) {
+    pub fn run(&self, args: &ClarifyArgs) -> Result<(), CliError> {
         match &args.action {
             ClarifyAction::FromChat { input } => self.cmd_from_chat(input),
         }
     }
 
-    fn cmd_from_chat(&self, input: &str) {
+    fn cmd_from_chat(&self, input: &str) -> Result<(), CliError> {
         let chat_path = Path::new(input);
-        let chat_content = std::fs::read_to_string(chat_path).unwrap_or_else(|e| {
-            eprintln!("无法读取文件 {}: {e}", input);
-            std::process::exit(1);
-        });
+        let chat_content = std::fs::read_to_string(chat_path)
+            .map_err(|e| CliError::new(format!("无法读取文件 {}: {e}", input)))?;
 
         let prompt = blueprint_core::clarify_prompt(&chat_content);
         let messages = vec![quanttide_agent::Message::new("user", &prompt)];
@@ -51,24 +50,18 @@ impl ClarifyHandler {
             Ok(resp) => {
                 let drd_content = resp.content;
                 let drd_dir = blueprint_core::drd_dir();
-                std::fs::create_dir_all(&drd_dir).unwrap_or_else(|e| {
-                    eprintln!("无法创建目录 {drd_dir}: {e}");
-                    std::process::exit(1);
-                });
+                std::fs::create_dir_all(&drd_dir)
+                    .map_err(|e| CliError::new(format!("无法创建目录 {drd_dir}: {e}")))?;
 
                 // Use the chat filename stem as DRD name
                 let stem = chat_path.file_stem().unwrap_or_default().to_string_lossy();
                 let output_path = Path::new(&drd_dir).join(format!("{stem}.md"));
-                std::fs::write(&output_path, &drd_content).unwrap_or_else(|e| {
-                    eprintln!("写入 DRD 失败: {e}");
-                    std::process::exit(1);
-                });
+                std::fs::write(&output_path, &drd_content)
+                    .map_err(|e| CliError::new(format!("写入 DRD 失败: {e}")))?;
                 println!("已生成: {}", output_path.display());
+                Ok(())
             }
-            Err(e) => {
-                eprintln!("LLM 调用失败: {e}");
-                std::process::exit(1);
-            }
+            Err(e) => Err(CliError::new(format!("LLM 调用失败: {e}"))),
         }
     }
 }
@@ -93,11 +86,13 @@ mod tests {
             std::env::set_var("DRD_DIR", &drd_dir);
         }
         let handler = ClarifyHandler::new(fake_llm("# DRD：GitHub 活跃度\n## 需求\n..."));
-        handler.run(&ClarifyArgs {
-            action: ClarifyAction::FromChat {
-                input: chat.to_string_lossy().to_string(),
-            },
-        });
+        handler
+            .run(&ClarifyArgs {
+                action: ClarifyAction::FromChat {
+                    input: chat.to_string_lossy().to_string(),
+                },
+            })
+            .unwrap();
         unsafe {
             std::env::remove_var("DRD_DIR");
         }

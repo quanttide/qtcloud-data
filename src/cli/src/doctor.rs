@@ -4,6 +4,8 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
+use crate::error::CliError;
+
 #[derive(Args)]
 pub struct DoctorArgs {
     /// 只输出诊断报告，即使缺少必需项也返回成功
@@ -59,7 +61,7 @@ impl Check {
     }
 }
 
-pub fn run(args: &DoctorArgs) {
+pub fn run(args: &DoctorArgs) -> Result<(), CliError> {
     let dirs = data_dirs();
     let mut checks = Vec::new();
 
@@ -75,8 +77,9 @@ pub fn run(args: &DoctorArgs) {
     }
 
     if has_failures(&checks) && !args.no_fail {
-        std::process::exit(1);
+        return Err(CliError::new("doctor 检查存在失败项"));
     }
+    Ok(())
 }
 
 pub fn default_checks() -> Vec<Check> {
@@ -207,7 +210,8 @@ pub fn render_json_report(checks: &[Check]) -> String {
 
     format!(
         "{}\n",
-        serde_json::to_string_pretty(&report).expect("doctor JSON serialization failed")
+        // Value 序列化为 String 实际不会失败，回退到空报告
+        serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
     )
 }
 

@@ -16,10 +16,10 @@
 
 ### error-model
 
-- [ ] 剩余 45 处 `std::process::exit(1)` 改 `Result<(), CliError>` + `?` 传播（design/spec/implement/clarify/catalog/review/contract/version/pipeline/blueprint/doctor，错误路径可测）
-- [ ] dropbox upload 失败 `panic!` 改返回 `Result`（`src/providers/dropbox.rs`）
-- [ ] blueprint cue 缺失/解析 `.expect()` 改优雅错误（`src/blueprint.rs`）
-- [ ] `Result<_, String>` 收敛到 `CliError`（`src/transfer.rs` / `src/catalog.rs` / `src/spec.rs`）
+- [x] 全部命令 `exit(1)` 改 `Result<(), CliError>` + `?` 传播（11 模块 + main 分发，错误路径可测）
+- [x] dropbox upload 失败 `panic!` 改返回 `Result`（`src/providers/dropbox.rs`）
+- [x] blueprint/pipeline cue 缺失/解析 `.expect()` 改优雅错误（`src/blueprint.rs` / `src/pipeline.rs`）
+- [x] `Result<_, String>` 公开面收敛到 `CliError`（`src/transfer.rs` / `src/catalog.rs` / `src/spec.rs`）
 - [ ] 路径拼接改 `PathBuf::with_extension`（`src/design.rs` / `src/spec.rs`）
 
 ## [0.2.2] manifest + Provider 打通

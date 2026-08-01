@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::error::CliError;
 use crate::providers;
 use crate::store;
 
@@ -41,7 +42,7 @@ pub enum TransferAction {
     },
 }
 
-pub fn run(args: &TransferArgs) {
+pub fn run(args: &TransferArgs) -> Result<(), CliError> {
     match &args.action {
         TransferAction::Send {
             file,
@@ -49,18 +50,17 @@ pub fn run(args: &TransferArgs) {
             output,
         } => {
             let output_path = output.as_deref().map(Path::new);
-            if let Err(err) = send(file, remote.as_deref(), output_path, &args.provider) {
-                eprintln!("发送失败: {err}");
-            }
+            send(file, remote.as_deref(), output_path, &args.provider)
+                .map_err(|err| CliError::new(format!("发送失败: {err}")))?;
+            Ok(())
         }
         TransferAction::Receive { source, output } => {
             let output_path = output
                 .as_deref()
                 .map(Path::new)
                 .unwrap_or_else(|| Path::new(source.rsplit('/').next().unwrap_or("received")));
-            if let Err(err) = receive(source, output_path, &args.provider) {
-                eprintln!("{err}");
-            }
+            receive(source, output_path, &args.provider)?;
+            Ok(())
         }
     }
 }
@@ -69,7 +69,7 @@ pub fn run(args: &TransferArgs) {
 ///
 /// `QTDATA_CLI` 环境变量设置时委派给外部 CLI（测试与部署逃生舱），
 /// 否则走进程内 provider（替代 process 自我 re-exec）。
-pub fn receive(source: &str, output: &Path, provider: &str) -> Result<(), String> {
+pub fn receive(source: &str, output: &Path, provider: &str) -> Result<(), CliError> {
     let output_str = output.to_string_lossy().to_string();
 
     if let Ok(bin) = std::env::var("QTDATA_CLI") {
@@ -79,21 +79,23 @@ pub fn receive(source: &str, output: &Path, provider: &str) -> Result<(), String
         );
     }
 
-    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("创建运行时失败: {e}"))?;
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|e| CliError::new(format!("创建运行时失败: {e}")))?;
     let is_url = source.starts_with("http://") || source.starts_with("https://");
     if is_url {
         // 手动模式：从 URL 自动识别提供商
         let p = providers::detect(source)
             .or_else(|| providers::from_name(provider))
-            .ok_or_else(|| format!("不支持的提供商: {provider}"))?;
+            .ok_or_else(|| CliError::new(format!("不支持的提供商: {provider}")))?;
         return rt
             .block_on(p.receive(source, &output_str))
-            .map_err(|e| format!("接收失败: {e}"));
+            .map_err(|e| CliError::new(format!("接收失败: {e}")));
     }
     // 自动模式：使用指定提供商直接拉取
-    let p = providers::from_name(provider).ok_or_else(|| format!("不支持的提供商: {provider}"))?;
+    let p = providers::from_name(provider)
+        .ok_or_else(|| CliError::new(format!("不支持的提供商: {provider}")))?;
     rt.block_on(p.receive_path(source, &output_str))
-        .map_err(|e| format!("自动接收失败: {e}"))
+        .map_err(|e| CliError::new(format!("自动接收失败: {e}")))
 }
 
 /// 进程内传输服务：发送文件并返回交付链接。
@@ -104,7 +106,7 @@ pub fn send(
     remote: Option<&str>,
     output: Option<&Path>,
     provider: &str,
-) -> Result<String, String> {
+) -> Result<String, CliError> {
     let remote_path = remote
         .map(str::to_string)
         .unwrap_or_else(|| format!("/send/{}", file.rsplit('/').next().unwrap_or("result")));
@@ -113,7 +115,8 @@ pub fn send(
         return send_delegated(&bin, file, output);
     }
 
-    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("创建运行时失败: {e}"))?;
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|e| CliError::new(format!("创建运行时失败: {e}")))?;
     let p = providers::from_name(provider).ok_or_else(|| format!("不支持的提供商: {provider}"))?;
     let link = rt
         .block_on(p.send(file, &remote_path))
@@ -128,34 +131,35 @@ pub fn send(
     Ok(link)
 }
 
-fn run_delegated(bin: &str, args: &[&str]) -> Result<(), String> {
+fn run_delegated(bin: &str, args: &[&str]) -> Result<(), CliError> {
     let status = std::process::Command::new(bin)
         .args(args)
         .status()
-        .map_err(|e| format!("执行 {bin} 失败: {e}"))?;
+        .map_err(|e| CliError::new(format!("执行 {bin} 失败: {e}")))?;
     if status.success() {
         Ok(())
     } else {
-        Err(format!("{bin} 执行失败: {status}"))
+        Err(CliError::new(format!("{bin} 执行失败: {status}")))
     }
 }
 
-fn send_delegated(bin: &str, file: &str, output: Option<&Path>) -> Result<String, String> {
+fn send_delegated(bin: &str, file: &str, output: Option<&Path>) -> Result<String, CliError> {
     match output {
         Some(out) => {
             run_delegated(
                 bin,
                 &["transfer", "send", file, "--output", &out.to_string_lossy()],
             )?;
-            std::fs::read_to_string(out).map_err(|e| format!("读取交付链接失败: {e}"))
+            std::fs::read_to_string(out)
+                .map_err(|e| CliError::new(format!("读取交付链接失败: {e}")))
         }
         None => {
             let output = std::process::Command::new(bin)
                 .args(["transfer", "send", file])
                 .output()
-                .map_err(|e| format!("执行 {bin} 失败: {e}"))?;
+                .map_err(|e| CliError::new(format!("执行 {bin} 失败: {e}")))?;
             if !output.status.success() {
-                return Err(format!("{bin} 执行失败: {}", output.status));
+                return Err(CliError::new(format!("{bin} 执行失败: {}", output.status)));
             }
             Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
         }
@@ -393,7 +397,7 @@ mod tests {
         }
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("执行失败"));
+        assert!(result.unwrap_err().to_string().contains("执行失败"));
 
         std::fs::remove_dir_all(&root).ok();
     }

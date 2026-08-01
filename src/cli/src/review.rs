@@ -1,5 +1,6 @@
 use clap::Args;
 
+use crate::error::CliError;
 use crate::{blueprint_core, spec};
 
 #[derive(Args)]
@@ -17,26 +18,18 @@ impl ReviewHandler {
         Self { llm }
     }
 
-    pub fn run(&self, args: &ReviewArgs) {
+    pub fn run(&self, args: &ReviewArgs) -> Result<(), CliError> {
         let dir = blueprint_core::spec_dir();
-        let cue_path = blueprint_core::resolve_cue_path(&args.input, &dir).unwrap_or_else(|| {
-            // Fallback: try old blueprint_dir
-            let old_dir = blueprint_core::blueprint_dir();
-            blueprint_core::resolve_cue_path(&args.input, &old_dir).unwrap_or_else(|| {
-                eprintln!("找不到 Specification: {}", args.input);
-                std::process::exit(1);
+        let cue_path = blueprint_core::resolve_cue_path(&args.input, &dir)
+            .or_else(|| {
+                blueprint_core::resolve_cue_path(&args.input, &blueprint_core::blueprint_dir())
             })
-        });
+            .ok_or_else(|| CliError::new(format!("找不到 Specification: {}", args.input)))?;
 
-        let cue_content = std::fs::read_to_string(&cue_path).unwrap_or_else(|e| {
-            eprintln!("无法读取文件 {}: {e}", cue_path.display());
-            std::process::exit(1);
-        });
+        let cue_content = std::fs::read_to_string(&cue_path)
+            .map_err(|e| CliError::new(format!("无法读取文件 {}: {e}", cue_path.display())))?;
 
-        let blueprint = spec::load_blueprint_from_yaml(&cue_content).unwrap_or_else(|e| {
-            eprintln!("{e}");
-            std::process::exit(1);
-        });
+        let blueprint = spec::load_blueprint_from_yaml(&cue_content)?;
 
         let validation_issues = match quanttide_data::validate(&blueprint) {
             Ok(()) => String::new(),
@@ -71,12 +64,14 @@ impl ReviewHandler {
                 } else {
                     println!("{}", validation_issues);
                 }
+                Ok(())
             }
             Err(e) => {
                 eprintln!("LLM 调用失败: {e}");
                 if !validation_issues.is_empty() {
                     println!("\n结构校验问题:\n{validation_issues}");
                 }
+                Ok(())
             }
         }
     }
@@ -105,9 +100,11 @@ mod tests {
             std::env::set_var("SPEC_DIR", &root);
         }
         let handler = ReviewHandler::new(fake_llm("## 审计结论\n结构合理。"));
-        handler.run(&ReviewArgs {
-            input: spec_path.to_string_lossy().to_string(),
-        });
+        handler
+            .run(&ReviewArgs {
+                input: spec_path.to_string_lossy().to_string(),
+            })
+            .unwrap();
         unsafe {
             std::env::remove_var("SPEC_DIR");
         }

@@ -56,53 +56,25 @@ fn main() {
 fn run_command(command: &Commands) -> Result<(), CliError> {
     match command {
         Commands::Clarify(args) => {
-            clarify::ClarifyHandler::new(quanttide_agent::LLM::default()).run(args);
-            Ok(())
+            clarify::ClarifyHandler::new(quanttide_agent::LLM::default()).run(args)
         }
         Commands::Design(args) => {
-            design::DesignHandler::new(quanttide_agent::LLM::default()).run(args);
-            Ok(())
+            design::DesignHandler::new(quanttide_agent::LLM::default()).run(args)
         }
         Commands::Review(args) => {
-            review::ReviewHandler::new(quanttide_agent::LLM::default()).run(args);
-            Ok(())
+            review::ReviewHandler::new(quanttide_agent::LLM::default()).run(args)
         }
-        Commands::Spec(args) => {
-            spec::run(args);
-            Ok(())
-        }
-        Commands::Version(args) => {
-            version::run(args);
-            Ok(())
-        }
-        Commands::Doctor(args) => {
-            doctor::run(args);
-            Ok(())
-        }
-        Commands::Blueprint(args) => {
-            blueprint::run(args);
-            Ok(())
-        }
-        Commands::Contract(args) => {
-            contract::run(args);
-            Ok(())
-        }
-        Commands::Pipeline(args) => {
-            pipeline::run(args);
-            Ok(())
-        }
-        Commands::Catalog(args) => {
-            catalog::run(args);
-            Ok(())
-        }
+        Commands::Spec(args) => spec::run(args),
+        Commands::Version(args) => version::run(args),
+        Commands::Doctor(args) => doctor::run(args),
+        Commands::Blueprint(args) => blueprint::run(args),
+        Commands::Contract(args) => contract::run(args),
+        Commands::Pipeline(args) => pipeline::run(args),
+        Commands::Catalog(args) => catalog::run(args),
         Commands::Implement(args) => {
-            implement::ImplementHandler::new(quanttide_agent::LLM::default()).run(args);
-            Ok(())
+            implement::ImplementHandler::new(quanttide_agent::LLM::default()).run(args)
         }
         Commands::Process(args) => process::run(args),
-        Commands::Transfer(args) => {
-            transfer::run(args);
-            Ok(())
-        }
+        Commands::Transfer(args) => transfer::run(args),
     }
 }

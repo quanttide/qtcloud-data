@@ -2,6 +2,8 @@ use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+use crate::error::CliError;
+
 pub const SPEC_API_VERSION: &str = "qtcloud.quanttide.com/v1alpha1";
 pub const SPEC_KIND: &str = "Specification";
 pub const SPEC_GENERATED_BY: &str = "qtcloud-data-cli";
@@ -65,57 +67,57 @@ impl Specification {
     }
 }
 
-pub fn run(args: &SpecArgs) {
+pub fn run(args: &SpecArgs) -> Result<(), CliError> {
     match &args.action {
         SpecAction::Wrap { input, output } => wrap_file(input, output),
         SpecAction::Validate { input } => validate_file(input),
     }
 }
 
-pub fn wrap_blueprint_yaml(yaml: &str, source_path: Option<&str>) -> Result<String, String> {
+pub fn wrap_blueprint_yaml(yaml: &str, source_path: Option<&str>) -> Result<String, CliError> {
     let blueprint = load_blueprint_from_yaml(yaml)?;
     let spec = Specification::from_blueprint(blueprint, source_path);
-    serde_yaml::to_string(&spec).map_err(|err| format!("序列化 Specification 失败: {err}"))
+    serde_yaml::to_string(&spec)
+        .map_err(|err| CliError::new(format!("序列化 Specification 失败: {err}")))
 }
 
-pub fn load_blueprint_from_yaml(yaml: &str) -> Result<quanttide_data::Blueprint, String> {
-    let value: serde_yaml::Value =
-        serde_yaml::from_str(yaml).map_err(|err| format!("解析 YAML 失败: {err}"))?;
+pub fn load_blueprint_from_yaml(yaml: &str) -> Result<quanttide_data::Blueprint, CliError> {
+    let value: serde_yaml::Value = serde_yaml::from_str(yaml)
+        .map_err(|err| CliError::new(format!("解析 YAML 失败: {err}")))?;
 
     if is_specification_envelope(&value) {
         return parse_specification_yaml(yaml).map(|spec| spec.spec.blueprint);
     }
 
-    serde_yaml::from_value(value).map_err(|err| format!("解析 Blueprint YAML 失败: {err}"))
+    serde_yaml::from_value(value)
+        .map_err(|err| CliError::new(format!("解析 Blueprint YAML 失败: {err}")))
 }
 
-pub fn parse_specification_yaml(yaml: &str) -> Result<Specification, String> {
-    let spec: Specification =
-        serde_yaml::from_str(yaml).map_err(|err| format!("解析 Specification YAML 失败: {err}"))?;
+pub fn parse_specification_yaml(yaml: &str) -> Result<Specification, CliError> {
+    let spec: Specification = serde_yaml::from_str(yaml)
+        .map_err(|err| CliError::new(format!("解析 Specification YAML 失败: {err}")))?;
 
     if spec.api_version != SPEC_API_VERSION {
-        return Err(format!(
+        return Err(CliError::new(format!(
             "不支持的 api_version: {}，期望 {}",
             spec.api_version, SPEC_API_VERSION
-        ));
+        )));
     }
     if spec.kind != SPEC_KIND {
-        return Err(format!("不支持的 kind: {}，期望 {}", spec.kind, SPEC_KIND));
+        return Err(CliError::new(format!(
+            "不支持的 kind: {}，期望 {}",
+            spec.kind, SPEC_KIND
+        )));
     }
 
     Ok(spec)
 }
 
-fn wrap_file(input: &str, output: &Option<String>) {
-    let content = std::fs::read_to_string(input).unwrap_or_else(|err| {
-        eprintln!("无法读取 YAML: {err}");
-        std::process::exit(1);
-    });
+fn wrap_file(input: &str, output: &Option<String>) -> Result<(), CliError> {
+    let content = std::fs::read_to_string(input)
+        .map_err(|err| CliError::new(format!("无法读取 YAML: {err}")))?;
 
-    let wrapped = wrap_blueprint_yaml(&content, Some(input)).unwrap_or_else(|err| {
-        eprintln!("{err}");
-        std::process::exit(1);
-    });
+    let wrapped = wrap_blueprint_yaml(&content, Some(input))?;
 
     let output_path = output
         .as_ref()
@@ -125,39 +127,35 @@ fn wrap_file(input: &str, output: &Option<String>) {
     if let Some(parent) = output_path.parent()
         && !parent.as_os_str().is_empty()
     {
-        std::fs::create_dir_all(parent).unwrap_or_else(|err| {
-            eprintln!("无法创建输出目录: {err}");
-            std::process::exit(1);
-        });
+        std::fs::create_dir_all(parent)
+            .map_err(|err| CliError::new(format!("无法创建输出目录: {err}")))?;
     }
 
-    std::fs::write(&output_path, wrapped).unwrap_or_else(|err| {
-        eprintln!("写入 Specification YAML 失败: {err}");
-        std::process::exit(1);
-    });
+    std::fs::write(&output_path, wrapped)
+        .map_err(|err| CliError::new(format!("写入 Specification YAML 失败: {err}")))?;
     println!("已生成: {}", output_path.display());
+    Ok(())
 }
 
-fn validate_file(input: &str) {
-    let content = std::fs::read_to_string(input).unwrap_or_else(|err| {
-        eprintln!("无法读取 YAML: {err}");
-        std::process::exit(1);
-    });
+fn validate_file(input: &str) -> Result<(), CliError> {
+    let content = std::fs::read_to_string(input)
+        .map_err(|err| CliError::new(format!("无法读取 YAML: {err}")))?;
 
-    let blueprint = load_blueprint_from_yaml(&content).unwrap_or_else(|err| {
-        eprintln!("{err}");
-        std::process::exit(1);
-    });
+    let blueprint = load_blueprint_from_yaml(&content)?;
 
     if let Err(errors) = quanttide_data::validate(&blueprint) {
-        eprintln!("Specification 结构校验失败:");
-        for err in errors {
-            eprintln!("  - {}: {}", err.field, err.message);
-        }
-        std::process::exit(1);
+        let details = errors
+            .iter()
+            .map(|err| format!("  - {}: {}", err.field, err.message))
+            .collect::<Vec<_>>()
+            .join("\n");
+        return Err(CliError::new(format!(
+            "Specification 结构校验失败:\n{details}"
+        )));
     }
 
     println!("Specification OK: {}", blueprint.name);
+    Ok(())
 }
 
 fn is_specification_envelope(value: &serde_yaml::Value) -> bool {
@@ -251,6 +249,6 @@ updated_at: "2026-07-30T00:00:00+00:00"
 
         let err = load_blueprint_from_yaml(&yaml).unwrap_err();
 
-        assert!(err.contains("kind"));
+        assert!(err.to_string().contains("kind"));
     }
 }

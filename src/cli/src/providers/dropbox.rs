@@ -7,8 +7,13 @@ use super::StorageProvider;
 pub struct DropboxProvider;
 
 /// Dropbox 内部 upload 实现（带 mock 支持，供测试用）
-pub async fn upload(token: &str, local_path: &str, remote_path: &str, mock_base: Option<&str>) {
-    let data = fs::read(local_path).expect("读取本地文件失败");
+pub async fn upload(
+    token: &str,
+    local_path: &str,
+    remote_path: &str,
+    mock_base: Option<&str>,
+) -> Result<(), String> {
+    let data = fs::read(local_path).map_err(|e| format!("读取本地文件失败: {e}"))?;
     let client = Client::new();
 
     let base = mock_base
@@ -28,18 +33,19 @@ pub async fn upload(token: &str, local_path: &str, remote_path: &str, mock_base:
         .body(data.clone())
         .send()
         .await
-        .expect("上传请求失败");
+        .map_err(|e| format!("上传请求失败: {e}"))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
         let text = resp.text().await.unwrap_or_default();
-        panic!("上传失败 [{status}]: {text}");
+        return Err(format!("上传失败 [{status}]: {text}"));
     }
 
     println!(
         "✓ 已上传: {local_path} → {remote_path} ({} 字节)",
         data.len()
     );
+    Ok(())
 }
 
 /// Dropbox 内部 create_shared_link 实现（带 mock 支持，供测试用）
@@ -87,7 +93,9 @@ impl StorageProvider for DropboxProvider {
         let token = std::env::var("DROPBOX_ACCESS_TOKEN")
             .map_err(|_| "请设置 DROPBOX_ACCESS_TOKEN".to_string())?;
         // 上传
-        upload(&token, local_path, remote_path, None).await;
+        upload(&token, local_path, remote_path, None)
+            .await
+            .map_err(|e| format!("上传失败: {e}"))?;
         // 生成分享链接
         create_shared_link(&token, remote_path, None).await
     }

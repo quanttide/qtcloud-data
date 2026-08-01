@@ -10,10 +10,10 @@
 
 ### Changed
 
-- [ ] 错误处理架构收尾：`src/*.rs` 剩余 45 处 `std::process::exit(1)` 改为 `Result<(), CliError>` + `?` 传播（design/spec/implement/clarify/catalog/review/contract/version/pipeline/blueprint/doctor），错误路径可测
-- [ ] `src/providers/dropbox.rs` upload 失败 `panic!` 改为返回 `Result`（trait 签名已是 Result，`upload()` helper 补返回值）
-- [ ] `src/blueprint.rs` cue 缺失/输出解析的 `.expect()` 改为优雅错误（`map_err` → CliError），不 panic
-- [ ] `Result<_, String>` 错误类型收敛到 `CliError`（transfer/catalog/spec）
+- [x] 错误处理架构收尾：全部命令 exit(1) 改为 `Result<(), CliError>` + `?` 传播（main.rs 仅保留 bin 入口 exit），错误路径可测
+- [x] `src/providers/dropbox.rs` upload 失败 `panic!` 改为返回 `Result`
+- [x] `src/blueprint.rs` / `src/pipeline.rs` cue 缺失/输出解析 `.expect()` 改为优雅错误
+- [x] `Result<_, String>` 公开面收敛到 `CliError`（receive/send/register_volume/load_blueprint 等）
 - [ ] `src/spec.rs` / `src/design.rs` 路径拼接改 `PathBuf::with_extension`，避免 `format!("{stem}.yaml")` 的路径分隔符问题
 
 ## [0.2.2]

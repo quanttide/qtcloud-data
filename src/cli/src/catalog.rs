@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::PathBuf;
 
+use crate::error::CliError;
 use crate::store;
 
 #[derive(Args)]
@@ -98,13 +99,13 @@ fn open_registry() -> store::Registry<Volume> {
     store::Registry::open(&registry_path()).unwrap_or_default()
 }
 
-pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, String> {
+pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
     let path = PathBuf::from(input.path);
     if !path.exists() {
-        return Err(format!("文件不存在: {}", input.path));
+        return Err(CliError::new(format!("文件不存在: {}", input.path)));
     }
 
-    let meta = std::fs::metadata(&path).map_err(|err| format!("读取文件元数据失败: {err}"))?;
+    let meta = std::fs::metadata(&path).map_err(CliError::from)?;
 
     let file_name = path
         .file_name()
@@ -133,12 +134,12 @@ pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, String> {
     let mut registry = open_registry();
     registry
         .insert(volume_name, volume.clone())
-        .map_err(|err| format!("写入 registry 失败: {err}"))?;
+        .map_err(|err| CliError::new(format!("写入 registry 失败: {err}")))?;
 
     Ok(volume)
 }
 
-pub fn run(args: &CatalogArgs) {
+pub fn run(args: &CatalogArgs) -> Result<(), CliError> {
     match &args.action {
         CatalogAction::List => list(),
         CatalogAction::Show { name } => show(name),
@@ -157,11 +158,11 @@ pub fn run(args: &CatalogArgs) {
     }
 }
 
-fn list() {
+fn list() -> Result<(), CliError> {
     let registry = open_registry();
     if registry.is_empty() {
         println!("catalog 为空");
-        return;
+        return Ok(());
     }
     println!("Volume:");
     for v in registry.entries().values() {
@@ -174,9 +175,10 @@ fn list() {
         };
         println!("  {status_icon} {}  ({})", v.name, v.path);
     }
+    Ok(())
 }
 
-fn show(name: &str) {
+fn show(name: &str) -> Result<(), CliError> {
     let registry = open_registry();
     match registry.get(name) {
         Some(v) => {
@@ -191,42 +193,39 @@ fn show(name: &str) {
             if let Some(s) = &v.source {
                 println!("来源:       {s}");
             }
+            Ok(())
         }
-        None => {
-            eprintln!("未找到 volume: {name}");
-            std::process::exit(1);
-        }
+        None => Err(CliError::new(format!("未找到 volume: {name}"))),
     }
 }
 
-fn add(path_str: &str, name: Option<&str>, provider: Option<&str>, source: Option<&str>) {
+fn add(
+    path_str: &str,
+    name: Option<&str>,
+    provider: Option<&str>,
+    source: Option<&str>,
+) -> Result<(), CliError> {
     let volume = register_volume(RegisterVolume {
         path: path_str,
         name,
         provider,
         source,
         status: VolumeStatus::Received,
-    })
-    .unwrap_or_else(|err| {
-        eprintln!("{err}");
-        std::process::exit(1);
-    });
+    })?;
 
     println!("✓ 已注册 volume: {}", volume.name);
+    Ok(())
 }
 
-fn rm(name: &str) {
+fn rm(name: &str) -> Result<(), CliError> {
     let mut registry = open_registry();
     match registry.remove(name) {
-        Ok(Some(_)) => println!("✓ 已删除 volume: {name}"),
-        Ok(None) => {
-            eprintln!("未找到 volume: {name}");
-            std::process::exit(1);
+        Ok(Some(_)) => {
+            println!("✓ 已删除 volume: {name}");
+            Ok(())
         }
-        Err(err) => {
-            eprintln!("删除 volume 失败: {err}");
-            std::process::exit(1);
-        }
+        Ok(None) => Err(CliError::new(format!("未找到 volume: {name}"))),
+        Err(err) => Err(CliError::new(format!("删除 volume 失败: {err}"))),
     }
 }
 
@@ -340,5 +339,65 @@ mod tests {
         assert_eq!(format_size(1024 * 1024 * 5 / 2), "2.5 MB");
         assert_eq!(format_size(1024 * 1024 * 1024), "1.0 GB");
         assert_eq!(format_size(1024 * 1024 * 1024 * 3), "3.0 GB");
+    }
+
+    #[test]
+    fn show_reports_missing_volume_without_exiting() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-catalog-show-missing");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+
+        unsafe {
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+        }
+        let err = show("ghost").unwrap_err();
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+        }
+
+        assert_eq!(err.to_string(), "未找到 volume: ghost");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn add_reports_missing_file_without_exiting() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-catalog-add-missing");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+
+        unsafe {
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+        }
+        let err = add("/nonexistent/file.csv", None, None, None).unwrap_err();
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+        }
+
+        assert!(err.to_string().contains("文件不存在"), "{}", err);
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn rm_reports_missing_volume_without_exiting() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-catalog-rm-missing");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+
+        unsafe {
+            std::env::set_var("CATALOG_DIR", &catalog_dir);
+        }
+        let err = rm("ghost").unwrap_err();
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+        }
+
+        assert_eq!(err.to_string(), "未找到 volume: ghost");
+
+        std::fs::remove_dir_all(&root).ok();
     }
 }

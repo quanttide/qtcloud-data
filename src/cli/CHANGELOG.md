@@ -18,6 +18,8 @@
 - `pipeline list/show` 与 `blueprint list/show`：cue 输出改 `--out json` 结构化解析，替代文本 grep。
 - `process` 的 blueprint pipeline 解析（`resolve_blueprint_pipeline`）：改结构化 JSON 解析，替代文本 trim。
 - `contract list/show`：以文件直读为主路径（cue 为可选增强），不再依赖 cue 解析 YAML。
+- 全部命令错误处理统一为 `Result<(), CliError>`：`std::process::exit(1)` 迁移到 `main` 顶层统一格式化（`错误: {err}` + 退出码 1），错误路径可测试；`transfer send/receive` 失败时退出码不再为 0。
+- `dropbox` 上传失败由 `panic!` 改为返回错误；`blueprint`/`pipeline` 的 cue 缺失/解析失败由 `expect` 改为优雅错误。
 
 ## [0.2.0] - 2026-08-01
 

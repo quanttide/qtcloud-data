@@ -503,15 +503,16 @@ DRD:
 }
 
 /// Parse contract Markdown tables into a Contract struct, return CUE + MD.
-pub fn contract_tables_to_yaml(md_tables: &str) -> (String, String) {
+pub fn contract_tables_to_yaml(
+    md_tables: &str,
+) -> Result<(String, String), crate::error::CliError> {
     let input_fields = parse_md_table(md_tables, "输入契约");
     let output_fields = parse_md_table(md_tables, "输出契约");
 
     if !input_fields.is_empty() && input_fields == output_fields {
-        eprintln!(
-            "错误: 输入契约和输出契约解析到相同字段。LLM 可能跳过了 section 标题，请在 prompt 中要求 LLM 输出 ## 输入契约 和 ## 输出契约 标题。"
-        );
-        std::process::exit(1);
+        return Err(crate::error::CliError::new(
+            "错误: 输入契约和输出契约解析到相同字段。LLM 可能跳过了 section 标题，请在 prompt 中要求 LLM 输出 ## 输入契约 和 ## 输出契约 标题。",
+        ));
     }
 
     let input_schema = fields_to_schema_desc(&input_fields);
@@ -534,7 +535,7 @@ pub fn contract_tables_to_yaml(md_tables: &str) -> (String, String) {
     );
 
     let md = render_contract_md(&input_fields, &output_fields);
-    (yaml, md)
+    Ok((yaml, md))
 }
 
 fn parse_md_table(text: &str, section: &str) -> Vec<Vec<String>> {

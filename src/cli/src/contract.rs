@@ -1,6 +1,8 @@
 use clap::{Args, Subcommand};
 use std::path::{Path, PathBuf};
 
+use crate::error::CliError;
+
 #[derive(Args)]
 pub struct ContractArgs {
     #[command(subcommand)]
@@ -57,7 +59,7 @@ fn find_contract(dir: &Path, name: &str) -> Option<PathBuf> {
     None
 }
 
-pub fn run(args: &ContractArgs) {
+pub fn run(args: &ContractArgs) -> Result<(), CliError> {
     let dir = contract_dir();
     match &args.action {
         ContractAction::List => cmd_list(&dir),
@@ -65,28 +67,25 @@ pub fn run(args: &ContractArgs) {
     }
 }
 
-fn cmd_list(dir: &Path) {
+fn cmd_list(dir: &Path) -> Result<(), CliError> {
     if !dir.is_dir() {
-        eprintln!("契约目录不存在: {}", dir.display());
-        std::process::exit(1);
+        return Err(CliError::new(format!("契约目录不存在: {}", dir.display())));
     }
     let names = contract_names(dir);
     println!("可用的 Contract:");
     for name in names {
         println!("  - {name}");
     }
+    Ok(())
 }
 
-fn cmd_show(dir: &Path, name: &str) {
-    let path = find_contract(dir, name).unwrap_or_else(|| {
-        eprintln!("未找到 Contract: {name}");
-        std::process::exit(1);
-    });
-    let content = std::fs::read_to_string(&path).unwrap_or_else(|err| {
-        eprintln!("读取契约失败: {err}");
-        std::process::exit(1);
-    });
+fn cmd_show(dir: &Path, name: &str) -> Result<(), CliError> {
+    let path = find_contract(dir, name)
+        .ok_or_else(|| CliError::new(format!("未找到 Contract: {name}")))?;
+    let content = std::fs::read_to_string(&path)
+        .map_err(|err| CliError::new(format!("读取契约失败: {err}")))?;
     println!("{content}");
+    Ok(())
 }
 
 #[cfg(test)]
@@ -150,6 +149,23 @@ mod tests {
             Some(root.join("contract-2024.yaml"))
         );
 
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn cmd_list_reports_missing_dir_without_exiting() {
+        let root = temp_dir("qtcloud-contract-list-missing");
+        let missing = root.join("nope");
+        let err = cmd_list(&missing).unwrap_err();
+        assert!(err.to_string().contains("契约目录不存在"), "{}", err);
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn cmd_show_reports_missing_contract_without_exiting() {
+        let root = temp_dir("qtcloud-contract-show-missing");
+        let err = cmd_show(&root, "ghost").unwrap_err();
+        assert_eq!(err.to_string(), "未找到 Contract: ghost");
         std::fs::remove_dir_all(&root).ok();
     }
 }

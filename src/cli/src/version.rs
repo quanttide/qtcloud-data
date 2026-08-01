@@ -2,6 +2,7 @@ use clap::{Args, Subcommand};
 use std::process::Command;
 
 use crate::blueprint_core;
+use crate::error::CliError;
 
 #[derive(Args)]
 pub struct VersionArgs {
@@ -34,7 +35,7 @@ pub enum VersionAction {
     },
 }
 
-pub fn run(args: &VersionArgs) {
+pub fn run(args: &VersionArgs) -> Result<(), CliError> {
     let dir = blueprint_core::spec_dir();
 
     match &args.action {
@@ -68,6 +69,7 @@ pub fn run(args: &VersionArgs) {
                     }
                 }
             }
+            Ok(())
         }
         VersionAction::Show { name, version } => {
             let output = Command::new("git")
@@ -77,11 +79,9 @@ pub fn run(args: &VersionArgs) {
             match output {
                 Ok(o) if o.status.success() => {
                     println!("{}", String::from_utf8_lossy(&o.stdout));
+                    Ok(())
                 }
-                _ => {
-                    eprintln!("找不到版本 {version} 的 {name}");
-                    std::process::exit(1);
-                }
+                _ => Err(CliError::new(format!("找不到版本 {version} 的 {name}"))),
             }
         }
         VersionAction::Diff { name, v1, v2 } => {
@@ -94,11 +94,11 @@ pub fn run(args: &VersionArgs) {
                 .current_dir(&dir)
                 .output();
             match output {
-                Ok(o) => println!("{}", String::from_utf8_lossy(&o.stdout)),
-                Err(e) => {
-                    eprintln!("git diff 失败: {e}");
-                    std::process::exit(1);
+                Ok(o) => {
+                    println!("{}", String::from_utf8_lossy(&o.stdout));
+                    Ok(())
                 }
+                Err(e) => Err(CliError::new(format!("git diff 失败: {e}"))),
             }
         }
     }
@@ -171,7 +171,8 @@ mod tests {
             action: VersionAction::List {
                 name: "abc".to_string(),
             },
-        });
+        })
+        .unwrap();
         unsafe {
             std::env::remove_var("SPEC_DIR");
         }
@@ -192,7 +193,8 @@ mod tests {
                 name: "abc".to_string(),
                 version: v1,
             },
-        });
+        })
+        .unwrap();
         unsafe {
             std::env::remove_var("SPEC_DIR");
         }
@@ -214,7 +216,8 @@ mod tests {
                 v1,
                 v2,
             },
-        });
+        })
+        .unwrap();
         unsafe {
             std::env::remove_var("SPEC_DIR");
         }
@@ -239,7 +242,8 @@ mod tests {
             action: VersionAction::List {
                 name: "missing".to_string(),
             },
-        });
+        })
+        .unwrap();
         unsafe {
             std::env::remove_var("SPEC_DIR");
             std::env::remove_var("BLUEPRINT_DIR");

@@ -1,6 +1,7 @@
 use clap::{Args, Subcommand};
 use std::path::{Path, PathBuf};
 
+use crate::error::CliError;
 use crate::{blueprint_core, spec};
 
 #[derive(Args)]
@@ -46,7 +47,7 @@ impl DesignHandler {
         Self { llm }
     }
 
-    pub fn run(&self, args: &DesignArgs) {
+    pub fn run(&self, args: &DesignArgs) -> Result<(), CliError> {
         match &args.action {
             DesignAction::Contract { input } => self.cmd_contract(input),
             DesignAction::Blueprint { input } => self.cmd_blueprint(input),
@@ -57,8 +58,8 @@ impl DesignHandler {
 
     // ── Contract: LLM outputs Markdown table, code generates YAML ──
 
-    fn cmd_contract(&self, input: &str) {
-        let drd = read_drd(input);
+    fn cmd_contract(&self, input: &str) -> Result<(), CliError> {
+        let drd = read_drd(input)?;
         let prompt = blueprint_core::design_contract_prompt(&drd);
         let messages = vec![quanttide_agent::Message::new("user", &prompt)];
 
@@ -74,20 +75,18 @@ impl DesignHandler {
         {
             Ok(resp) => {
                 let (yaml_content, md_content) =
-                    blueprint_core::contract_tables_to_yaml(&resp.content);
-                write_spec_files(&stem, "contract", &yaml_content, &md_content);
+                    blueprint_core::contract_tables_to_yaml(&resp.content)?;
+                write_spec_files(&stem, "contract", &yaml_content, &md_content)?;
+                Ok(())
             }
-            Err(e) => {
-                eprintln!("LLM 调用失败: {e}");
-                std::process::exit(1);
-            }
+            Err(e) => Err(CliError::new(format!("LLM 调用失败: {e}"))),
         }
     }
 
     // ── Blueprint: LLM outputs Markdown table, code generates YAML ──
 
-    fn cmd_blueprint(&self, input: &str) {
-        let drd = read_drd(input);
+    fn cmd_blueprint(&self, input: &str) -> Result<(), CliError> {
+        let drd = read_drd(input)?;
         let prompt = blueprint_core::design_blueprint_prompt(&drd);
         let messages = vec![quanttide_agent::Message::new("user", &prompt)];
 
@@ -104,14 +103,11 @@ impl DesignHandler {
             Ok(resp) => {
                 let (yaml_content, md_content) =
                     blueprint_core::blueprint_table_to_yaml(&resp.content, &stem);
-                write_spec_files(&stem, "blueprint", &yaml_content, &md_content);
+                write_spec_files(&stem, "blueprint", &yaml_content, &md_content)?;
 
                 // Generate HTML preview from YAML
                 let bp: quanttide_data::Blueprint = serde_yaml::from_str(&yaml_content)
-                    .unwrap_or_else(|e| {
-                        eprintln!("解析 YAML 失败: {e}");
-                        std::process::exit(1);
-                    });
+                    .map_err(|e| CliError::new(format!("解析 YAML 失败: {e}")))?;
                 let step_refs: Vec<(&str, &str, &str, &str)> = bp
                     .pipeline
                     .steps
@@ -137,27 +133,21 @@ impl DesignHandler {
                 );
                 let spec_dir = blueprint_core::spec_dir();
                 let html_path = Path::new(&spec_dir).join(format!("{stem}-blueprint.html"));
-                std::fs::write(&html_path, &html).unwrap_or_else(|e| {
-                    eprintln!("写入 .html 失败: {e}");
-                    std::process::exit(1);
-                });
+                std::fs::write(&html_path, &html)
+                    .map_err(|e| CliError::new(format!("写入 .html 失败: {e}")))?;
                 println!("已生成: {}", html_path.display());
+                Ok(())
             }
-            Err(e) => {
-                eprintln!("LLM 调用失败: {e}");
-                std::process::exit(1);
-            }
+            Err(e) => Err(CliError::new(format!("LLM 调用失败: {e}"))),
         }
     }
 
     // ── Formalize ──
 
-    fn cmd_formalize(&self, input: &str, output: &Option<String>) {
+    fn cmd_formalize(&self, input: &str, output: &Option<String>) -> Result<(), CliError> {
         let md_path = Path::new(input);
-        let md_content = std::fs::read_to_string(md_path).unwrap_or_else(|e| {
-            eprintln!("无法读取 .md 文件: {e}");
-            std::process::exit(1);
-        });
+        let md_content = std::fs::read_to_string(md_path)
+            .map_err(|e| CliError::new(format!("无法读取 .md 文件: {e}")))?;
 
         let output_path = match output {
             Some(o) => PathBuf::from(o),
@@ -177,22 +167,18 @@ impl DesignHandler {
         {
             Ok(resp) => {
                 let yaml_code = blueprint_core::extract_cue(&resp.content);
-                std::fs::write(&output_path, &yaml_code).unwrap_or_else(|e| {
-                    eprintln!("写入 .yaml 失败: {e}");
-                    std::process::exit(1);
-                });
+                std::fs::write(&output_path, &yaml_code)
+                    .map_err(|e| CliError::new(format!("写入 .yaml 失败: {e}")))?;
                 println!("已生成: {}", output_path.display());
+                Ok(())
             }
-            Err(e) => {
-                eprintln!("LLM 调用失败: {e}");
-                std::process::exit(1);
-            }
+            Err(e) => Err(CliError::new(format!("LLM 调用失败: {e}"))),
         }
     }
 
     // ── Preview ──
 
-    fn cmd_preview(&self, input: &str, output: &Option<String>) {
+    fn cmd_preview(&self, input: &str, output: &Option<String>) -> Result<(), CliError> {
         let yaml_path = Path::new(input);
         let output_path = match output {
             Some(o) => PathBuf::from(o),
@@ -202,15 +188,10 @@ impl DesignHandler {
             }
         };
 
-        let yaml_content = std::fs::read_to_string(yaml_path).unwrap_or_else(|e| {
-            eprintln!("无法读取 .yaml: {e}");
-            std::process::exit(1);
-        });
+        let yaml_content = std::fs::read_to_string(yaml_path)
+            .map_err(|e| CliError::new(format!("无法读取 .yaml: {e}")))?;
 
-        let bp = spec::load_blueprint_from_yaml(&yaml_content).unwrap_or_else(|e| {
-            eprintln!("{e}");
-            std::process::exit(1);
-        });
+        let bp = spec::load_blueprint_from_yaml(&yaml_content)?;
 
         let step_refs: Vec<(&str, &str, &str, &str)> = bp
             .pipeline
@@ -235,41 +216,31 @@ impl DesignHandler {
             "",
             &step_refs,
         );
-        std::fs::write(&output_path, &html).unwrap_or_else(|e| {
-            eprintln!("写入 .html 失败: {e}");
-            std::process::exit(1);
-        });
+        std::fs::write(&output_path, &html)
+            .map_err(|e| CliError::new(format!("写入 .html 失败: {e}")))?;
         println!("已生成: {}", output_path.display());
+        Ok(())
     }
 }
 
 // ── Helpers ──
 
-fn read_drd(input: &str) -> String {
-    std::fs::read_to_string(input).unwrap_or_else(|e| {
-        eprintln!("无法读取 DRD 文件 {input}: {e}");
-        std::process::exit(1);
-    })
+fn read_drd(input: &str) -> Result<String, CliError> {
+    std::fs::read_to_string(input)
+        .map_err(|e| CliError::new(format!("无法读取 DRD 文件 {input}: {e}")))
 }
 
-fn write_spec_files(stem: &str, kind: &str, yaml: &str, md: &str) {
+fn write_spec_files(stem: &str, kind: &str, yaml: &str, md: &str) -> Result<(), CliError> {
     let spec_dir = blueprint_core::spec_dir();
-    std::fs::create_dir_all(&spec_dir).unwrap_or_else(|e| {
-        eprintln!("无法创建目录 {spec_dir}: {e}");
-        std::process::exit(1);
-    });
+    std::fs::create_dir_all(&spec_dir)
+        .map_err(|e| CliError::new(format!("无法创建目录 {spec_dir}: {e}")))?;
     let yaml_path = Path::new(&spec_dir).join(format!("{stem}-{kind}.yaml"));
     let md_path = Path::new(&spec_dir).join(format!("{stem}-{kind}.md"));
-    std::fs::write(&yaml_path, yaml).unwrap_or_else(|e| {
-        eprintln!("写入 .yaml 失败: {e}");
-        std::process::exit(1);
-    });
-    std::fs::write(&md_path, md).unwrap_or_else(|e| {
-        eprintln!("写入 .md 失败: {e}");
-        std::process::exit(1);
-    });
+    std::fs::write(&yaml_path, yaml).map_err(|e| CliError::new(format!("写入 .yaml 失败: {e}")))?;
+    std::fs::write(&md_path, md).map_err(|e| CliError::new(format!("写入 .md 失败: {e}")))?;
     println!("已生成: {}", yaml_path.display());
     println!("已生成: {}", md_path.display());
+    Ok(())
 }
 
 #[cfg(test)]
@@ -293,11 +264,13 @@ mod tests {
             std::env::set_var("SPEC_DIR", &spec_dir);
         }
         let handler = DesignHandler::new(fake_llm(CONTRACT_TABLES));
-        handler.run(&DesignArgs {
-            action: DesignAction::Contract {
-                input: drd.to_string_lossy().to_string(),
-            },
-        });
+        handler
+            .run(&DesignArgs {
+                action: DesignAction::Contract {
+                    input: drd.to_string_lossy().to_string(),
+                },
+            })
+            .unwrap();
         unsafe {
             std::env::remove_var("SPEC_DIR");
         }
@@ -320,12 +293,14 @@ mod tests {
         let output = root.join("out.yaml");
 
         let handler = DesignHandler::new(fake_llm("```cue\nname: \"demo\"\nversion: 1\n```\n"));
-        handler.run(&DesignArgs {
-            action: DesignAction::Formalize {
-                input: md.to_string_lossy().to_string(),
-                output: Some(output.to_string_lossy().to_string()),
-            },
-        });
+        handler
+            .run(&DesignArgs {
+                action: DesignAction::Formalize {
+                    input: md.to_string_lossy().to_string(),
+                    output: Some(output.to_string_lossy().to_string()),
+                },
+            })
+            .unwrap();
 
         let yaml = std::fs::read_to_string(&output).unwrap();
         assert!(yaml.contains("demo"), "{yaml}");
@@ -346,12 +321,14 @@ mod tests {
         let output = root.join("out.html");
 
         let handler = DesignHandler::new(fake_llm("unused"));
-        handler.run(&DesignArgs {
-            action: DesignAction::Preview {
-                input: yaml_in.to_string_lossy().to_string(),
-                output: Some(output.to_string_lossy().to_string()),
-            },
-        });
+        handler
+            .run(&DesignArgs {
+                action: DesignAction::Preview {
+                    input: yaml_in.to_string_lossy().to_string(),
+                    output: Some(output.to_string_lossy().to_string()),
+                },
+            })
+            .unwrap();
 
         let html = std::fs::read_to_string(&output).unwrap();
         assert!(html.contains("demo"), "{html}");

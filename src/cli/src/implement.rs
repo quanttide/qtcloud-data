@@ -1,6 +1,7 @@
 use clap::Args;
 use std::path::{Path, PathBuf};
 
+use crate::error::CliError;
 use crate::{blueprint_core, spec};
 
 #[derive(Args)]
@@ -26,27 +27,21 @@ impl ImplementHandler {
         Self { llm }
     }
 
-    pub fn run(&self, args: &ImplementArgs) {
+    pub fn run(&self, args: &ImplementArgs) -> Result<(), CliError> {
         match args.lang.as_str() {
             "python" => self.cmd_implement_python(&args.input, &args.output),
-            other => {
-                eprintln!("不支持的语言: {other}（目前只支持 python）");
-                std::process::exit(1);
-            }
+            other => Err(CliError::new(format!(
+                "不支持的语言: {other}（目前只支持 python）"
+            ))),
         }
     }
 
-    fn cmd_implement_python(&self, input: &str, output: &Option<String>) {
+    fn cmd_implement_python(&self, input: &str, output: &Option<String>) -> Result<(), CliError> {
         let yaml_path = Path::new(input);
-        let yaml_content = std::fs::read_to_string(yaml_path).unwrap_or_else(|e| {
-            eprintln!("无法读取 YAML: {e}");
-            std::process::exit(1);
-        });
+        let yaml_content = std::fs::read_to_string(yaml_path)
+            .map_err(|e| CliError::new(format!("无法读取 YAML: {e}")))?;
 
-        let bp = spec::load_blueprint_from_yaml(&yaml_content).unwrap_or_else(|e| {
-            eprintln!("{e}");
-            std::process::exit(1);
-        });
+        let bp = spec::load_blueprint_from_yaml(&yaml_content)?;
 
         let output_path = match output {
             Some(o) => PathBuf::from(o),
@@ -96,8 +91,7 @@ impl ImplementHandler {
                     println!("    已生成: {}", sig.trim());
                 }
                 Err(e) => {
-                    eprintln!("  LLM 调用失败 [{}]: {e}", step.name);
-                    std::process::exit(1);
+                    return Err(CliError::new(format!("LLM 调用失败 [{}]: {e}", step.name)));
                 }
             }
         }
@@ -117,20 +111,18 @@ impl ImplementHandler {
         {
             Ok(resp) => {
                 let script = extract_python_fn(&resp.content);
-                std::fs::write(&output_path, &script).unwrap_or_else(|e| {
-                    eprintln!("写入脚本失败: {e}");
-                    std::process::exit(1);
-                });
+                std::fs::write(&output_path, &script)
+                    .map_err(|e| CliError::new(format!("写入脚本失败: {e}")))?;
                 println!("已生成: {}", output_path.display());
+                Ok(())
             }
             Err(e) => {
                 // Fallback: write raw functions
                 eprintln!("组装失败 ({e})，写入原始函数...");
-                std::fs::write(&output_path, &generated_functions).unwrap_or_else(|e| {
-                    eprintln!("写入脚本失败: {e}");
-                    std::process::exit(1);
-                });
+                std::fs::write(&output_path, &generated_functions)
+                    .map_err(|err| CliError::new(format!("写入脚本失败: {err}")))?;
                 println!("已生成（未组装）: {}", output_path.display());
+                Ok(())
             }
         }
     }
@@ -181,11 +173,13 @@ mod tests {
         let handler = ImplementHandler::new(fake_llm(
             "```python\ndef step1(data):\n    return data\n```\n",
         ));
-        handler.run(&ImplementArgs {
-            input: yaml_in.to_string_lossy().to_string(),
-            lang: "python".to_string(),
-            output: Some(output.to_string_lossy().to_string()),
-        });
+        handler
+            .run(&ImplementArgs {
+                input: yaml_in.to_string_lossy().to_string(),
+                lang: "python".to_string(),
+                output: Some(output.to_string_lossy().to_string()),
+            })
+            .unwrap();
 
         let script = std::fs::read_to_string(&output).unwrap();
         assert!(script.contains("def "), "{script}");
