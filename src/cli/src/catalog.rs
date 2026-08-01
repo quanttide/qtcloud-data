@@ -1,7 +1,8 @@
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use std::path::PathBuf;
+
+use crate::store;
 
 #[derive(Args)]
 pub struct CatalogArgs {
@@ -66,32 +67,11 @@ fn default_status() -> String {
 }
 
 fn registry_path() -> PathBuf {
-    let dir = std::env::var("CATALOG_DIR").unwrap_or_else(|_| {
-        std::env::var("DATA_ROOT")
-            .map(|root| format!("{root}/catalog"))
-            .unwrap_or_else(|_| ".quanttide/data/catalog".to_string())
-    });
-    let p = PathBuf::from(&dir);
-    std::fs::create_dir_all(&p).ok();
-    p.join("registry.json")
+    store::catalog_dir().join("registry.json")
 }
 
-fn load_registry() -> BTreeMap<String, Volume> {
-    let path = registry_path();
-    if !path.exists() {
-        return BTreeMap::new();
-    }
-    let content = std::fs::read_to_string(&path).unwrap_or_default();
-    if content.trim().is_empty() {
-        return BTreeMap::new();
-    }
-    serde_json::from_str(&content).unwrap_or_default()
-}
-
-fn save_registry(registry: &BTreeMap<String, Volume>) {
-    let path = registry_path();
-    let json = serde_json::to_string_pretty(registry).expect("序列化失败");
-    std::fs::write(&path, json).expect("写入 registry 失败");
+fn open_registry() -> store::Registry<Volume> {
+    store::Registry::open(&registry_path()).unwrap_or_default()
 }
 
 pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, String> {
@@ -120,15 +100,16 @@ pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, String> {
             .to_string_lossy()
             .to_string(),
         size: meta.len(),
-        received_at: chrono_now(),
+        received_at: store::now_utc(),
         provider: input.provider.map(|provider| provider.to_string()),
         source: input.source.map(|source| source.to_string()),
         status: input.status.to_string(),
     };
 
-    let mut registry = load_registry();
-    registry.insert(volume_name, volume.clone());
-    save_registry(&registry);
+    let mut registry = open_registry();
+    registry
+        .insert(volume_name, volume.clone())
+        .map_err(|err| format!("写入 registry 失败: {err}"))?;
 
     Ok(volume)
 }
@@ -153,13 +134,13 @@ pub fn run(args: &CatalogArgs) {
 }
 
 fn list() {
-    let registry = load_registry();
+    let registry = open_registry();
     if registry.is_empty() {
         println!("catalog 为空");
         return;
     }
     println!("Volume:");
-    for v in registry.values() {
+    for v in registry.entries().values() {
         let status_icon = match v.status.as_str() {
             "received" => "📥",
             "processing" => "⏳",
@@ -172,7 +153,7 @@ fn list() {
 }
 
 fn show(name: &str) {
-    let registry = load_registry();
+    let registry = open_registry();
     match registry.get(name) {
         Some(v) => {
             println!("名称:       {}", v.name);
@@ -211,13 +192,17 @@ fn add(path_str: &str, name: Option<&str>, provider: Option<&str>, source: Optio
 }
 
 fn rm(name: &str) {
-    let mut registry = load_registry();
-    if registry.remove(name).is_some() {
-        save_registry(&registry);
-        println!("✓ 已删除 volume: {name}");
-    } else {
-        eprintln!("未找到 volume: {name}");
-        std::process::exit(1);
+    let mut registry = open_registry();
+    match registry.remove(name) {
+        Ok(Some(_)) => println!("✓ 已删除 volume: {name}"),
+        Ok(None) => {
+            eprintln!("未找到 volume: {name}");
+            std::process::exit(1);
+        }
+        Err(err) => {
+            eprintln!("删除 volume 失败: {err}");
+            std::process::exit(1);
+        }
     }
 }
 
@@ -234,40 +219,6 @@ fn format_size(bytes: u64) -> String {
     } else {
         format!("{bytes} B")
     }
-}
-
-fn chrono_now() -> String {
-    // 不引入 chrono 依赖，用 UTC 时间戳格式化
-    let dur = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default();
-    let secs = dur.as_secs();
-    // 简单格式化为 YYYY-MM-DD HH:MM:SS
-    let days = secs / 86400;
-    let time_secs = secs % 86400;
-    let hours = time_secs / 3600;
-    let minutes = (time_secs % 3600) / 60;
-    let seconds = time_secs % 60;
-
-    // 从 1970-01-01 计算年月日
-    let (y, m, d) = days_to_date(days as i64);
-    format!("{y:04}-{m:02}-{d:02} {hours:02}:{minutes:02}:{seconds:02}")
-}
-
-fn days_to_date(mut days: i64) -> (i64, u32, u32) {
-    // 从 Unix 纪元 (1970-01-01) 计算日期
-    days += 719468; // 从公元 0 年开始
-    let era = if days >= 0 { days } else { days - 146096 };
-    let era = era / 146097;
-    let doe = days - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = if m <= 2 { y + 1 } else { y };
-    (y, m as u32, d as u32)
 }
 
 #[cfg(test)]

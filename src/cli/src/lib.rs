@@ -11,5 +11,6 @@ pub mod process;
 pub mod providers;
 pub mod review;
 pub mod spec;
+pub mod store;
 pub mod transfer;
 pub mod version;

@@ -136,7 +136,10 @@ fn e2e_process_full_chain_delivers_normalized_activity() {
 
     // 7) 日志含流水线完成记录
     let log = std::fs::read_to_string(record["log_path"].as_str().unwrap()).unwrap();
-    assert!(log.contains("pipeline completed"), "日志缺少 pipeline completed: {log}");
+    assert!(
+        log.contains("pipeline completed"),
+        "日志缺少 pipeline completed: {log}"
+    );
 
     // 8) 敏感信息不出现在 stdout/stderr
     let stdout = String::from_utf8_lossy(&output.stdout);

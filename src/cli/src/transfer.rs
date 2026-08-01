@@ -1,10 +1,10 @@
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::providers;
+use crate::store;
 
 #[derive(Args)]
 pub struct TransferArgs {
@@ -145,7 +145,7 @@ fn handle_sent_link_in(input: SentLinkInput<'_>, links_path: &Path) -> Result<()
         link: input.link.to_string(),
         link_path,
         status: "sent".to_string(),
-        sent_at: chrono_now(),
+        sent_at: store::now_utc(),
     };
 
     if let Err(err) = save_delivery_link_record_at(links_path, &record) {
@@ -167,45 +167,12 @@ fn write_link_file(path: &str, link: &str) -> Result<(), String> {
 }
 
 fn save_delivery_link_record_at(path: &Path, record: &DeliveryLinkRecord) -> io::Result<()> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-
-    let mut registry = load_delivery_link_registry(path)?;
-    registry.insert(record.id.clone(), record.clone());
-    let json = serde_json::to_string_pretty(&registry)?;
-    std::fs::write(path, json)
-}
-
-fn load_delivery_link_registry(path: &Path) -> io::Result<BTreeMap<String, DeliveryLinkRecord>> {
-    if !path.exists() {
-        return Ok(BTreeMap::new());
-    }
-
-    let content = std::fs::read_to_string(path)?;
-    if content.trim().is_empty() {
-        return Ok(BTreeMap::new());
-    }
-
-    serde_json::from_str(&content).map_err(io::Error::other)
+    let mut registry = store::Registry::open(path)?;
+    registry.insert(record.id.clone(), record.clone())
 }
 
 fn delivery_links_path() -> PathBuf {
-    let catalog_dir = std::env::var("CATALOG_DIR").ok();
-    let data_root = std::env::var("DATA_ROOT").ok();
-    let path = delivery_links_path_from(catalog_dir.as_deref(), data_root.as_deref());
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).ok();
-    }
-    path
-}
-
-fn delivery_links_path_from(catalog_dir: Option<&str>, data_root: Option<&str>) -> PathBuf {
-    let dir = catalog_dir
-        .map(PathBuf::from)
-        .or_else(|| data_root.map(|root| PathBuf::from(root).join("catalog")))
-        .unwrap_or_else(|| PathBuf::from(".quanttide/data/catalog"));
-    dir.join("delivery-links.json")
+    store::catalog_dir().join("delivery-links.json")
 }
 
 fn new_delivery_link_id(file: &str) -> String {
@@ -245,39 +212,12 @@ fn path_for_record(path: &str) -> String {
         .to_string()
 }
 
-fn chrono_now() -> String {
-    let dur = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default();
-    let secs = dur.as_secs();
-    let days = secs / 86400;
-    let time_secs = secs % 86400;
-    let hours = time_secs / 3600;
-    let minutes = (time_secs % 3600) / 60;
-    let seconds = time_secs % 60;
-
-    let (y, m, d) = days_to_date(days as i64);
-    format!("{y:04}-{m:02}-{d:02} {hours:02}:{minutes:02}:{seconds:02}")
-}
-
-fn days_to_date(mut days: i64) -> (i64, u32, u32) {
-    days += 719468;
-    let era = if days >= 0 { days } else { days - 146096 };
-    let era = era / 146097;
-    let doe = days - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = if m <= 2 { y + 1 } else { y };
-    (y, m as u32, d as u32)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     fn temp_dir(name: &str) -> std::path::PathBuf {
         let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
@@ -339,9 +279,17 @@ mod tests {
 
     #[test]
     fn delivery_links_path_uses_data_root_when_catalog_dir_missing() {
+        let _guard = ENV_LOCK.lock().unwrap();
         let root = temp_dir("qtcloud-transfer-data-root");
 
-        let path = delivery_links_path_from(None, Some(root.to_str().unwrap()));
+        unsafe {
+            std::env::remove_var("CATALOG_DIR");
+            std::env::set_var("DATA_ROOT", &root);
+        }
+        let path = delivery_links_path();
+        unsafe {
+            std::env::remove_var("DATA_ROOT");
+        }
 
         assert_eq!(path, root.join("catalog").join("delivery-links.json"));
 

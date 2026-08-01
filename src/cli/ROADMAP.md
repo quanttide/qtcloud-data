@@ -10,7 +10,7 @@
 
 ### Added
 
-- [ ] `src/lib.rs` 新增统一 store 模块：合并 catalog/process/transfer 三份路径、时间、JSON 读写拷贝（含原子写盘与 env 解析统一）
+- [x] `src/lib.rs` 新增统一 store 模块：合并 catalog/process/transfer 三份路径、时间、JSON 读写拷贝（含原子写盘与 env 解析统一）
 - [ ] `src/catalog.rs` status 枚举化替代魔法字符串
 - [x] `tests/` 增加基线 smoke/e2e 案例：现有 `process` 命令全链路回归保护（fixture + 验收：`cargo test` 全绿）
 

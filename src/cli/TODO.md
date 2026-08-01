@@ -16,12 +16,12 @@
 
 ### store
 
-- [ ] `src/lib.rs` 新增 store 模块：Registry<T> 合并 catalog/process/transfer 三份 JSON 读写
-- [ ] `src/catalog.rs` registry 读写改用 store 模块
-- [ ] `src/process.rs` jobs 记录读写改用 store 模块
-- [ ] `src/transfer.rs` delivery-links 读写改用 store 模块
-- [ ] `src/lib.rs` store 模块统一时间工具，替换三份 chrono_now/days_to_date 拷贝
-- [ ] `src/lib.rs` store 模块写盘原子化（临时文件 + rename）
+- [x] `src/lib.rs` 新增 store 模块：Registry<T> 合并 catalog/process/transfer 三份 JSON 读写
+- [x] `src/catalog.rs` registry 读写改用 store 模块
+- [x] `src/process.rs` jobs 记录读写改用 store 模块
+- [x] `src/transfer.rs` delivery-links 读写改用 store 模块
+- [x] `src/lib.rs` store 模块统一时间工具，替换三份 chrono_now/days_to_date 拷贝
+- [x] `src/lib.rs` store 模块写盘原子化（临时文件 + rename）
 
 ### cue
 
