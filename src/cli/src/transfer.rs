@@ -284,6 +284,18 @@ mod tests {
         dir
     }
 
+    fn write_script(path: &std::path::Path, content: &str) {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        std::fs::write(path, content).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+    }
+
     #[test]
     fn handle_sent_link_writes_output_file_and_delivery_record() {
         let root = temp_dir("qtcloud-transfer-link-record");
@@ -351,6 +363,153 @@ mod tests {
         }
 
         assert_eq!(path, root.join("catalog").join("delivery-links.json"));
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn receive_delegates_to_external_cli_when_qtdata_cli_set() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-transfer-receive-delegated");
+        let script = root.join("fake-qtdata.sh");
+        write_script(
+            &script,
+            "#!/bin/sh\nout=''\nwhile [ $# -gt 0 ]; do\n  case \"$1\" in\n    --output) out=\"$2\"; shift 2 ;;\n    *) shift ;;\n  esac\ndone\n[ -n \"$out\" ] && echo downloaded > \"$out\"\nexit 0\n",
+        );
+        let out = root.join("received.csv");
+
+        unsafe {
+            std::env::set_var("QTDATA_CLI", &script);
+        }
+        let result = receive("https://share.example/file.csv", &out, "dropbox");
+        unsafe {
+            std::env::remove_var("QTDATA_CLI");
+        }
+
+        assert!(result.is_ok(), "{result:?}");
+        assert_eq!(std::fs::read_to_string(&out).unwrap(), "downloaded\n");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn receive_reports_delegated_cli_failure() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-transfer-receive-fail");
+        let script = root.join("fake-qtdata.sh");
+        write_script(&script, "#!/bin/sh\nexit 1\n");
+        let out = root.join("received.csv");
+
+        unsafe {
+            std::env::set_var("QTDATA_CLI", &script);
+        }
+        let result = receive("https://share.example/file.csv", &out, "dropbox");
+        unsafe {
+            std::env::remove_var("QTDATA_CLI");
+        }
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("执行失败"));
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn send_delegates_and_reads_link_from_output_file() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-transfer-send-delegated");
+        let script = root.join("fake-qtdata.sh");
+        write_script(
+            &script,
+            "#!/bin/sh\nout=''\nwhile [ $# -gt 0 ]; do\n  case \"$1\" in\n    --output) out=\"$2\"; shift 2 ;;\n    *) shift ;;\n  esac\ndone\nprintf '%s' 'https://delivery.example/link' > \"$out\"\nexit 0\n",
+        );
+        let file = root.join("data.csv");
+        std::fs::write(&file, "a,b\n").unwrap();
+        let link_out = root.join("link.txt");
+
+        unsafe {
+            std::env::set_var("QTDATA_CLI", &script);
+        }
+        let result = send(
+            file.to_str().unwrap(),
+            Some("/send/data.csv"),
+            Some(&link_out),
+            "dropbox",
+        );
+        unsafe {
+            std::env::remove_var("QTDATA_CLI");
+        }
+
+        assert_eq!(result.unwrap(), "https://delivery.example/link");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn send_without_output_reads_link_from_stdout() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-transfer-send-stdout");
+        let script = root.join("fake-qtdata.sh");
+        write_script(
+            &script,
+            "#!/bin/sh\necho 'https://delivery.example/from-stdout'\nexit 0\n",
+        );
+        let file = root.join("data.csv");
+        std::fs::write(&file, "a,b\n").unwrap();
+
+        unsafe {
+            std::env::set_var("QTDATA_CLI", &script);
+        }
+        let result = send(
+            file.to_str().unwrap(),
+            Some("/send/data.csv"),
+            None,
+            "dropbox",
+        );
+        unsafe {
+            std::env::remove_var("QTDATA_CLI");
+        }
+
+        assert_eq!(result.unwrap(), "https://delivery.example/from-stdout");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn sanitize_id_replaces_invalid_chars_and_trims_dashes() {
+        assert_eq!(sanitize_id("report-2024.csv"), "report-2024-csv");
+        assert_eq!(sanitize_id("annual report v2"), "annual-report-v2");
+        assert_eq!(sanitize_id("--data--"), "data");
+        assert_eq!(sanitize_id("数据表"), "");
+        assert_eq!(sanitize_id("a_b.c"), "a_b-c");
+    }
+
+    #[test]
+    fn new_delivery_link_id_builds_sanitized_stem_with_timestamp() {
+        let id = new_delivery_link_id("annual report.csv");
+        assert!(id.starts_with("annual-report-"), "{id}");
+        let suffix = id.trim_start_matches("annual-report-");
+        assert!(suffix.chars().all(|c| c.is_ascii_digit()), "{id}");
+
+        let fallback = new_delivery_link_id("无扩展名路径");
+        assert!(fallback.starts_with("delivery-"), "{fallback}");
+    }
+
+    #[test]
+    fn path_for_record_canonicalizes_existing_file() {
+        let root = temp_dir("qtcloud-transfer-path-record");
+        let file = root.join("report.csv");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(&file, "a,b\n").unwrap();
+
+        let canonical = path_for_record(file.to_str().unwrap());
+        assert!(std::path::Path::new(&canonical).is_absolute());
+        assert!(canonical.ends_with("report.csv"), "{canonical}");
+
+        // 不存在的文件回退到原始路径
+        let missing = root.join("missing.csv");
+        let fallback = path_for_record(missing.to_str().unwrap());
+        assert!(fallback.ends_with("missing.csv"), "{fallback}");
 
         std::fs::remove_dir_all(&root).ok();
     }

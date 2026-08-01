@@ -58,4 +58,29 @@ mod tests {
         assert_eq!(CliError::from("abc").to_string(), "abc");
         assert_eq!(CliError::from("abc".to_string()).to_string(), "abc");
     }
+
+    #[test]
+    fn cli_error_implements_error_trait_and_debug() {
+        let err = CliError::new("boom");
+        let dyn_err: &dyn std::error::Error = &err;
+        assert_eq!(dyn_err.to_string(), "boom");
+        assert!(format!("{err:?}").contains("boom"));
+    }
+
+    #[test]
+    fn cli_error_converts_from_io_error() {
+        let io_err = io::Error::new(io::ErrorKind::NotFound, "no such file");
+        let err: CliError = io_err.into();
+        assert_eq!(err.to_string(), "no such file");
+    }
+
+    #[test]
+    fn cli_error_new_accepts_string_like_values() {
+        let a = CliError::new(String::from("owned"));
+        let b = CliError::new("borrowed");
+        let c = CliError::new(format!("fmt {}", 42));
+        assert_eq!(a.to_string(), "owned");
+        assert_eq!(b.to_string(), "borrowed");
+        assert_eq!(c.to_string(), "fmt 42");
+    }
 }

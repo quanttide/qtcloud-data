@@ -1,7 +1,12 @@
 use qtcloud_data_cli::providers::StorageProvider;
 use qtcloud_data_cli::providers::dropbox;
+use std::sync::Mutex;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
+
+// s3 测试通过进程级 AWS_* 环境变量指向 wiremock，并行线程会互相覆盖，
+// 因此用静态锁串行化这两个测试（仅限本测试进程内）。
+static AWS_ENV_LOCK: Mutex<()> = Mutex::new(());
 
 // ── 辅助函数 ──
 
@@ -141,12 +146,38 @@ async fn test_cloud_providers_receive_path_not_supported() {
 
 // ── S3 receive_path mock 测试 ──
 
-#[tokio::test]
-async fn test_s3_receive_path() {
-    let server = MockServer::start().await;
-    let _base = server.uri();
+/// 设置 AWS SDK 指向 wiremock 的静态配置。
+/// 与其它测试无 AWS 环境变量冲突，因此不需要额外的锁。
+fn set_aws_mock_env(endpoint: &str) {
+    unsafe {
+        std::env::set_var("AWS_ENDPOINT_URL", endpoint);
+        std::env::set_var("AWS_ACCESS_KEY_ID", "test");
+        std::env::set_var("AWS_SECRET_ACCESS_KEY", "test");
+        std::env::set_var("AWS_REGION", "us-east-1");
+        std::env::set_var("AWS_S3_USE_PATH_STYLE_ENDPOINT", "true");
+        std::env::set_var("S3_BUCKET", "bucket");
+    }
+}
 
-    // mock 一个 S3 GetObject 请求
+fn clear_aws_mock_env() {
+    for var in [
+        "AWS_ENDPOINT_URL",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_REGION",
+        "AWS_S3_USE_PATH_STYLE_ENDPOINT",
+        "S3_BUCKET",
+    ] {
+        unsafe {
+            std::env::remove_var(var);
+        }
+    }
+}
+
+#[tokio::test]
+async fn test_s3_receive_path_downloads_from_configured_endpoint() {
+    let _guard = AWS_ENV_LOCK.lock().unwrap();
+    let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/bucket/key"))
         .respond_with(
@@ -156,8 +187,42 @@ async fn test_s3_receive_path() {
         )
         .mount(&server)
         .await;
+
+    set_aws_mock_env(&server.uri());
     let provider = qtcloud_data_cli::providers::S3Provider;
-    assert_eq!(provider.name(), "s3");
+    let out = std::env::temp_dir().join("s3-receive.txt");
+
+    let result = provider.receive_path("/key", out.to_str().unwrap()).await;
+
+    clear_aws_mock_env();
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), "s3 mock content");
+    std::fs::remove_file(&out).ok();
+}
+
+#[tokio::test]
+async fn test_s3_send_uploads_and_presigns_url() {
+    let _guard = AWS_ENV_LOCK.lock().unwrap();
+    let server = MockServer::start().await;
+    Mock::given(method("PUT"))
+        .and(path("/bucket/key"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&server)
+        .await;
+
+    set_aws_mock_env(&server.uri());
+    let provider = qtcloud_data_cli::providers::S3Provider;
+    let file = std::env::temp_dir().join("s3-send.txt");
+    std::fs::write(&file, b"upload me").unwrap();
+
+    let result = provider.send(file.to_str().unwrap(), "/key").await;
+
+    clear_aws_mock_env();
+    assert!(result.is_ok(), "{result:?}");
+    let url = result.unwrap();
+    assert!(url.contains("/bucket/key"), "{url}");
+    assert!(url.contains("X-Amz-Signature"), "{url}");
+    std::fs::remove_file(&file).ok();
 }
 
 // ── provider 注册测试 ──
