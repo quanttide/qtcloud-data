@@ -4,7 +4,7 @@
 
 暂无。
 
-## [0.2.1]
+## [0.2.1] - 2026-08-02
 
 ### Added
 - 统一 `store` 模块：合并 catalog/process/transfer 三份路径解析、UTC 时间格式化和 JSON 注册表读写（`Registry<T>`），写盘原子化（临时文件 + rename），替代三份重复拷贝。
