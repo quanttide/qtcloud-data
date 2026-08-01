@@ -1,7 +1,9 @@
 use clap::{Args, Subcommand};
+use serde_json::Value;
 use std::process::Command;
 
 use crate::blueprint_core;
+use crate::process::collect_defined_names;
 
 #[derive(Args)]
 pub struct BlueprintArgs {
@@ -31,32 +33,34 @@ pub fn run(args: &BlueprintArgs) {
 
 fn cmd_list(dir: &str) {
     let output = Command::new("cue")
-        .args(["export", "--out", "yaml", dir])
+        .args(["export", "--out", "json", dir])
         .output()
         .expect("需要 cue CLI。安装: https://cuelang.org/docs/install/");
     if !output.status.success() {
         eprintln!("{}", String::from_utf8_lossy(&output.stderr));
         std::process::exit(1);
     }
-    let yaml = String::from_utf8_lossy(&output.stdout);
+    let value: Value = serde_json::from_slice(&output.stdout).expect("cue 输出不是合法 JSON");
+    let names = collect_defined_names(&value);
     println!("可用的 Blueprint:");
-    for line in yaml.lines() {
-        if line.starts_with("  name: ") {
-            let name = line.trim_start_matches("  name: ").trim_matches('"');
-            println!("  - {name}");
-        }
+    for name in names {
+        println!("  - {name}");
     }
 }
 
 fn cmd_show(dir: &str, name: &str) {
     let key = blueprint_core::to_camel(name);
     let output = Command::new("cue")
-        .args(["export", "--out", "yaml", "--expression", &key, dir])
+        .args(["export", "--out", "json", "--expression", &key, dir])
         .output()
         .expect("需要 cue CLI");
     if !output.status.success() {
         eprintln!("找不到 Blueprint: {name}");
         std::process::exit(1);
     }
-    println!("{}", String::from_utf8_lossy(&output.stdout));
+    let value: Value = serde_json::from_slice(&output.stdout).expect("cue 输出不是合法 JSON");
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&value).expect("序列化失败")
+    );
 }

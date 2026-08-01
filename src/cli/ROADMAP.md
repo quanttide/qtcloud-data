@@ -16,10 +16,10 @@
 
 ### Changed
 
-- [ ] `src/pipeline.rs` cue 输出改结构化 JSON 解析，替代文本 grep
-- [ ] `src/blueprint.rs` cue 输出改结构化 JSON 解析，替代文本 grep
-- [ ] `src/contract.rs` cue 输出改结构化 JSON 解析，替代文本 grep
-- [ ] `src/process.rs` resolve_blueprint_pipeline 改结构化 JSON 解析，替代文本 trim
+- [x] `src/pipeline.rs` cue 输出改结构化 JSON 解析，替代文本 grep
+- [x] `src/blueprint.rs` cue 输出改结构化 JSON 解析，替代文本 grep
+- [x] `src/contract.rs` 以文件直读为主路径（cue 为可选增强），替代 cue grep
+- [x] `src/process.rs` resolve_blueprint_pipeline 改结构化 JSON 解析，替代文本 trim
 
 ## [0.2.2]
 

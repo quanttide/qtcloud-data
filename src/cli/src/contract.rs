@@ -1,5 +1,5 @@
 use clap::{Args, Subcommand};
-use std::process::Command;
+use std::path::{Path, PathBuf};
 
 #[derive(Args)]
 pub struct ContractArgs {
@@ -18,72 +18,73 @@ pub enum ContractAction {
     },
 }
 
-pub fn run(args: &ContractArgs) {
-    let dir =
-        std::env::var("CONTRACT_DIR").unwrap_or_else(|_| ".quanttide/data/contract".to_string());
+const CONTRACT_EXTS: [&str; 4] = [".yaml", ".yml", ".cue", ".json"];
 
-    match &args.action {
-        ContractAction::List => {
-            let output = Command::new("cue")
-                .args(["export", "--out", "yaml", &dir])
-                .output()
-                .expect("需要 cue");
-            if !output.status.success() {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                // 如果 cue 失败（可能不是 cue 格式），尝试直接列文件
-                if let Ok(entries) = std::fs::read_dir(&dir) {
-                    println!("可用的 Contract:");
-                    for entry in entries.flatten() {
-                        if let Some(name) = entry.file_name().to_str()
-                            && (name.ends_with(".yaml")
-                                || name.ends_with(".cue")
-                                || name.ends_with(".json"))
-                        {
-                            println!(
-                                "  - {}",
-                                name.trim_end_matches(".yaml")
-                                    .trim_end_matches(".cue")
-                                    .trim_end_matches(".json")
-                            );
-                        }
-                    }
-                } else {
-                    eprintln!("{stderr}");
-                    std::process::exit(1);
-                }
-                return;
-            }
-            let yaml = String::from_utf8_lossy(&output.stdout);
-            println!("可用的 Contract:");
-            for line in yaml.lines() {
-                if line.starts_with("  name: ") {
-                    let name = line.trim_start_matches("  name: ").trim_matches('"');
-                    println!("  - {name}");
+fn contract_dir() -> PathBuf {
+    PathBuf::from(
+        std::env::var("CONTRACT_DIR").unwrap_or_else(|_| ".quanttide/data/contract".to_string()),
+    )
+}
+
+/// 以文件直读为主路径列出契约（cue 为可选增强，当前不依赖 cue）。
+fn contract_names(dir: &Path) -> Vec<String> {
+    let mut names = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let Some(file_name) = entry.file_name().to_str().map(str::to_string) else {
+                continue;
+            };
+            for ext in CONTRACT_EXTS {
+                if let Some(stem) = file_name.strip_suffix(ext) {
+                    names.push(stem.to_string());
+                    break;
                 }
             }
-        }
-        ContractAction::Show { name } => {
-            // 先尝试 cue 解析
-            let key = super::process::to_camel(name);
-            let output = Command::new("cue")
-                .args(["export", "--out", "yaml", "--expression", &key, &dir])
-                .output();
-            if let Ok(out) = output
-                && out.status.success()
-            {
-                println!("{}", String::from_utf8_lossy(&out.stdout));
-                return;
-            }
-            // 回退：直接读取文件
-            for ext in &["yaml", "yml", "cue", "json"] {
-                let path = format!("{dir}/{name}.{ext}");
-                if let Ok(content) = std::fs::read_to_string(&path) {
-                    println!("{content}");
-                    return;
-                }
-            }
-            eprintln!("找不到 Contract: {name}");
-            std::process::exit(1);
         }
     }
+    names.sort();
+    names.dedup();
+    names
+}
+
+fn find_contract(dir: &Path, name: &str) -> Option<PathBuf> {
+    for ext in CONTRACT_EXTS {
+        let candidate = dir.join(format!("{name}{ext}"));
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+pub fn run(args: &ContractArgs) {
+    let dir = contract_dir();
+    match &args.action {
+        ContractAction::List => cmd_list(&dir),
+        ContractAction::Show { name } => cmd_show(&dir, name),
+    }
+}
+
+fn cmd_list(dir: &Path) {
+    if !dir.is_dir() {
+        eprintln!("契约目录不存在: {}", dir.display());
+        std::process::exit(1);
+    }
+    let names = contract_names(dir);
+    println!("可用的 Contract:");
+    for name in names {
+        println!("  - {name}");
+    }
+}
+
+fn cmd_show(dir: &Path, name: &str) {
+    let path = find_contract(dir, name).unwrap_or_else(|| {
+        eprintln!("未找到 Contract: {name}");
+        std::process::exit(1);
+    });
+    let content = std::fs::read_to_string(&path).unwrap_or_else(|err| {
+        eprintln!("读取契约失败: {err}");
+        std::process::exit(1);
+    });
+    println!("{content}");
 }

@@ -312,7 +312,7 @@ fn resolve_blueprint_pipeline(name: &str) -> String {
         .args([
             "export",
             "--out",
-            "yaml",
+            "json",
             "--expression",
             &format!("{key}.pipeline"),
             &dir,
@@ -324,15 +324,30 @@ fn resolve_blueprint_pipeline(name: &str) -> String {
         eprintln!("{}", String::from_utf8_lossy(&output.stderr));
         std::process::exit(1);
     }
-    let pipe = String::from_utf8_lossy(&output.stdout)
-        .trim()
-        .trim_matches('"')
-        .to_string();
-    if pipe.is_empty() {
+    let pipe: String = serde_json::from_slice(&output.stdout).unwrap_or_else(|err| {
+        eprintln!("解析 Blueprint pipeline 失败: {err}");
+        std::process::exit(1);
+    });
+    if pipe.trim().is_empty() {
         eprintln!("Blueprint {name} 中未定义 pipeline");
         std::process::exit(1);
     }
     pipe
+}
+
+/// 从 cue 导出的 JSON 顶层收集各定义的 `name` 字段（结构化解析，替代文本 grep）。
+pub fn collect_defined_names(value: &serde_json::Value) -> Vec<String> {
+    let mut names = Vec::new();
+    if let serde_json::Value::Object(map) = value {
+        for nested in map.values() {
+            if let Some(name) = nested.get("name").and_then(|n| n.as_str()) {
+                names.push(name.to_string());
+            }
+        }
+    }
+    names.sort();
+    names.dedup();
+    names
 }
 
 pub fn to_camel(s: &str) -> String {

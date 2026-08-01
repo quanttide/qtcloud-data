@@ -25,10 +25,10 @@
 
 ### cue
 
-- [ ] `src/pipeline.rs` list/show 改 cue --out json 结构化解析
-- [ ] `src/blueprint.rs` list/show 改 cue --out json 结构化解析
-- [ ] `src/contract.rs` 以文件直读为主路径，cue 为可选增强
-- [ ] `src/process.rs` resolve_blueprint_pipeline 改 cue --out json 结构化解析，替代文本 trim
+- [x] `src/pipeline.rs` list/show 改 cue --out json 结构化解析
+- [x] `src/blueprint.rs` list/show 改 cue --out json 结构化解析
+- [x] `src/contract.rs` 以文件直读为主路径，cue 为可选增强
+- [x] `src/process.rs` resolve_blueprint_pipeline 改 cue --out json 结构化解析，替代文本 trim
 
 ### catalog
 
