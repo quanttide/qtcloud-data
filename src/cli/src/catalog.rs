@@ -42,9 +42,10 @@ pub enum CatalogAction {
 }
 
 /// Volume 状态，序列化保持既有字符串（`registry.json` 落盘格式不变）。
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum VolumeStatus {
+    #[default]
     Received,
     Processing,
     Processed,
@@ -52,12 +53,6 @@ pub enum VolumeStatus {
     /// 未知状态（兼容旧数据或未来新增状态）。
     #[serde(other)]
     Unknown,
-}
-
-impl Default for VolumeStatus {
-    fn default() -> Self {
-        VolumeStatus::Received
-    }
 }
 
 impl fmt::Display for VolumeStatus {

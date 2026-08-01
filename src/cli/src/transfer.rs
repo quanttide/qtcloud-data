@@ -72,7 +72,7 @@ pub fn run(args: &TransferArgs) {
 pub fn receive(source: &str, output: &Path, provider: &str) -> Result<(), String> {
     let output_str = output.to_string_lossy().to_string();
 
-    if let Some(bin) = std::env::var("QTDATA_CLI").ok() {
+    if let Ok(bin) = std::env::var("QTDATA_CLI") {
         return run_delegated(
             &bin,
             &["transfer", "receive", source, "--output", &output_str],
@@ -109,7 +109,7 @@ pub fn send(
         .map(str::to_string)
         .unwrap_or_else(|| format!("/send/{}", file.rsplit('/').next().unwrap_or("result")));
 
-    if let Some(bin) = std::env::var("QTDATA_CLI").ok() {
+    if let Ok(bin) = std::env::var("QTDATA_CLI") {
         return send_delegated(&bin, file, output);
     }
 
