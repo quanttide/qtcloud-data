@@ -92,12 +92,7 @@ fn cmd_show(dir: &Path, name: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
-        std::fs::remove_dir_all(&dir).ok();
-        dir
-    }
+    use crate::test_support::temp_dir;
 
     #[test]
     fn contract_names_lists_supported_extensions_sorted_and_deduped() {

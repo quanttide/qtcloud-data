@@ -148,12 +148,7 @@ fn days_to_date(mut days: i64) -> (i64, u32, u32) {
 mod tests {
     use super::*;
     use crate::ENV_LOCK;
-
-    fn temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
-        std::fs::remove_dir_all(&dir).ok();
-        dir
-    }
+    use crate::test_support::temp_dir;
 
     #[test]
     fn catalog_dir_resolution_prefers_env_override() {

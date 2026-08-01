@@ -27,6 +27,15 @@
 - [ ] coverage：baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%，`src/providers/`）
 - [x] coverage：更新覆盖率基线到 71.4%（`docs/dev/` 见 e2e-baseline.md 覆盖率基线）
 
+### error-model（v0.2.2 收尾：CliError 迁移扩展到全部命令）
+
+- [ ] 剩余 45 处 `std::process::exit(1)` 改 `Result<(), CliError>` + `?` 传播（design/spec/implement/clarify/catalog/review/contract/version/pipeline/blueprint/doctor，错误路径可测）
+- [ ] dropbox upload 失败 `panic!` 改返回 `Result`（`src/providers/dropbox.rs`）
+- [ ] blueprint cue 缺失/解析 `.expect()` 改优雅错误（`src/blueprint.rs`）
+- [ ] `Result<_, String>` 收敛到 `CliError`（`src/transfer.rs` / `src/catalog.rs` / `src/spec.rs`）
+- [ ] 路径拼接改 `PathBuf::with_extension`（`src/design.rs` / `src/spec.rs`）
+- [ ] 测试 helper 抽共享已完成：`lib.rs test_support::{temp_dir, write_script, fake_llm}`（原 8 份重复定义已删除）
+
 ## [0.3.0]
 
 - [ ] distribution：增加 macOS 二进制构建（`../../.github/workflows/release-cli.yml`）

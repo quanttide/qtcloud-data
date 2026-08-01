@@ -277,24 +277,8 @@ fn path_for_record(path: &str) -> String {
 mod tests {
     use super::*;
     use crate::ENV_LOCK;
-
-    fn temp_dir(name: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
-        std::fs::remove_dir_all(&dir).ok();
-        dir
-    }
-
-    fn write_script(path: &std::path::Path, content: &str) {
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).unwrap();
-        }
-        std::fs::write(path, content).unwrap();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
-        }
-    }
+    use crate::test_support::temp_dir;
+    use crate::test_support::write_script;
 
     #[test]
     fn handle_sent_link_writes_output_file_and_delivery_record() {

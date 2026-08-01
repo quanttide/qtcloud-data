@@ -441,6 +441,8 @@ fn run_pipeline(input: &str, work_dir: &str, pipeline_spec: &str) -> Result<Stri
 mod tests {
     use super::*;
     use crate::ENV_LOCK;
+    use crate::test_support::temp_dir;
+    use crate::test_support::write_script;
     use std::collections::BTreeMap;
     use std::path::PathBuf;
 
@@ -453,17 +455,6 @@ mod tests {
     fn script_path(dir: &Path, stem: &str) -> PathBuf {
         let ext = if cfg!(windows) { "cmd" } else { "sh" };
         dir.join(format!("{stem}.{ext}"))
-    }
-
-    fn write_script(path: &Path, content: &str) {
-        std::fs::write(path, content).unwrap();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut permissions = std::fs::metadata(path).unwrap().permissions();
-            permissions.set_mode(0o755);
-            std::fs::set_permissions(path, permissions).unwrap();
-        }
     }
 
     fn fake_qtdata_script() -> &'static str {

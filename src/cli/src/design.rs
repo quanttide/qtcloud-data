@@ -277,20 +277,14 @@ mod tests {
     use super::*;
     use crate::ENV_LOCK;
     use crate::test_support::fake_llm;
-
-    fn temp_root(name: &str) -> std::path::PathBuf {
-        let root = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
-        std::fs::remove_dir_all(&root).ok();
-        std::fs::create_dir_all(&root).unwrap();
-        root
-    }
+    use crate::test_support::temp_dir;
 
     const CONTRACT_TABLES: &str = "## 输入契约\n\n| 字段名 | 类型 | 说明 |\n|--------|------|------|\n| user_id | string | 用户 ID |\n\n## 输出契约\n\n| 字段名 | 类型 | 说明 |\n|--------|------|------|\n| repo | string | 仓库名 |\n| stars | int | 星数 |\n";
 
     #[test]
     fn design_contract_writes_spec_files_from_llm_tables() {
         let _guard = ENV_LOCK.lock().unwrap();
-        let root = temp_root("qtcloud-design-contract");
+        let root = temp_dir("qtcloud-design-contract");
         let drd = root.join("abc.md");
         std::fs::write(&drd, "# DRD ABC\n").unwrap();
         let spec_dir = root.join("spec");
@@ -320,7 +314,7 @@ mod tests {
     #[test]
     fn design_formalize_writes_yaml_from_cue_block() {
         let _guard = ENV_LOCK.lock().unwrap();
-        let root = temp_root("qtcloud-design-formalize");
+        let root = temp_dir("qtcloud-design-formalize");
         let md = root.join("note.md");
         std::fs::write(&md, "# 需求\n").unwrap();
         let output = root.join("out.yaml");
@@ -342,7 +336,7 @@ mod tests {
     #[test]
     fn design_preview_renders_html_from_blueprint_yaml() {
         let _guard = ENV_LOCK.lock().unwrap();
-        let root = temp_root("qtcloud-design-preview");
+        let root = temp_dir("qtcloud-design-preview");
         let yaml_in = root.join("bp.yaml");
         std::fs::write(
             &yaml_in,

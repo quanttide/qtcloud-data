@@ -249,12 +249,7 @@ fn format_size(bytes: u64) -> String {
 mod tests {
     use super::*;
     use crate::ENV_LOCK;
-
-    fn temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
-        std::fs::remove_dir_all(&dir).ok();
-        dir
-    }
+    use crate::test_support::temp_dir;
 
     #[test]
     fn register_volume_writes_registry_entry() {

@@ -57,4 +57,25 @@ pub mod test_support {
             Box::new(FakeHttpClient { response }),
         )
     }
+
+    /// 临时目录：删除残留后创建（名字前缀 + pid，避免并行冲突）。
+    pub fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
+        std::fs::remove_dir_all(&dir).ok();
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// 写可执行脚本（unix 设 0o755），父目录自动创建。
+    pub fn write_script(path: &std::path::Path, content: &str) {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        std::fs::write(path, content).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+    }
 }

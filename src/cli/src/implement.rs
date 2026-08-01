@@ -167,19 +167,13 @@ fn extract_signature(code: &str, step_name: &str) -> String {
 mod tests {
     use super::*;
     use crate::test_support::fake_llm;
-
-    fn temp_root(name: &str) -> std::path::PathBuf {
-        let root = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
-        std::fs::remove_dir_all(&root).ok();
-        std::fs::create_dir_all(&root).unwrap();
-        root
-    }
+    use crate::test_support::temp_dir;
 
     const BLUEPRINT_YAML: &str = "name: demo\nstatus: draft\ndescription: 示例\ncreated_at: \"2026-01-01\"\nupdated_at: \"2026-01-01\"\ncontract:\n  input:\n    schema: a\n    format: CSV\n  output:\n    schema: b\n    format: CSV\npipeline:\n  name: demo-pipeline\n  steps:\n    - name: step1\n      from: \"[]\"\n      to: \"[]\"\n      desc: 第一步\n";
 
     #[test]
     fn implement_python_generates_script_from_blueprint() {
-        let root = temp_root("qtcloud-implement-python");
+        let root = temp_dir("qtcloud-implement-python");
         let yaml_in = root.join("bp.yaml");
         std::fs::write(&yaml_in, BLUEPRINT_YAML).unwrap();
         let output = root.join("bp.py");

@@ -18,7 +18,15 @@
 - [ ] `tests/` 查看类命令补测（第二部分）：blueprint/pipeline（依赖 cue）、main（CLI 分发，仅子进程流可测）0% → ≥70%
 - [x] `src/` LLM 命令注入 Handler 补测：clarify 80% / design 63% / implement 82% / review 66%（复用 quanttide-agent 的 `HttpClient` 抽象，`test_support::fake_llm`）
 - [x] `src/providers/` wiremock 补测：google_drive 80% / onedrive 77% / s3 43%
-- [ ] `src/providers/` baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%）
+- [ ] `src/providers/` baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%)
+
+### Changed
+
+- [ ] 错误处理架构收尾（v0.2.2 的 CliError 迁移扩展到全部命令）：`src/*.rs` 剩余 45 处 `std::process::exit(1)` 改为 `Result<(), CliError>` + `?` 传播（design/spec/implement/clarify/catalog/review/contract/version/pipeline/blueprint/doctor），错误路径可测
+- [ ] `src/providers/dropbox.rs` upload 失败 `panic!` 改为返回 `Result`（trait 签名已是 Result，`upload()` helper 补返回值）
+- [ ] `src/blueprint.rs` cue 缺失/输出解析的 `.expect()` 改为优雅错误（`map_err` → CliError），不 panic
+- [ ] `Result<_, String>` 错误类型收敛到 `CliError`（transfer/catalog/spec）
+- [ ] `src/spec.rs` / `src/design.rs` 路径拼接改 `PathBuf::with_extension`，避免 `format!("{stem}.yaml")` 的路径分隔符问题
 
 ## [0.3.0]
 
