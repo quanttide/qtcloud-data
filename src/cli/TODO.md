@@ -10,48 +10,7 @@
 - [ ] 在 main 合并完成后运行 `qtcloud-devops release publish -v cli/v0.X.Y --registry crates -y`（`docs/dev/release.md`，v0.X.Y 按发布版本替换）
 - [ ] 验证 crates.io、GitHub Release 和 Linux/Windows 二进制制品（`docs/dev/release.md`）
 
-## [v0.2.1] 行为不变的内部治理
-
-> 开工顺序：先补基线 e2e 的 fixture（对现有 `process` 命令建立回归保护），再开始 store 模块重构。
-
-### store
-
-- [x] `src/lib.rs` 新增 store 模块：Registry<T> 合并 catalog/process/transfer 三份 JSON 读写
-- [x] `src/catalog.rs` registry 读写改用 store 模块
-- [x] `src/process.rs` jobs 记录读写改用 store 模块
-- [x] `src/transfer.rs` delivery-links 读写改用 store 模块
-- [x] `src/lib.rs` store 模块统一时间工具，替换三份 chrono_now/days_to_date 拷贝
-- [x] `src/lib.rs` store 模块写盘原子化（临时文件 + rename）
-
-### cue
-
-- [x] `src/pipeline.rs` list/show 改 cue --out json 结构化解析
-- [x] `src/blueprint.rs` list/show 改 cue --out json 结构化解析
-- [x] `src/contract.rs` 以文件直读为主路径，cue 为可选增强
-- [x] `src/process.rs` resolve_blueprint_pipeline 改 cue --out json 结构化解析，替代文本 trim
-
-### catalog
-
-- [x] `src/catalog.rs` status 枚举化，替代魔法字符串
-
-### testing
-
-- [x] 基线 smoke/e2e：现有 `process` 命令全链路回归，fixture 落 `tests/fixtures/`
-- [x] 保存基线 smoke/e2e 的输入、输出和验证记录（`docs/`）
-
-## [v0.2.2] 错误模型与执行器
-
-### error-model
-
-- [x] `src/main.rs` 命令入口改为 `Result<(), CliError>`，顶层统一错误格式化
-- [x] `src/process.rs` 抽取 StepExecutor 状态机（Receive → Pipeline → Send），收敛 5 份重复失败处理
-- [x] `src/transfer.rs` send/receive 抽为进程内服务函数，process 库内组合替代自我 re-exec
-
-### testing
-
-- [x] `src/process.rs` StepExecutor 单元测试（tempfile + 注入式路径）
-
-## [v0.2.3] manifest + Provider 打通
+## [v0.2.2] manifest + Provider 打通
 
 ### manifest
 

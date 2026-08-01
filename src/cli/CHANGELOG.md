@@ -10,6 +10,9 @@
 - 统一 `store` 模块：合并 catalog/process/transfer 三份路径解析、UTC 时间格式化和 JSON 注册表读写（`Registry<T>`），写盘原子化（临时文件 + rename），替代三份重复拷贝。
 - `catalog` 新增 `VolumeStatus` 状态枚举，替代魔法字符串；`registry.json` 落盘格式保持不变，未知状态字符串安全降级为 `unknown`，兼容旧数据。
 - 基线 smoke/e2e：新增 `tests/fixtures/github-activity/` 真实业务 fixture 与 `process` 全链路回归测试（内容级产物断言 + URL 脱敏校验），验证记录见 `docs/dev/e2e-baseline.md`。
+- 统一错误模型：新增 `CliError` 类型，`process` 命令入口返回 `Result<(), CliError>`，`main` 顶层统一错误格式化。
+- `process` 抽取 StepExecutor 状态机（Receive → Pipeline → Send），收敛 5 处重复失败处理，失败统一落 failed job 记录。
+- `transfer send` / `transfer receive` 抽为进程内服务函数，`process` 改为进程内组合（替代自我 re-exec）；`QTDATA_CLI` 保留为测试/部署逃生舱。
 
 ### Changed
 - `pipeline list/show` 与 `blueprint list/show`：cue 输出改 `--out json` 结构化解析，替代文本 grep。
