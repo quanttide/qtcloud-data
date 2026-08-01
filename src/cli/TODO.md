@@ -10,18 +10,6 @@
 - [ ] 在 main 合并完成后运行 qtcloud-devops release publish -v cli/v0.X.Y --registry crates -y（`docs/dev/release.md`）
 - [ ] 验证 crates.io、GitHub Release 和 Linux/Windows 二进制制品（`docs/dev/release.md`）
 
-## [v0.2.1] 错误模型收尾（自 v0.2.2 并入）
-
-> 行为变化集中在本版本：剩余命令错误输出统一 `错误: {err}` 格式，错误路径变为可测。
-
-### error-model
-
-- [x] 全部命令 `exit(1)` 改 `Result<(), CliError>` + `?` 传播（11 模块 + main 分发，错误路径可测）
-- [x] dropbox upload 失败 `panic!` 改返回 `Result`（`src/providers/dropbox.rs`）
-- [x] blueprint/pipeline cue 缺失/解析 `.expect()` 改优雅错误（`src/blueprint.rs` / `src/pipeline.rs`）
-- [x] `Result<_, String>` 公开面收敛到 `CliError`（`src/transfer.rs` / `src/catalog.rs` / `src/spec.rs`）
-- [ ] 路径拼接改 `PathBuf::with_extension`（`src/design.rs` / `src/spec.rs`）
-
 ## [0.2.2] manifest + Provider 打通
 
 - [ ] manifest：定义输入契约，声明 raw、map、配置表和 review decisions（`docs/dev/`）

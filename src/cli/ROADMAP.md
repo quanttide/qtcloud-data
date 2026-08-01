@@ -4,18 +4,6 @@
 > ROADMAP 面向未来计划；发布后将已完成条目迁移到 CHANGELOG。
 > 覆盖率基线：v0.2.1 变更面行覆盖 >85%；整体行覆盖 83.7%（53.2% 起），0% 存量模块补测目标 ≥70%（见 [0.2.1]）。
 
-## [0.2.1]
-
-> 错误模型收尾（自 v0.2.2 并入）：行为变化集中在本版本——剩余命令的错误输出统一 `错误: {err}` 格式，错误路径变为可测。
-
-### Changed
-
-- [x] 错误处理架构收尾：全部命令 exit(1) 改为 `Result<(), CliError>` + `?` 传播（main.rs 仅保留 bin 入口 exit），错误路径可测
-- [x] `src/providers/dropbox.rs` upload 失败 `panic!` 改为返回 `Result`
-- [x] `src/blueprint.rs` / `src/pipeline.rs` cue 缺失/输出解析 `.expect()` 改为优雅错误
-- [x] `Result<_, String>` 公开面收敛到 `CliError`（receive/send/register_volume/load_blueprint 等）
-- [x] `src/design.rs` / `src/implement.rs` 默认输出路径改 `PathBuf::with_extension`（spec 的 `-spec` 后缀文件名保留）
-
 ## [0.2.2]
 
 > manifest + Provider 打通；新功能版本，依赖 v0.2.1 的 store/catalog 枚举化，与 Provider ROADMAP [0.0.3] 协同。
