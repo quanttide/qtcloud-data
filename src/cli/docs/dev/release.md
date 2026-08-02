@@ -131,11 +131,13 @@ The command creates and pushes `cli/v0.2.0`. The `release-cli.yml` GitHub Action
 
 ```bash
 cargo info qtcloud-data-cli --registry crates-io
-cargo install qtcloud-data-cli --version 0.2.0
+cargo install qtcloud-data-cli --version <X.Y.Z>   # 替换为本次发布版本
 qtcloud-data doctor --no-fail
 qtcloud-data spec --help
 qtcloud-data process --help
 ```
+
+已发布版本记录：`cli/v0.2.0`（2026-08-01）、`cli/v0.2.1`（2026-08-02）。
 
 ## Local Cargo Mirror
 

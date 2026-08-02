@@ -2,8 +2,8 @@
 
 量潮数据云命令行工具，用来把数据交付里容易卡住的碎片环节串成可重复命令。
 
-当前 crates.io 发布准备版本：`qtcloud-data-cli` v0.2.0。
-v0.2.0 补齐 `doctor`、`process` job 记录、catalog 产物登记和 Provider 对齐能力。
+当前 crates.io 发布版本：`qtcloud-data-cli` v0.2.1（GitHub Release `cli/v0.2.1`，含 Linux / Windows 二进制）。
+v0.2.1 重点：统一错误处理模型（CliError）、store 模块收敛路径与 JSON 读写、cue 输出结构化解析、全链路 e2e，测试覆盖率提升至 83.7%。
 
 ## 命令一览
 
@@ -52,7 +52,7 @@ qtcloud-data --help
 
 ### 二进制包
 
-GitHub Release `cli/v0.2.0` 待发布，计划提供：
+GitHub Release `cli/v0.2.1` 已发布，提供：
 
 - `qtcloud-data-x86_64-unknown-linux-gnu.tar.gz`
 - `qtcloud-data-x86_64-pc-windows-msvc.zip`
@@ -92,7 +92,7 @@ qtcloud-data transfer receive "https://www.dropbox.com/s/xxx/file.pdf"
 qtcloud-data process ABC "https://..." --blueprint csv-standardization
 ```
 
-`design blueprint` 生成的 YAML 会同时包含兼容旧实现的 `pipeline.steps` 和 Step Functions 风格的 `pipeline.start_at` / `pipeline.states`。v0.2.0 会给每个步骤默认写入 `resource: builtin:copy`，方便 Provider 先做端到端 smoke test；实际业务实现生成后，再把 `resource` 替换为 `python:<script>` 等真实处理脚本。
+`design blueprint` 生成的 YAML 会同时包含兼容旧实现的 `pipeline.steps` 和 Step Functions 风格的 `pipeline.start_at` / `pipeline.states`，默认给每个步骤写入 `resource: builtin:copy`，方便 Provider 先做端到端 smoke test；实际业务实现生成后，再把 `resource` 替换为 `python:<script>` 等真实处理脚本。
 
 本地源码构建版本中，`process` 执行后会在 `CATALOG_DIR/jobs.json` 写入 job 记录，并在 `CATALOG_DIR/jobs/` 下生成对应日志文件。记录包含客户、来源、blueprint、pipeline、原始文件、最终结果、分享链接文件、状态和日志路径。
 
