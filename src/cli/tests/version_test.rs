@@ -7,7 +7,12 @@ use common::cli;
 
 #[test]
 fn test_spec_version_help() {
-    let output = cli().arg("spec").arg("version").arg("--help").output().unwrap();
+    let output = cli()
+        .arg("spec")
+        .arg("version")
+        .arg("--help")
+        .output()
+        .unwrap();
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("list"));
