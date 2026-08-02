@@ -50,6 +50,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn to_camel_basic() {
+        assert_eq!(to_camel("csv-standard"), "csvStandard");
+        assert_eq!(to_camel("simple"), "simple");
+        assert_eq!(to_camel("abc-def-ghi"), "abcDefGhi");
+        assert_eq!(to_camel(""), "");
+    }
+
+    #[test]
     fn test_resolve_cue_path_nonexistent() {
         let result = resolve_cue_path("nonexistent-blueprint-12345", "/tmp");
         assert!(result.is_none());

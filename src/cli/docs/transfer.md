@@ -64,4 +64,4 @@ pub trait StorageProvider: Send + Sync {
 1. 新建 `providers/<name>.rs`，实现 `StorageProvider` trait
 2. 在 `providers/mod.rs` 注册（`from_name` / `detect`）
 3. 认证环境变量约定见上表
-4. 需要 mock 的平台遵循 `*_with_base` 注入约定并补 wiremock 测试（`tests/provider_test.rs` 参考）
+4. 需要 mock 的平台遵循 `*_with_base` 注入约定并补 wiremock 测试（`tests/providers_test.rs` 参考）
