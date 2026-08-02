@@ -1,6 +1,6 @@
 # pipeline（pipeline.rs）
 
-本文档对应 `src/pipeline.rs`。
+本文档对应 `src/implementation/pipeline.rs`（实现资源）。
 
 ## 命令
 

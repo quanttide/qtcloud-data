@@ -1,8 +1,10 @@
 //! qtcloud-data-cli 库入口：模块注册与测试共享支持。
 
+#[path = "implementation/catalog.rs"]
 pub mod catalog;
 pub mod doctor;
 pub mod error;
+#[path = "implementation/pipeline.rs"]
 pub mod pipeline;
 pub mod registry;
 pub mod review;
