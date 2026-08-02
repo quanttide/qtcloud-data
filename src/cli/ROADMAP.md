@@ -12,6 +12,7 @@
 
 - [ ] `docs/dev/` 定义 manifest 输入契约（raw[] / map / review_decisions[]），`src/spec.rs` 增加 manifest YAML 校验和错误提示
 - [ ] `src/catalog.rs` catalog/job 记录区分预审核产物、审核决策文件和最终交付产物（status 枚举已在 v0.2.1 落地）
+- [ ] `src/pipeline.rs` / `src/blueprint.rs` list/show 改文件直读为主路径（cue 降为可选增强，对齐 contract.rs v0.2.1 先例），`src/doctor.rs` cue 检查降为 optional——装完即用，不暴露 cue 模块概念
 - [x] `tests/` 查看类命令补测（第一部分）：contract 67% / version 96% / transfer 80%，fixture + wiremock 已落地
 - [x] `tests/` 查看类命令补测（第二部分）：blueprint 85% / pipeline 82%（fake cue 脚本注入 PATH）；main 仍仅子进程流可测
 - [x] `src/` LLM 命令注入 Handler 补测：clarify 80% / design 63% / implement 82% / review 66%（复用 quanttide-agent 的 `HttpClient` 抽象，`test_support::fake_llm`）

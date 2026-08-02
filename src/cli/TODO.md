@@ -15,6 +15,8 @@
 - [ ] manifest：定义输入契约，声明 raw、map、配置表和 review decisions（`docs/dev/`）
 - [ ] manifest：增加 YAML 校验和错误提示（`src/spec.rs`）
 - [ ] catalog：记录区分预审核产物、审核决策文件和最终交付产物（`src/catalog.rs`）
+- [ ] view：pipeline/blueprint list/show 改文件直读为主，cue 降为可选增强（对齐 contract.rs，`src/pipeline.rs` / `src/blueprint.rs`）
+- [ ] view：doctor 的 cue 检查降为 optional（`src/doctor.rs`）
 - [x] coverage：查看类命令 fixture 补测（第一部分）：contract / version / transfer 已落地（contract 67%、version 96%、transfer 80%，`tests/`）
 - [x] coverage：查看类命令补测（第二部分）：blueprint 85% / pipeline 82%（fake cue 注入 PATH，`src/blueprint.rs` / `src/pipeline.rs`）
 - [x] coverage：LLM 命令注入 Handler 补测：clarify 80% / design 63% / implement 82% / review 66%（`src/*.rs`，复用 quanttide-agent `HttpClient`，见 `lib.rs test_support`）
