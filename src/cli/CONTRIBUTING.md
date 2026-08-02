@@ -28,7 +28,7 @@
 | [docs/contract.md](docs/contract.md) | spec/contract | 契约定义查看（文件直读） |
 | [docs/pipeline.md](docs/pipeline.md) | pipeline | 管道定义查看 |
 | [docs/doctor.md](docs/doctor.md) | doctor | 环境检查 |
-| [docs/version.md](docs/version.md) | version | 规格版本管理 |
+| [docs/version.md](docs/version.md) | spec/version | 规格版本管理（spec version） |
 
 ## 开发环境
 
@@ -56,7 +56,7 @@ cargo fmt --check
 | 层次 | 位置 | 手段 |
 |---|---|---|
 | 单元测试 | `src/*.rs` 内 `mod tests` | 纯函数 + env 注入 + `test_support::{temp_dir, write_script, fake_llm}` |
-| 命令级集成 | `tests/{module}_test.rs`（按 src/ 模块一一对应：cli/clarify/design/review/version/spec/doctor/blueprint） | spawn 二进制测命令行为，共享 helper 在 `tests/common/mod.rs` |
+| 命令级集成 | `tests/{module}_test.rs`（按 src/ 模块一一对应：cli/clarify/design/review/spec(含 spec_version)/doctor/blueprint） | spawn 二进制测命令行为，共享 helper 在 `tests/common/mod.rs` |
 | provider 集成 | `tests/storage_test.rs` | wiremock 模拟 HTTP（dropbox/s3/google/onedrive + 注册） |
 | process e2e | `tests/process_test.rs` | process 全链路端到端 + 命令级（`tests/fixtures/github-activity/`） |
 
