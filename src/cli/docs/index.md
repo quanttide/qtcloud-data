@@ -13,8 +13,11 @@
 | [process.md](process.md) | `process.rs` | StepExecutor 编排（receive → pipeline → send） |
 | [llm.md](llm.md) | `clarify.rs`、`design.rs`、`implement.rs`、`review.rs` | LLM 命令与 Handler 注入模式 |
 | [specification.md](specification.md) | `spec.rs`、`blueprint_core.rs` | Specification YAML 契约与 Blueprint 工作流模型 |
-| [view.md](view.md) | `blueprint.rs`、`contract.rs`、`pipeline.rs` | 查看命令与文件直读策略 |
-| [tooling.md](tooling.md) | `doctor.rs`、`version.rs` | 环境检查与版本管理工具 |
+| [blueprint.md](blueprint.md) | `blueprint.rs` | 蓝图定义查看 |
+| [contract.md](contract.md) | `contract.rs` | 契约定义查看（文件直读） |
+| [pipeline.md](pipeline.md) | `pipeline.rs` | 管道定义查看 |
+| [doctor.md](doctor.md) | `doctor.rs` | 环境检查 |
+| [version.md](version.md) | `version.rs` | 规格版本管理 |
 
 贡献与发布流程见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 

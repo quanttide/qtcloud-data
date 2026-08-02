@@ -24,8 +24,11 @@
 | [docs/process.md](docs/process.md) | process | StepExecutor 编排 |
 | [docs/llm.md](docs/llm.md) | clarify/design/implement/review | LLM 命令与 Handler 注入 |
 | [docs/specification.md](docs/specification.md) | spec/blueprint_core | Specification YAML 契约 |
-| [docs/view.md](docs/view.md) | blueprint/contract/pipeline | 查看命令与文件直读策略 |
-| [docs/tooling.md](docs/tooling.md) | doctor/version | 环境检查与版本管理 |
+| [docs/blueprint.md](docs/blueprint.md) | blueprint | 蓝图定义查看 |
+| [docs/contract.md](docs/contract.md) | contract | 契约定义查看（文件直读） |
+| [docs/pipeline.md](docs/pipeline.md) | pipeline | 管道定义查看 |
+| [docs/doctor.md](docs/doctor.md) | doctor | 环境检查 |
+| [docs/version.md](docs/version.md) | version | 规格版本管理 |
 
 ## 开发环境
 
