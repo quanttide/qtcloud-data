@@ -15,6 +15,7 @@
 - [ ] manifest：定义输入契约，声明 raw、map、配置表和 review decisions（`docs/`）
 - [ ] manifest：增加 YAML 校验和错误提示（`src/spec.rs`）
 - [ ] catalog：记录区分预审核产物、审核决策文件和最终交付产物（`src/catalog.rs`）
+- [ ] catalog：状态流转闭环——VolumeStatus 5 态目前只有 add(received) 与 process(delivered) 可达，补 processing/processed 的设置路径（如 `catalog set-status` 或 review/process 自动流转）
 - [ ] view：pipeline/blueprint list/show 改文件直读为主，cue 降为可选增强（对齐 contract.rs，`src/pipeline.rs` / `src/blueprint.rs`）
 - [ ] view：doctor 的 cue 检查降为 optional（`src/doctor.rs`）
 - [x] coverage：查看类命令 fixture 补测（第一部分）：contract / version / transfer 已落地（contract 67%、version 96%、transfer 80%，`tests/`）
@@ -43,6 +44,8 @@
 - [ ] runtimes：`src/blueprint_core.rs` 新增 R / Stata codegen prompt 模板
 - [ ] runtimes：`src/doctor.rs` 检查表由 RuntimeAdapter 注册表驱动
 - [ ] structured-output：`src/main.rs` 全局 --json 结构化输出
+- [ ] structured-output：`CliError` 携带结构化错误码（`--json` 前置，`src/error.rs`）
+- [ ] structured-output：`run_command` 分发移入 lib（`Commands` 可单测，llm 参数注入，`src/main.rs` / `src/lib.rs`）
 - [ ] structured-output：`src/transfer.rs` provider 枚举化，替代字符串匹配
 - [ ] structured-output：`src/process.rs` pipeline 引用结构化（Blueprint states），替代逗号分隔字符串
 
