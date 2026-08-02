@@ -38,7 +38,7 @@ pipeline 单步输出为 `final.csv`。
 
 ## 产物与记录
 
-- **job 记录**：成功或失败都写入 `CATALOG_DIR/jobs.json`（字段见 [data-format.md](data-format.md)），
+- **job 记录**：成功或失败都写入 `CATALOG_DIR/jobs.json`（字段见 [catalog.md](catalog.md)），
   `source_url` 脱敏（redact query/fragment，不含 token）
 - **日志**：`CATALOG_DIR/jobs/<job-id>.log`
 - **交付登记**：成功交付后把最终产物登记到 `CATALOG_DIR/registry.json`（provider=`process`，

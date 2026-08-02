@@ -9,7 +9,7 @@
 |------|---------|------|
 | [index.md](index.md)（本文件） | `main.rs`、`lib.rs`、`error.rs`、`registry.rs`、`util.rs` | 命令结构、文档映射、横切基础（错误模型 + 注册表/工具机制） |
 | [transfer.md](transfer.md) | `transfer.rs`、`providers/` | 传输服务与 StorageProvider trait、添加新平台 |
-| [data-format.md](data-format.md) | `catalog.rs` | 数据格式（registry/jobs/delivery-links 字段级定义） |
+| [catalog.md](catalog.md) | `catalog.rs` | 数据格式（registry/jobs/delivery-links 字段级定义） |
 | [process.md](process.md) | `process.rs` | StepExecutor 编排（receive → pipeline → send） |
 | [llm.md](llm.md) | `clarify.rs`、`design.rs`、`implement.rs`、`review.rs` | LLM 命令与 Handler 注入模式 |
 | [specification.md](specification.md) | `spec.rs`、`blueprint_core.rs` | Specification YAML 契约与 Blueprint 工作流模型 |
@@ -111,7 +111,7 @@ fn show(name: &str) -> Result<(), CliError> {
 
 ### 注册表与工具机制（registry.rs + util.rs）
 
-`registry.rs` 与 `util.rs` 提供 JSON 注册表与通用工具的**机制**（不定义数据内容，数据格式见 [data-format.md](data-format.md)）：
+`registry.rs` 与 `util.rs` 提供 JSON 注册表与通用工具的**机制**（不定义数据内容，数据格式见 [catalog.md](catalog.md)）：
 
 - `registry::Registry<T>`：JSON 注册表读写（open/get/entries/len/is_empty/insert/remove/save），
   **原子写盘**（临时文件 + rename，避免半写损坏）
@@ -125,7 +125,7 @@ fn show(name: &str) -> Result<(), CliError> {
 
 ## 数据目录与命令的关系
 
-命令的产物落在 `.quanttide/data/` 下（可用 `DATA_ROOT` 覆盖），字段级格式见 [data-format.md](data-format.md)：
+命令的产物落在 `.quanttide/data/` 下（可用 `DATA_ROOT` 覆盖），字段级格式见 [catalog.md](catalog.md)：
 
 | 目录 | 产物 | 生产命令 | 消费命令 |
 |------|------|---------|---------|

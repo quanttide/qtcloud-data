@@ -20,7 +20,7 @@
 | [CHANGELOG.md](CHANGELOG.md) | — | 版本变更记录（发布事实源） |
 | [docs/index.md](docs/index.md) | main/lib/error/registry/util | 命令结构总览 + 文档映射表 + 横切基础（错误模型 + 注册表/工具机制） |
 | [docs/transfer.md](docs/transfer.md) | transfer/providers | 传输服务与 StorageProvider |
-| [docs/data-format.md](docs/data-format.md) | catalog | 数据格式（registry/jobs/delivery-links 字段级） |
+| [docs/catalog.md](docs/catalog.md) | catalog | 数据格式（registry/jobs/delivery-links 字段级） |
 | [docs/process.md](docs/process.md) | process | StepExecutor 编排 |
 | [docs/llm.md](docs/llm.md) | clarify/design/implement/review | LLM 命令与 Handler 注入 |
 | [docs/specification.md](docs/specification.md) | spec/blueprint_core | Specification YAML 契约 |

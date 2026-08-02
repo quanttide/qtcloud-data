@@ -1,6 +1,6 @@
-# 数据格式（catalog.rs 数据模型）
+# catalog — 数据格式（catalog.rs）
 
-本文档对应 `src/catalog.rs` 的领域数据模型，定义 `.quanttide/data/catalog/` 下
+本文档对应 `src/catalog.rs`（数据目录与登记），定义 `.quanttide/data/catalog/` 下
 三个 JSON 落盘文件的字段级格式——Studio、Provider 与 CLI 共同消费这些文件，**格式变更需保持兼容**。
 
 > 落盘机制（`registry.rs` 的 `Registry<T>` 读写、原子写盘，`util.rs` 的路径/时间工具）见 [index.md](index.md) 横切基础，

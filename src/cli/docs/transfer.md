@@ -56,7 +56,7 @@ pub trait StorageProvider: Send + Sync {
 
 ## 交付链接记录
 
-`send` 成功后把记录写入 `CATALOG_DIR/delivery-links.json`（字段定义见 [data-format.md](data-format.md)）。
+`send` 成功后把记录写入 `CATALOG_DIR/delivery-links.json`（字段定义见 [catalog.md](catalog.md)）。
 记录失败只输出 warning，不影响已经成功的上传和链接输出。
 
 ## 添加新平台
