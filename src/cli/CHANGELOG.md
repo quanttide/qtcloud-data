@@ -1,9 +1,14 @@
 # CHANGELOG
 
-## [Unreleased]
+## [0.2.2] - 2026-08-02
 
 ### Changed
-- `store` 模块拆分为 `registry`（JSON 注册表读写 + 原子写盘）与 `util`（数据目录解析 / UTC 时间）。lib 公开路径 `qtcloud_data_cli::store::*` 变更为 `registry::*` / `util::*`（破坏性变更，随 v0.2.2 发布）。
+- `version` 命令降级为 `spec version` 子命令（`qtcloud-data spec version list/show/diff`）；顶层 `version` 标注废弃，v0.3 移除。
+- 源码按域分组：生命周期模块（clarify/design/implement/process/transfer）移入 `stage/`，Specification 域（spec/blueprint/contract/version）移入 `spec/`，存储平台 `providers/` 改名 `storage/`，catalog/pipeline 移入 `implementation/`——lib 公开路径相应变更（破坏性变更）。
+- `store` 模块拆分为 `registry`（JSON 注册表读写 + 原子写盘）与 `util`（数据目录解析 / UTC 时间）。lib 公开路径 `qtcloud_data_cli::store::*` 变更为 `registry::*` / `util::*`（破坏性变更）。
+- 测试按 src/ 模块拆分 `tests/{module}_test.rs`（cli/clarify/design/review/spec/spec_version/doctor/blueprint/storage/process），共享 helper 收敛到 `tests/common/mod.rs`；`test_support::temp_dir` 改 RAII（`TempDir` Drop 自动清理，panic 也兜底）。
+- CI clippy 从严 `-A warnings` → `-D warnings`（与本地检查一致）。
+- 新增 `src/cli/AGENTS.md`（AI 代理经验指引：CI 对齐 / 测试对齐 / 模块组织）。
 
 ## [0.2.1] - 2026-08-02
 
