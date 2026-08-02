@@ -118,7 +118,7 @@ qtcloud-data process ABC "https://..." --blueprint csv-standardization
 
 - [贡献指南](CONTRIBUTING.md) — 开发环境、提交规范、发布流程
 - [用户文档](docs/user/transfer.md) — 安装、认证、命令用法
-- [开发者文档](docs/dev/transfer.md) — 架构、添加新平台、测试
+- [开发者文档](docs/dev/index.md) — 命令结构、架构、添加新平台、测试
 - [Specification 契约](docs/dev/specification.md) — CLI 与 Provider 共用的 YAML envelope
 - [ROADMAP](ROADMAP.md) — 版本里程碑和 checkbox 计划
 - [TODO](TODO.md) — 按模块拆解的执行任务
