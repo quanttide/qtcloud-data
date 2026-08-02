@@ -5,7 +5,8 @@ use std::path::{Path, PathBuf};
 
 use crate::error::CliError;
 use crate::providers;
-use crate::store;
+use crate::registry;
+use crate::util;
 
 #[derive(Args)]
 pub struct TransferArgs {
@@ -210,7 +211,7 @@ fn handle_sent_link_in(input: SentLinkInput<'_>, links_path: &Path) -> Result<()
         link: input.link.to_string(),
         link_path,
         status: "sent".to_string(),
-        sent_at: store::now_utc(),
+        sent_at: util::now_utc(),
     };
 
     if let Err(err) = save_delivery_link_record_at(links_path, &record) {
@@ -232,12 +233,12 @@ fn write_link_file(path: &str, link: &str) -> Result<(), String> {
 }
 
 fn save_delivery_link_record_at(path: &Path, record: &DeliveryLinkRecord) -> io::Result<()> {
-    let mut registry = store::Registry::open(path)?;
+    let mut registry = registry::Registry::open(path)?;
     registry.insert(record.id.clone(), record.clone())
 }
 
 fn delivery_links_path() -> PathBuf {
-    store::catalog_dir().join("delivery-links.json")
+    util::catalog_dir().join("delivery-links.json")
 }
 
 fn new_delivery_link_id(file: &str) -> String {

@@ -4,7 +4,8 @@ use std::fmt;
 use std::path::PathBuf;
 
 use crate::error::CliError;
-use crate::store;
+use crate::registry;
+use crate::util;
 
 #[derive(Args)]
 pub struct CatalogArgs {
@@ -92,11 +93,11 @@ pub struct RegisterVolume<'a> {
 }
 
 fn registry_path() -> PathBuf {
-    store::catalog_dir().join("registry.json")
+    util::catalog_dir().join("registry.json")
 }
 
-fn open_registry() -> store::Registry<Volume> {
-    store::Registry::open(&registry_path()).unwrap_or_default()
+fn open_registry() -> registry::Registry<Volume> {
+    registry::Registry::open(&registry_path()).unwrap_or_default()
 }
 
 pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
@@ -125,7 +126,7 @@ pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
             .to_string_lossy()
             .to_string(),
         size: meta.len(),
-        received_at: store::now_utc(),
+        received_at: util::now_utc(),
         provider: input.provider.map(|provider| provider.to_string()),
         source: input.source.map(|source| source.to_string()),
         status: input.status,

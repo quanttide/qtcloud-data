@@ -10,10 +10,11 @@ pub mod implement;
 pub mod pipeline;
 pub mod process;
 pub mod providers;
+pub mod registry;
 pub mod review;
 pub mod spec;
-pub mod store;
 pub mod transfer;
+pub mod util;
 pub mod version;
 
 /// 测试共享的全局环境变量锁：各模块测试直接 `std::env::set_var` 时统一互斥，

@@ -1,27 +1,12 @@
-//! 统一数据存取：catalog/process/transfer 共用的路径解析、时间工具与 JSON 注册表读写。
+//! JSON 文件注册表（key -> record），读时整表加载，写时原子落盘。
 //!
-//! 收敛三份拷贝：
-//! - catalog 目录解析（catalog.rs / process.rs / transfer.rs 各一份）
-//! - UTC 时间格式化（三份 `chrono_now` + `days_to_date`）
-//! - JSON 文件注册表读写（`registry.json` / `jobs.json` / `delivery-links.json`）
-//! - 写盘原子化（临时文件 + rename，避免半写文件被并发读者读到）
+//! 供 `registry.json` / `jobs.json` / `delivery-links.json` 使用（原 store.rs 拆出）。
 
 use serde::{Serialize, de::DeserializeOwned};
 use std::collections::BTreeMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-
-/// 解析 catalog 根目录：`CATALOG_DIR` > `DATA_ROOT/catalog` > `.quanttide/data/catalog`。
-pub fn catalog_dir() -> PathBuf {
-    if let Ok(dir) = std::env::var("CATALOG_DIR") {
-        return PathBuf::from(dir);
-    }
-    if let Ok(root) = std::env::var("DATA_ROOT") {
-        return PathBuf::from(root).join("catalog");
-    }
-    PathBuf::from(".quanttide/data/catalog")
-}
 
 /// JSON 文件注册表（key -> record），读时整表加载，写时原子落盘。
 pub struct Registry<T> {
@@ -112,77 +97,14 @@ fn temp_sibling(path: &Path) -> PathBuf {
     path.with_file_name(tmp_name)
 }
 
-/// UTC 时间 `YYYY-MM-DD HH:MM:SS`，替换三份 chrono_now 拷贝。
-pub fn now_utc() -> String {
-    let dur = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default();
-    let secs = dur.as_secs();
-    let days = secs / 86400;
-    let time_secs = secs % 86400;
-    let hours = time_secs / 3600;
-    let minutes = (time_secs % 3600) / 60;
-    let seconds = time_secs % 60;
-
-    let (y, m, d) = days_to_date(days as i64);
-    format!("{y:04}-{m:02}-{d:02} {hours:02}:{minutes:02}:{seconds:02}")
-}
-
-fn days_to_date(mut days: i64) -> (i64, u32, u32) {
-    // 从 Unix 纪元 (1970-01-01) 计算日期
-    days += 719468; // 从公元 0 年开始
-    let era = if days >= 0 { days } else { days - 146096 };
-    let era = era / 146097;
-    let doe = days - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = if m <= 2 { y + 1 } else { y };
-    (y, m as u32, d as u32)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ENV_LOCK;
     use crate::test_support::temp_dir;
 
     #[test]
-    fn catalog_dir_resolution_prefers_env_override() {
-        let _guard = ENV_LOCK.lock().unwrap();
-        unsafe {
-            std::env::set_var("CATALOG_DIR", "/tmp/custom-catalog");
-            std::env::set_var("DATA_ROOT", "/tmp/custom-root");
-        }
-        assert_eq!(catalog_dir(), PathBuf::from("/tmp/custom-catalog"));
-        unsafe {
-            std::env::remove_var("CATALOG_DIR");
-            std::env::remove_var("DATA_ROOT");
-        }
-    }
-
-    #[test]
-    fn catalog_dir_falls_back_to_data_root_then_default() {
-        let _guard = ENV_LOCK.lock().unwrap();
-        let root = temp_dir("qtcloud-store-data-root");
-        unsafe {
-            std::env::remove_var("CATALOG_DIR");
-            std::env::set_var("DATA_ROOT", &root);
-        }
-        assert_eq!(catalog_dir(), root.join("catalog"));
-        unsafe {
-            std::env::remove_var("DATA_ROOT");
-        }
-        assert_eq!(catalog_dir(), PathBuf::from(".quanttide/data/catalog"));
-        std::fs::remove_dir_all(&root).ok();
-    }
-
-    #[test]
     fn registry_roundtrip_insert_save_load() {
-        let root = temp_dir("qtcloud-store-registry");
+        let root = temp_dir("qtcloud-registry-roundtrip");
         let path = root.join("registry.json");
         let mut registry = Registry::open(&path).unwrap();
         assert!(registry.is_empty());
@@ -201,7 +123,7 @@ mod tests {
 
     #[test]
     fn registry_remove_persists_and_missing_key_skips_write() {
-        let root = temp_dir("qtcloud-store-remove");
+        let root = temp_dir("qtcloud-registry-remove");
         let path = root.join("jobs.json");
         let mut registry = Registry::open(&path).unwrap();
         registry
@@ -216,17 +138,5 @@ mod tests {
         assert!(loaded.is_empty());
 
         std::fs::remove_dir_all(&root).ok();
-    }
-
-    #[test]
-    fn now_utc_formats_yyyy_mm_dd_hh_mm_ss() {
-        let s = now_utc();
-        assert_eq!(s.len(), 19, "unexpected format: {s}");
-        let bytes = s.as_bytes();
-        assert_eq!(&bytes[4..5], b"-");
-        assert_eq!(&bytes[7..8], b"-");
-        assert_eq!(&bytes[10..11], b" ");
-        assert_eq!(&bytes[13..14], b":");
-        assert_eq!(&bytes[16..17], b":");
     }
 }

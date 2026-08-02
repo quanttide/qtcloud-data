@@ -3,7 +3,7 @@
 本文档对应 `src/catalog.rs` 的领域数据模型，定义 `.quanttide/data/catalog/` 下
 三个 JSON 落盘文件的字段级格式——Studio、Provider 与 CLI 共同消费这些文件，**格式变更需保持兼容**。
 
-> 落盘机制（`store.rs` 的 `Registry<T>` 读写、原子写盘、路径/时间工具）见 [index.md](index.md) 横切基础，
+> 落盘机制（`registry.rs` 的 `Registry<T>` 读写、原子写盘，`util.rs` 的路径/时间工具）见 [index.md](index.md) 横切基础，
 > 本文档只定义**数据长什么样**，不重复机制。
 
 所有落盘文件均为 pretty JSON，顶层为 key → record 的对象映射。

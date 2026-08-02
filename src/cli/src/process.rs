@@ -6,8 +6,9 @@ use std::process::Command;
 
 use crate::catalog::{self, RegisterVolume};
 use crate::error::CliError;
-use crate::store;
+use crate::registry;
 use crate::transfer;
+use crate::util;
 
 #[derive(Args)]
 pub struct ProcessArgs {
@@ -83,7 +84,7 @@ impl ProcessJobRecord {
 
 pub fn run(args: &ProcessArgs) -> Result<(), CliError> {
     let pipeline = resolve_pipeline(args)?;
-    let started_at = store::now_utc();
+    let started_at = util::now_utc();
     let job_id = new_job_id(&args.customer_id);
     let work_dir = work_dir();
     let customer_dir = work_dir.join(&args.customer_id);
@@ -93,7 +94,7 @@ pub fn run(args: &ProcessArgs) -> Result<(), CliError> {
     let raw_path = customer_dir.join("raw.csv");
     let expected_output_path = customer_dir.join("final.csv");
     let link_path = customer_dir.join("share-link.txt");
-    let log_path = store::catalog_dir()
+    let log_path = util::catalog_dir()
         .join("jobs")
         .join(format!("{job_id}.log"));
 
@@ -237,7 +238,7 @@ impl StepExecutor<'_> {
             link_path: path_string(&self.link_path),
             log_path: path_string(&self.log_path),
             started_at: self.started_at.clone(),
-            finished_at: store::now_utc(),
+            finished_at: util::now_utc(),
         }
     }
 
@@ -343,11 +344,11 @@ pub fn redact_source(source: &str) -> String {
 }
 
 fn save_job_record(record: &ProcessJobRecord) -> io::Result<()> {
-    save_job_record_in(&store::catalog_dir(), record)
+    save_job_record_in(&util::catalog_dir(), record)
 }
 
 fn save_job_record_in(catalog_dir: &Path, record: &ProcessJobRecord) -> io::Result<()> {
-    let mut registry = store::Registry::open(&catalog_dir.join("jobs.json"))?;
+    let mut registry = registry::Registry::open(&catalog_dir.join("jobs.json"))?;
     registry.insert(record.id.clone(), record.clone())
 }
 

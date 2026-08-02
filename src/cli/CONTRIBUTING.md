@@ -18,7 +18,7 @@
 | [ROADMAP.md](ROADMAP.md) | — | 版本里程碑和 checkbox 计划 |
 | [TODO.md](TODO.md) | — | 按模块拆解的执行任务 |
 | [CHANGELOG.md](CHANGELOG.md) | — | 版本变更记录（发布事实源） |
-| [docs/index.md](docs/index.md) | main/lib/error/store | 命令结构总览 + 文档映射表 + 横切基础（错误模型 + store 机制） |
+| [docs/index.md](docs/index.md) | main/lib/error/registry/util | 命令结构总览 + 文档映射表 + 横切基础（错误模型 + 注册表/工具机制） |
 | [docs/transfer.md](docs/transfer.md) | transfer/providers | 传输服务与 StorageProvider |
 | [docs/data-format.md](docs/data-format.md) | catalog | 数据格式（registry/jobs/delivery-links 字段级） |
 | [docs/process.md](docs/process.md) | process | StepExecutor 编排 |

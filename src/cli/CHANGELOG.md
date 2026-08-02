@@ -2,7 +2,8 @@
 
 ## [Unreleased]
 
-暂无。
+### Changed
+- `store` 模块拆分为 `registry`（JSON 注册表读写 + 原子写盘）与 `util`（数据目录解析 / UTC 时间）。lib 公开路径 `qtcloud_data_cli::store::*` 变更为 `registry::*` / `util::*`（破坏性变更，随 v0.2.2 发布）。
 
 ## [0.2.1] - 2026-08-02
 
