@@ -19,7 +19,7 @@
 | [TODO.md](TODO.md) | — | 按模块拆解的执行任务 |
 | [CHANGELOG.md](CHANGELOG.md) | — | 版本变更记录（发布事实源） |
 | [docs/index.md](docs/index.md) | main/lib/error/registry/util | 命令结构总览 + 文档映射表 + 横切基础（错误模型 + 注册表/工具机制） |
-| [docs/transfer.md](docs/transfer.md) | transfer/providers | 传输服务与 StorageProvider |
+| [docs/transfer.md](docs/transfer.md) | transfer/storage | 传输服务与 StorageProvider |
 | [docs/catalog.md](docs/catalog.md) | catalog | 数据格式（registry/jobs/delivery-links 字段级） |
 | [docs/process.md](docs/process.md) | process | StepExecutor 编排 |
 | [docs/llm.md](docs/llm.md) | clarify/design/implement/review | LLM 命令与 Handler 注入 |
@@ -57,7 +57,7 @@ cargo fmt --check
 |---|---|---|
 | 单元测试 | `src/*.rs` 内 `mod tests` | 纯函数 + env 注入 + `test_support::{temp_dir, write_script, fake_llm}` |
 | 命令级集成 | `tests/{module}_test.rs`（按 src/ 模块一一对应：cli/clarify/design/review/version/spec/doctor/blueprint） | spawn 二进制测命令行为，共享 helper 在 `tests/common/mod.rs` |
-| provider 集成 | `tests/providers_test.rs` | wiremock 模拟 HTTP（dropbox/s3/google/onedrive + 注册） |
+| provider 集成 | `tests/storage_test.rs` | wiremock 模拟 HTTP（dropbox/s3/google/onedrive + 注册） |
 | process e2e | `tests/process_test.rs` | process 全链路端到端 + 命令级（`tests/fixtures/github-activity/`） |
 
 覆盖率：`cargo llvm-cov test --workspace`（当前 83.7%）。

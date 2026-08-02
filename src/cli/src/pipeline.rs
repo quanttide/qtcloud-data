@@ -80,7 +80,7 @@ mod tests {
     use crate::ENV_LOCK;
     use crate::test_support::{temp_dir, write_script};
 
-    fn fake_cue_env() -> (std::path::PathBuf, Option<std::ffi::OsString>) {
+    fn fake_cue_env() -> (crate::test_support::TempDir, Option<std::ffi::OsString>) {
         let root = temp_dir("qtcloud-pipeline-fake-cue");
         let bin = root.join("bin");
         std::fs::create_dir_all(&bin).unwrap();

@@ -82,7 +82,7 @@ mod tests {
     use crate::test_support::{temp_dir, write_script};
 
     /// 安装 fake cue 到临时 PATH 并返回旧 PATH 守卫。
-    fn fake_cue_env() -> (std::path::PathBuf, Option<std::ffi::OsString>) {
+    fn fake_cue_env() -> (crate::test_support::TempDir, Option<std::ffi::OsString>) {
         let root = temp_dir("qtcloud-blueprint-fake-cue");
         let bin = root.join("bin");
         std::fs::create_dir_all(&bin).unwrap();

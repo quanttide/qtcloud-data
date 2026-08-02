@@ -8,7 +8,7 @@
 | 文档 | 对应模块 | 内容 |
 |------|---------|------|
 | [index.md](index.md)（本文件） | `main.rs`、`lib.rs`、`error.rs`、`registry.rs`、`util.rs` | 命令结构、文档映射、横切基础（错误模型 + 注册表/工具机制） |
-| [transfer.md](transfer.md) | `transfer.rs`、`providers/` | 传输服务与 StorageProvider trait、添加新平台 |
+| [transfer.md](transfer.md) | `transfer.rs`、`storage/` | 传输服务与 StorageProvider trait、添加新平台 |
 | [catalog.md](catalog.md) | `catalog.rs` | 数据格式（registry/jobs/delivery-links 字段级定义） |
 | [process.md](process.md) | `process.rs` | StepExecutor 编排（receive → pipeline → send） |
 | [llm.md](llm.md) | `clarify.rs`、`design.rs`、`implement.rs`、`review.rs` | LLM 命令与 Handler 注入模式 |

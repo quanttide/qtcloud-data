@@ -1,7 +1,7 @@
-use qtcloud_data_cli::providers::StorageProvider;
-use qtcloud_data_cli::providers::dropbox;
-use qtcloud_data_cli::providers::google_drive::{receive_with_base, send_with_base};
-use qtcloud_data_cli::providers::onedrive;
+use qtcloud_data_cli::storage::StorageProvider;
+use qtcloud_data_cli::storage::dropbox;
+use qtcloud_data_cli::storage::google_drive::{receive_with_base, send_with_base};
+use qtcloud_data_cli::storage::onedrive;
 use std::sync::Mutex;
 use wiremock::matchers::query_param;
 use wiremock::matchers::{method, path};
@@ -71,7 +71,7 @@ async fn test_dropbox_receive() {
         .await;
 
     let tmp = std::env::temp_dir().join("test_recv.txt");
-    let provider = qtcloud_data_cli::providers::DropboxProvider;
+    let provider = qtcloud_data_cli::storage::DropboxProvider;
 
     let result = provider
         .receive(
@@ -96,7 +96,7 @@ async fn test_dropbox_receive_404() {
         .await;
 
     let tmp = std::env::temp_dir().join("test_404.txt");
-    let provider = qtcloud_data_cli::providers::DropboxProvider;
+    let provider = qtcloud_data_cli::storage::DropboxProvider;
 
     let result = provider
         .receive(&format!("{}/missing", server.uri()), tmp.to_str().unwrap())
@@ -130,10 +130,10 @@ async fn test_dropbox_upload_500() {
 #[tokio::test]
 async fn test_cloud_providers_receive_path_not_supported() {
     let providers: Vec<Box<dyn StorageProvider>> = vec![
-        Box::new(qtcloud_data_cli::providers::DropboxProvider),
-        Box::new(qtcloud_data_cli::providers::BaiduDriveProvider),
-        Box::new(qtcloud_data_cli::providers::GoogleDriveProvider),
-        Box::new(qtcloud_data_cli::providers::OneDriveProvider),
+        Box::new(qtcloud_data_cli::storage::DropboxProvider),
+        Box::new(qtcloud_data_cli::storage::BaiduDriveProvider),
+        Box::new(qtcloud_data_cli::storage::GoogleDriveProvider),
+        Box::new(qtcloud_data_cli::storage::OneDriveProvider),
     ];
     for p in providers {
         let result = p.receive_path("/some/path", "/tmp/test").await;
@@ -186,7 +186,7 @@ async fn test_s3_receive_path_downloads_from_configured_endpoint() {
         .await;
 
     set_aws_mock_env(&server.uri());
-    let provider = qtcloud_data_cli::providers::S3Provider;
+    let provider = qtcloud_data_cli::storage::S3Provider;
     let out = std::env::temp_dir().join("s3-receive.txt");
 
     let result = provider.receive_path("/key", out.to_str().unwrap()).await;
@@ -208,7 +208,7 @@ async fn test_s3_send_uploads_and_presigns_url() {
         .await;
 
     set_aws_mock_env(&server.uri());
-    let provider = qtcloud_data_cli::providers::S3Provider;
+    let provider = qtcloud_data_cli::storage::S3Provider;
     let file = std::env::temp_dir().join("s3-send.txt");
     std::fs::write(&file, b"upload me").unwrap();
 
@@ -227,33 +227,33 @@ async fn test_s3_send_uploads_and_presigns_url() {
 #[tokio::test]
 async fn test_provider_detect_from_url() {
     assert!(
-        qtcloud_data_cli::providers::detect("https://www.dropbox.com/s/abc/file.csv").is_some(),
+        qtcloud_data_cli::storage::detect("https://www.dropbox.com/s/abc/file.csv").is_some(),
     );
-    assert!(qtcloud_data_cli::providers::detect("https://pan.baidu.com/s/1abc").is_some(),);
+    assert!(qtcloud_data_cli::storage::detect("https://pan.baidu.com/s/1abc").is_some(),);
     assert!(
-        qtcloud_data_cli::providers::detect("https://drive.google.com/file/d/abc123/view")
+        qtcloud_data_cli::storage::detect("https://drive.google.com/file/d/abc123/view")
             .is_some(),
     );
-    assert!(qtcloud_data_cli::providers::detect("https://1drv.ms/u/s!abc123").is_some(),);
+    assert!(qtcloud_data_cli::storage::detect("https://1drv.ms/u/s!abc123").is_some(),);
     assert!(
-        qtcloud_data_cli::providers::detect("https://s3.us-east-1.amazonaws.com/bucket/key")
+        qtcloud_data_cli::storage::detect("https://s3.us-east-1.amazonaws.com/bucket/key")
             .is_some(),
     );
-    assert!(qtcloud_data_cli::providers::detect("sftp://user@host:22/path/file.csv").is_some(),);
-    assert!(qtcloud_data_cli::providers::detect("https://example.com/file").is_none(),);
+    assert!(qtcloud_data_cli::storage::detect("sftp://user@host:22/path/file.csv").is_some(),);
+    assert!(qtcloud_data_cli::storage::detect("https://example.com/file").is_none(),);
 }
 
 #[tokio::test]
 async fn test_provider_from_name() {
-    assert!(qtcloud_data_cli::providers::from_name("dropbox").is_some());
-    assert!(qtcloud_data_cli::providers::from_name("baidu").is_some());
-    assert!(qtcloud_data_cli::providers::from_name("baidudrive").is_some());
-    assert!(qtcloud_data_cli::providers::from_name("google").is_some());
-    assert!(qtcloud_data_cli::providers::from_name("googledrive").is_some());
-    assert!(qtcloud_data_cli::providers::from_name("onedrive").is_some());
-    assert!(qtcloud_data_cli::providers::from_name("s3").is_some());
-    assert!(qtcloud_data_cli::providers::from_name("sftp").is_some());
-    assert!(qtcloud_data_cli::providers::from_name("unknown").is_none());
+    assert!(qtcloud_data_cli::storage::from_name("dropbox").is_some());
+    assert!(qtcloud_data_cli::storage::from_name("baidu").is_some());
+    assert!(qtcloud_data_cli::storage::from_name("baidudrive").is_some());
+    assert!(qtcloud_data_cli::storage::from_name("google").is_some());
+    assert!(qtcloud_data_cli::storage::from_name("googledrive").is_some());
+    assert!(qtcloud_data_cli::storage::from_name("onedrive").is_some());
+    assert!(qtcloud_data_cli::storage::from_name("s3").is_some());
+    assert!(qtcloud_data_cli::storage::from_name("sftp").is_some());
+    assert!(qtcloud_data_cli::storage::from_name("unknown").is_none());
 }
 
 // ── Google Drive / OneDrive（自 provider_test.rs 并入）──

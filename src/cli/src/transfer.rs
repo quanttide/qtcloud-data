@@ -6,7 +6,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::error::CliError;
-use crate::providers;
+use crate::storage;
 use crate::registry;
 use crate::util;
 
@@ -91,15 +91,15 @@ pub fn receive(source: &str, output: &Path, provider: &str) -> Result<(), CliErr
     let is_url = source.starts_with("http://") || source.starts_with("https://");
     if is_url {
         // 手动模式：从 URL 自动识别提供商
-        let p = providers::detect(source)
-            .or_else(|| providers::from_name(provider))
+        let p = storage::detect(source)
+            .or_else(|| storage::from_name(provider))
             .ok_or_else(|| CliError::new(format!("不支持的提供商: {provider}")))?;
         return rt
             .block_on(p.receive(source, &output_str))
             .map_err(|e| CliError::new(format!("接收失败: {e}")));
     }
     // 自动模式：使用指定提供商直接拉取
-    let p = providers::from_name(provider)
+    let p = storage::from_name(provider)
         .ok_or_else(|| CliError::new(format!("不支持的提供商: {provider}")))?;
     rt.block_on(p.receive_path(source, &output_str))
         .map_err(|e| CliError::new(format!("自动接收失败: {e}")))
@@ -124,7 +124,7 @@ pub fn send(
 
     let rt = tokio::runtime::Runtime::new()
         .map_err(|e| CliError::new(format!("创建运行时失败: {e}")))?;
-    let p = providers::from_name(provider).ok_or_else(|| format!("不支持的提供商: {provider}"))?;
+    let p = storage::from_name(provider).ok_or_else(|| format!("不支持的提供商: {provider}"))?;
     let link = rt
         .block_on(p.send(file, &remote_path))
         .map_err(|e| format!("发送失败: {e}"))?;

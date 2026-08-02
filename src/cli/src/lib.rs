@@ -10,7 +10,7 @@ pub mod error;
 pub mod implement;
 pub mod pipeline;
 pub mod process;
-pub mod providers;
+pub mod storage;
 pub mod registry;
 pub mod review;
 pub mod spec;
@@ -61,11 +61,41 @@ pub mod test_support {
     }
 
     /// 临时目录：删除残留后创建（名字前缀 + pid，避免并行冲突）。
-    pub fn temp_dir(name: &str) -> std::path::PathBuf {
+    /// RAII 临时目录：`Drop` 时自动清理（Rust 版 fixture teardown，panic 也兜底）。
+    pub struct TempDir(std::path::PathBuf);
+
+    impl std::ops::Deref for TempDir {
+        type Target = std::path::Path;
+
+        fn deref(&self) -> &std::path::Path {
+            &self.0
+        }
+    }
+
+    impl AsRef<std::path::Path> for TempDir {
+        fn as_ref(&self) -> &std::path::Path {
+            &self.0
+        }
+    }
+
+    impl AsRef<std::ffi::OsStr> for TempDir {
+        fn as_ref(&self) -> &std::ffi::OsStr {
+            self.0.as_os_str()
+        }
+    }
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    /// 创建临时目录（名字前缀 + pid），返回 RAII 句柄，作用域结束时自动删除。
+    pub fn temp_dir(name: &str) -> TempDir {
         let dir = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
         std::fs::remove_dir_all(&dir).ok();
         std::fs::create_dir_all(&dir).unwrap();
-        dir
+        TempDir(dir)
     }
 
     /// 写可执行脚本（unix 设 0o755），父目录自动创建。

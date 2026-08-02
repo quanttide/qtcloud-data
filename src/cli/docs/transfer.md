@@ -1,6 +1,6 @@
-# 传输（transfer.rs + providers/）
+# 传输（transfer.rs + storage/）
 
-本文档对应 `src/transfer.rs` 与 `src/providers/`。
+本文档对应 `src/transfer.rs` 与 `src/storage/`（存储平台）。
 
 ## 职责
 
@@ -37,7 +37,7 @@ pub trait StorageProvider: Send + Sync {
 
 ### 手动 vs 自动模式
 
-- **手动**：`receive` 传入 URL，自动识别提供商（`providers::detect`）。全部平台支持
+- **手动**：`receive` 传入 URL，自动识别提供商（`storage::detect`）。全部平台支持
 - **自动**：`receive` 传入路径 + `--provider`。仅 S3、SFTP 等直接访问平台支持
 
 ## 平台实现与 mock 支持
@@ -61,7 +61,7 @@ pub trait StorageProvider: Send + Sync {
 
 ## 添加新平台
 
-1. 新建 `providers/<name>.rs`，实现 `StorageProvider` trait
-2. 在 `providers/mod.rs` 注册（`from_name` / `detect`）
+1. 新建 `storage/<name>.rs`，实现 `StorageProvider` trait
+2. 在 `storage/mod.rs` 注册（`from_name` / `detect`）
 3. 认证环境变量约定见上表
-4. 需要 mock 的平台遵循 `*_with_base` 注入约定并补 wiremock 测试（`tests/providers_test.rs` 参考）
+4. 需要 mock 的平台遵循 `*_with_base` 注入约定并补 wiremock 测试（`tests/storage_test.rs` 参考）
