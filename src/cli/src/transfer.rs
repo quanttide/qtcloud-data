@@ -43,6 +43,7 @@ pub enum TransferAction {
     },
 }
 
+// ── 命令层 ──
 pub fn run(args: &TransferArgs) -> Result<(), CliError> {
     match &args.action {
         TransferAction::Send {
@@ -70,6 +71,7 @@ pub fn run(args: &TransferArgs) -> Result<(), CliError> {
 ///
 /// `QTDATA_CLI` 环境变量设置时委派给外部 CLI（测试与部署逃生舱），
 /// 否则走进程内 provider（替代 process 自我 re-exec）。
+// ── 服务函数（receive / send / 委派） ──
 pub fn receive(source: &str, output: &Path, provider: &str) -> Result<(), CliError> {
     let output_str = output.to_string_lossy().to_string();
 
@@ -168,6 +170,7 @@ fn send_delegated(bin: &str, file: &str, output: Option<&Path>) -> Result<String
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+// ── 记录模型（DeliveryLinkRecord / SentLinkInput） ──
 struct DeliveryLinkRecord {
     id: String,
     provider: String,
@@ -221,6 +224,7 @@ fn handle_sent_link_in(input: SentLinkInput<'_>, links_path: &Path) -> Result<()
     Ok(())
 }
 
+// ── 链接文件与工具 ──
 fn write_link_file(path: &str, link: &str) -> Result<(), String> {
     let path = Path::new(path);
     if let Some(parent) = path.parent()
@@ -255,6 +259,7 @@ fn new_delivery_link_id(file: &str) -> String {
     format!("{stem}-{millis}")
 }
 
+// ── id 与路径工具 ──
 fn sanitize_id(value: &str) -> String {
     value
         .chars()

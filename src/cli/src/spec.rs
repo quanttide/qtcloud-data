@@ -32,6 +32,7 @@ pub enum SpecAction {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+// ── 数据模型（Specification 系列） ──
 pub struct Specification {
     pub api_version: String,
     pub kind: String,
@@ -67,6 +68,7 @@ impl Specification {
     }
 }
 
+// ── 命令（wrap / validate） ──
 pub fn run(args: &SpecArgs) -> Result<(), CliError> {
     match &args.action {
         SpecAction::Wrap { input, output } => wrap_file(input, output),
@@ -74,6 +76,7 @@ pub fn run(args: &SpecArgs) -> Result<(), CliError> {
     }
 }
 
+// ── 解析与包装（load / parse / wrap） ──
 pub fn wrap_blueprint_yaml(yaml: &str, source_path: Option<&str>) -> Result<String, CliError> {
     let blueprint = load_blueprint_from_yaml(yaml)?;
     let spec = Specification::from_blueprint(blueprint, source_path);

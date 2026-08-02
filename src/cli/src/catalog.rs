@@ -100,6 +100,7 @@ fn open_registry() -> registry::Registry<Volume> {
     registry::Registry::open(&registry_path()).unwrap_or_default()
 }
 
+// ── 数据模型（VolumeStatus / Volume / RegisterVolume） ──
 pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
     let path = PathBuf::from(input.path);
     if !path.exists() {
@@ -140,6 +141,7 @@ pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
     Ok(volume)
 }
 
+// ── 命令（run / list / show / add / rm） ──
 pub fn run(args: &CatalogArgs) -> Result<(), CliError> {
     match &args.action {
         CatalogAction::List => list(),
@@ -230,6 +232,7 @@ fn rm(name: &str) -> Result<(), CliError> {
     }
 }
 
+// ── 工具 ──
 fn format_size(bytes: u64) -> String {
     const KB: u64 = 1024;
     const MB: u64 = KB * 1024;

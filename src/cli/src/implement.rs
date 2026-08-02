@@ -212,10 +212,9 @@ mod tests {
     }
 }
 
-// ── 自 blueprint_core 回迁 ──
-
 /// Build the implement prompt for a single pipeline step.
 /// Generates a Python function for that step.
+// ── prompt 与命名工具 ──
 pub fn implement_step_prompt(
     step_name: &str,
     from_desc: &str,

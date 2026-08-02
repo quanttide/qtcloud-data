@@ -134,8 +134,6 @@ mod tests {
     }
 }
 
-// ── 自 blueprint_core 回迁 ──
-
 /// Get the blueprint directory from env or default.
 pub fn blueprint_dir() -> String {
     std::env::var("BLUEPRINT_DIR").unwrap_or_else(|_| ".quanttide/data/blueprint".to_string())
@@ -167,7 +165,7 @@ pub fn resolve_cue_path(input: &str, dir: &str) -> Option<PathBuf> {
     }
 }
 
-// ── 自 process.rs 迁移（跨模块工具）──
+// ── 命名与 JSON 工具 ──
 
 /// 从 cue 导出的 JSON 顶层收集各定义的 `name` 字段（结构化解析，替代文本 grep）。
 pub fn collect_defined_names(value: &serde_json::Value) -> Vec<String> {

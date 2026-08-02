@@ -480,7 +480,7 @@ mod tests {
     }
 }
 
-// ── prompt 与解析（纯函数，自 blueprint_core 回迁，按子领域分组）──
+// ── prompt 与解析（纯函数，按子领域分组）──
 
 // ── contract 生成 ──
 

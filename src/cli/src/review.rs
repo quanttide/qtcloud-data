@@ -138,9 +138,8 @@ mod tests {
     }
 }
 
-// ── 自 blueprint_core 回迁 ──
-
 /// Build the review prompt for LLM.
+// ── prompt ──
 pub fn review_prompt(
     name: &str,
     status: &str,

@@ -116,9 +116,8 @@ mod tests {
     }
 }
 
-// ── 自 blueprint_core 回迁 ──
-
 /// Build the clarify prompt for LLM: convert chat logs into a DRD.
+// ── prompt ──
 pub fn clarify_prompt(chat: &str) -> String {
     format!(
         r#"你是一个数据工程需求分析师。请从以下客户聊天记录中，提取并生成一份数据需求文档（DRD）。

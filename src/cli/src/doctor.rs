@@ -22,6 +22,7 @@ pub struct DoctorArgs {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+// ── 数据模型（CheckStatus / Check / DoctorArgs） ──
 pub enum CheckStatus {
     Pass,
     Warn,
@@ -61,6 +62,7 @@ impl Check {
     }
 }
 
+// ── 命令 ──
 pub fn run(args: &DoctorArgs) -> Result<(), CliError> {
     let dirs = data_dirs();
     let mut checks = Vec::new();
@@ -82,6 +84,7 @@ pub fn run(args: &DoctorArgs) -> Result<(), CliError> {
     Ok(())
 }
 
+// ── 检查项构造 ──
 pub fn default_checks() -> Vec<Check> {
     checks_with_dirs(&data_dirs())
 }
@@ -144,6 +147,7 @@ fn checks_with_dirs(dirs: &[DataDir]) -> Vec<Check> {
     checks
 }
 
+// ── 报告渲染 ──
 fn print_output(output: &str) {
     let mut stdout = io::stdout();
     let _ = write!(stdout, "{output}");
@@ -244,6 +248,7 @@ struct DataDir {
     path: PathBuf,
 }
 
+// ── 数据目录 ──
 fn data_dirs() -> Vec<DataDir> {
     data_dirs_with(|name| env::var(name).ok())
 }
@@ -293,6 +298,7 @@ fn create_data_dirs(dirs: &[DataDir]) -> Vec<Check> {
         .collect()
 }
 
+// ── 检查函数 ──
 fn check_command(command: &str, required: bool, purpose: &str) -> Check {
     if command_exists(command) {
         Check::pass(command, format!("{purpose}: found"))

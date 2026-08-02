@@ -25,6 +25,7 @@ pub struct ProcessArgs {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+// ── 数据模型（ProcessJobRecord / ProcessArgs） ──
 pub struct ProcessJobRecord {
     pub id: String,
     pub customer_id: String,
@@ -82,6 +83,7 @@ impl ProcessJobRecord {
     }
 }
 
+// ── 命令与 StepExecutor（receive → pipeline → send） ──
 pub fn run(args: &ProcessArgs) -> Result<(), CliError> {
     let pipeline = resolve_pipeline(args)?;
     let started_at = util::now_utc();
@@ -136,6 +138,7 @@ pub fn run(args: &ProcessArgs) -> Result<(), CliError> {
     executor.run()
 }
 
+// ── pipeline 解析 ──
 fn resolve_pipeline(args: &ProcessArgs) -> Result<String, CliError> {
     if let Some(bp) = &args.blueprint {
         resolve_blueprint_pipeline(bp)
@@ -252,6 +255,7 @@ impl StepExecutor<'_> {
     }
 }
 
+// ── job 记录与日志 ──
 fn register_process_output(job_id: &str, result_path: &str) {
     let volume_name = format!("{job_id}-final");
     let source = format!("process:{job_id}");
@@ -296,6 +300,7 @@ fn resolve_blueprint_pipeline(name: &str) -> Result<String, CliError> {
     Ok(pipe)
 }
 
+// ── 脱敏工具 ──
 pub fn redact_source(source: &str) -> String {
     let without_fragment = source.split('#').next().unwrap_or(source);
     let without_query = without_fragment
