@@ -270,7 +270,7 @@ fn register_process_output(job_id: &str, result_path: &str) {
 fn resolve_blueprint_pipeline(name: &str) -> Result<String, CliError> {
     let dir =
         std::env::var("BLUEPRINT_DIR").unwrap_or_else(|_| ".quanttide/data/blueprint".to_string());
-    let key = to_camel(name);
+    let key = crate::util::to_camel(name);
     let output = Command::new("cue")
         .args([
             "export",
@@ -294,37 +294,6 @@ fn resolve_blueprint_pipeline(name: &str) -> Result<String, CliError> {
         return Err(CliError::new(format!("Blueprint {name} 中未定义 pipeline")));
     }
     Ok(pipe)
-}
-
-/// 从 cue 导出的 JSON 顶层收集各定义的 `name` 字段（结构化解析，替代文本 grep）。
-pub fn collect_defined_names(value: &serde_json::Value) -> Vec<String> {
-    let mut names = Vec::new();
-    if let serde_json::Value::Object(map) = value {
-        for nested in map.values() {
-            if let Some(name) = nested.get("name").and_then(|n| n.as_str()) {
-                names.push(name.to_string());
-            }
-        }
-    }
-    names.sort();
-    names.dedup();
-    names
-}
-
-pub fn to_camel(s: &str) -> String {
-    let mut result = String::new();
-    let mut upper = false;
-    for c in s.chars() {
-        if c == '-' {
-            upper = true;
-        } else if upper {
-            result.push(c.to_ascii_uppercase());
-            upper = false;
-        } else {
-            result.push(c);
-        }
-    }
-    result
 }
 
 pub fn redact_source(source: &str) -> String {

@@ -166,3 +166,36 @@ pub fn resolve_cue_path(input: &str, dir: &str) -> Option<PathBuf> {
         None
     }
 }
+
+// ── 自 process.rs 迁移（跨模块工具）──
+
+/// 从 cue 导出的 JSON 顶层收集各定义的 `name` 字段（结构化解析，替代文本 grep）。
+pub fn collect_defined_names(value: &serde_json::Value) -> Vec<String> {
+    let mut names = Vec::new();
+    if let serde_json::Value::Object(map) = value {
+        for nested in map.values() {
+            if let Some(name) = nested.get("name").and_then(|n| n.as_str()) {
+                names.push(name.to_string());
+            }
+        }
+    }
+    names.sort();
+    names.dedup();
+    names
+}
+
+pub fn to_camel(s: &str) -> String {
+    let mut result = String::new();
+    let mut upper = false;
+    for c in s.chars() {
+        if c == '-' {
+            upper = true;
+        } else if upper {
+            result.push(c.to_ascii_uppercase());
+            upper = false;
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}

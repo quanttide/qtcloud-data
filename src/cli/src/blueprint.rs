@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::process::Command;
 
 use crate::error::CliError;
-use crate::process::collect_defined_names;
+use crate::util::collect_defined_names;
 
 #[derive(Args)]
 pub struct BlueprintArgs {
@@ -54,7 +54,7 @@ fn cmd_list(dir: &str) -> Result<(), CliError> {
 }
 
 fn cmd_show(dir: &str, name: &str) -> Result<(), CliError> {
-    let key = crate::process::to_camel(name);
+    let key = crate::util::to_camel(name);
     let output = Command::new("cue")
         .args(["export", "--out", "json", "--expression", &key, dir])
         .output()

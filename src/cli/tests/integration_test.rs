@@ -258,13 +258,10 @@ async fn test_provider_from_name() {
 #[test]
 fn test_to_camel() {
     assert_eq!(
-        qtcloud_data_cli::process::to_camel("csv-standard"),
+        qtcloud_data_cli::util::to_camel("csv-standard"),
         "csvStandard"
     );
-    assert_eq!(qtcloud_data_cli::process::to_camel("simple"), "simple");
-    assert_eq!(
-        qtcloud_data_cli::process::to_camel("abc-def-ghi"),
-        "abcDefGhi"
-    );
-    assert_eq!(qtcloud_data_cli::process::to_camel(""), "");
+    assert_eq!(qtcloud_data_cli::util::to_camel("simple"), "simple");
+    assert_eq!(qtcloud_data_cli::util::to_camel("abc-def-ghi"), "abcDefGhi");
+    assert_eq!(qtcloud_data_cli::util::to_camel(""), "");
 }
