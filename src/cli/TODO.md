@@ -5,10 +5,10 @@
 
 ## 0. release 流程（每版发布均需执行）
 
-- [ ] 将 feature 分支 push 到远端并创建 Pull Request（`docs/dev/release.md`）
-- [ ] 通过 code review 后合并到 main（`docs/dev/release.md`）
-- [ ] 在 main 合并完成后运行 qtcloud-devops release publish -v cli/v0.X.Y --registry crates -y（`docs/dev/release.md`）
-- [ ] 验证 crates.io、GitHub Release 和 Linux/Windows 二进制制品（`docs/dev/release.md`）
+- [ ] 将 feature 分支 push 到远端并创建 Pull Request（`CONTRIBUTING.md`）
+- [ ] 通过 code review 后合并到 main（`CONTRIBUTING.md`）
+- [ ] 在 main 合并完成后运行 qtcloud-devops release publish -v cli/v0.X.Y --registry crates -y（`CONTRIBUTING.md`）
+- [ ] 验证 crates.io、GitHub Release 和 Linux/Windows 二进制制品（`CONTRIBUTING.md`）
 
 ## [0.2.2] manifest 契约与 catalog 产物类型
 
