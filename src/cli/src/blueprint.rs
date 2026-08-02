@@ -1,3 +1,5 @@
+//! 蓝图定义查看命令（list / show）。
+
 use clap::{Args, Subcommand};
 use serde_json::Value;
 use std::process::Command;
@@ -22,6 +24,7 @@ pub enum BlueprintAction {
     },
 }
 
+/// 蓝图查看命令入口（list / show），返回 `Result<(), CliError>`。
 pub fn run(args: &BlueprintArgs) -> Result<(), CliError> {
     let dir = crate::util::blueprint_dir();
 

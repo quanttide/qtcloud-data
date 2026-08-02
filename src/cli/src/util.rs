@@ -182,6 +182,14 @@ pub fn collect_defined_names(value: &serde_json::Value) -> Vec<String> {
     names
 }
 
+/// 转换 kebab-case 为 camelCase（用于 cue expression 键）。
+
+/// # 示例
+///
+/// ```
+/// assert_eq!(qtcloud_data_cli::util::to_camel("csv-standard"), "csvStandard");
+/// assert_eq!(qtcloud_data_cli::util::to_camel("abc-def"), "abcDef");
+/// ```
 pub fn to_camel(s: &str) -> String {
     let mut result = String::new();
     let mut upper = false;

@@ -1,3 +1,5 @@
+//! 编排命令：`StepExecutor`（receive → pipeline → send）+ job 记录。
+
 use clap::Args;
 use serde::{Deserialize, Serialize};
 use std::io;
@@ -84,6 +86,7 @@ impl ProcessJobRecord {
 }
 
 // ── 命令与 StepExecutor（receive → pipeline → send） ──
+/// 编排命令入口：按 blueprint 执行 receive → pipeline → send。
 pub fn run(args: &ProcessArgs) -> Result<(), CliError> {
     let pipeline = resolve_pipeline(args)?;
     let started_at = util::now_utc();
@@ -301,6 +304,7 @@ fn resolve_blueprint_pipeline(name: &str) -> Result<String, CliError> {
 }
 
 // ── 脱敏工具 ──
+/// 脱敏来源 URL：移除 query 与 fragment（不含 token）。
 pub fn redact_source(source: &str) -> String {
     let without_fragment = source.split('#').next().unwrap_or(source);
     let without_query = without_fragment

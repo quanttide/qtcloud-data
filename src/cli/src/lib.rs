@@ -1,3 +1,5 @@
+//! qtcloud-data-cli 库入口：模块注册与测试共享支持。
+
 pub mod blueprint;
 pub mod catalog;
 pub mod clarify;

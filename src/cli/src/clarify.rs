@@ -1,3 +1,5 @@
+//! 需求澄清命令：聊天记录 → DRD（`ClarifyHandler`）。
+
 use clap::{Args, Subcommand};
 use std::path::Path;
 
@@ -118,6 +120,7 @@ mod tests {
 
 /// Build the clarify prompt for LLM: convert chat logs into a DRD.
 // ── prompt ──
+/// 构建 clarify prompt：把聊天记录转换为 DRD 需求文档。
 pub fn clarify_prompt(chat: &str) -> String {
     format!(
         r#"你是一个数据工程需求分析师。请从以下客户聊天记录中，提取并生成一份数据需求文档（DRD）。

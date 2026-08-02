@@ -1,3 +1,5 @@
+//! 规格设计命令：DRD → Contract / Blueprint（`DesignHandler` + prompt/解析纯函数）。
+
 use clap::{Args, Subcommand};
 use std::path::{Path, PathBuf};
 

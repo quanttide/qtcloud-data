@@ -1,3 +1,5 @@
+//! 质量审查命令（横向工具）：审计任意阶段产物（结构校验 + LLM 语义审查）。
+
 use clap::Args;
 
 use crate::error::CliError;
@@ -140,6 +142,7 @@ mod tests {
 
 /// Build the review prompt for LLM.
 // ── prompt ──
+/// 构建 review prompt：带结构校验问题的 Blueprint 审计。
 pub fn review_prompt(
     name: &str,
     status: &str,

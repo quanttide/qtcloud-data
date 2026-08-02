@@ -1,3 +1,5 @@
+//! 传输命令与服务函数：send / receive（6 平台，进程内 + QTDATA_CLI 委派）。
+
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::io;
@@ -44,6 +46,7 @@ pub enum TransferAction {
 }
 
 // ── 命令层 ──
+/// 传输命令入口（send / receive）。
 pub fn run(args: &TransferArgs) -> Result<(), CliError> {
     match &args.action {
         TransferAction::Send {
@@ -72,6 +75,7 @@ pub fn run(args: &TransferArgs) -> Result<(), CliError> {
 /// `QTDATA_CLI` 环境变量设置时委派给外部 CLI（测试与部署逃生舱），
 /// 否则走进程内 provider（替代 process 自我 re-exec）。
 // ── 服务函数（receive / send / 委派） ──
+/// 进程内接收服务：从 URL 或远程路径下载到本地文件。
 pub fn receive(source: &str, output: &Path, provider: &str) -> Result<(), CliError> {
     let output_str = output.to_string_lossy().to_string();
 

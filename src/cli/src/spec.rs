@@ -1,3 +1,5 @@
+//! Specification 工具命令：wrap / validate（envelope 契约）。
+
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -69,6 +71,7 @@ impl Specification {
 }
 
 // ── 命令（wrap / validate） ──
+/// Specification 工具命令入口（wrap / validate）。
 pub fn run(args: &SpecArgs) -> Result<(), CliError> {
     match &args.action {
         SpecAction::Wrap { input, output } => wrap_file(input, output),
@@ -77,6 +80,7 @@ pub fn run(args: &SpecArgs) -> Result<(), CliError> {
 }
 
 // ── 解析与包装（load / parse / wrap） ──
+/// 把 Blueprint YAML 包装为 Specification envelope。
 pub fn wrap_blueprint_yaml(yaml: &str, source_path: Option<&str>) -> Result<String, CliError> {
     let blueprint = load_blueprint_from_yaml(yaml)?;
     let spec = Specification::from_blueprint(blueprint, source_path);
@@ -84,6 +88,7 @@ pub fn wrap_blueprint_yaml(yaml: &str, source_path: Option<&str>) -> Result<Stri
         .map_err(|err| CliError::new(format!("序列化 Specification 失败: {err}")))
 }
 
+/// 从 YAML 加载 Blueprint（兼容 envelope 与裸 blueprint 两种格式）。
 pub fn load_blueprint_from_yaml(yaml: &str) -> Result<quanttide_data::Blueprint, CliError> {
     let value: serde_yaml::Value = serde_yaml::from_str(yaml)
         .map_err(|err| CliError::new(format!("解析 YAML 失败: {err}")))?;
@@ -96,6 +101,7 @@ pub fn load_blueprint_from_yaml(yaml: &str) -> Result<quanttide_data::Blueprint,
         .map_err(|err| CliError::new(format!("解析 Blueprint YAML 失败: {err}")))
 }
 
+/// 解析并校验 Specification envelope（api_version / kind）。
 pub fn parse_specification_yaml(yaml: &str) -> Result<Specification, CliError> {
     let spec: Specification = serde_yaml::from_str(yaml)
         .map_err(|err| CliError::new(format!("解析 Specification YAML 失败: {err}")))?;

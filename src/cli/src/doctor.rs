@@ -1,3 +1,5 @@
+//! 环境检查命令：外部工具 / 数据目录 / 传输凭证（检查三态）。
+
 use clap::Args;
 use std::env;
 use std::fs;
@@ -63,6 +65,7 @@ impl Check {
 }
 
 // ── 命令 ──
+/// 环境检查命令入口；存在失败项且未 `--no-fail` 时返回错误。
 pub fn run(args: &DoctorArgs) -> Result<(), CliError> {
     let dirs = data_dirs();
     let mut checks = Vec::new();
@@ -85,6 +88,7 @@ pub fn run(args: &DoctorArgs) -> Result<(), CliError> {
 }
 
 // ── 检查项构造 ──
+/// 构造默认检查项集合（工具 + 目录 + 凭证）。
 pub fn default_checks() -> Vec<Check> {
     checks_with_dirs(&data_dirs())
 }
@@ -154,6 +158,7 @@ fn print_output(output: &str) {
     let _ = stdout.flush();
 }
 
+/// 渲染人类可读检查报告（不含凭证值）。
 pub fn render_report(checks: &[Check]) -> String {
     let mut report = String::from("qtcloud-data doctor\n检查本机 DataOps 环境\n\n");
 
@@ -190,6 +195,7 @@ pub fn render_report(checks: &[Check]) -> String {
     report
 }
 
+/// 渲染机器可读 JSON 检查报告（CI / Studio 用）。
 pub fn render_json_report(checks: &[Check]) -> String {
     let (failures, warnings) = summary_counts(checks);
     let checks_json: Vec<_> = checks
@@ -219,6 +225,7 @@ pub fn render_json_report(checks: &[Check]) -> String {
     )
 }
 
+/// 判断检查结果中是否存在失败项（warning 不计）。
 pub fn has_failures(checks: &[Check]) -> bool {
     checks.iter().any(|check| check.status == CheckStatus::Fail)
 }

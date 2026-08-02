@@ -1,3 +1,5 @@
+//! 契约定义查看命令（list / show，文件直读为主）。
+
 use clap::{Args, Subcommand};
 use std::path::{Path, PathBuf};
 
@@ -59,6 +61,7 @@ fn find_contract(dir: &Path, name: &str) -> Option<PathBuf> {
     None
 }
 
+/// 契约查看命令入口（list / show）。
 pub fn run(args: &ContractArgs) -> Result<(), CliError> {
     let dir = contract_dir();
     match &args.action {

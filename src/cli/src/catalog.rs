@@ -1,3 +1,5 @@
+//! 数据目录与登记：Volume 管理（`registry.json`）。
+
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -101,6 +103,7 @@ fn open_registry() -> registry::Registry<Volume> {
 }
 
 // ── 数据模型（VolumeStatus / Volume / RegisterVolume） ──
+/// 登记一个文件到 catalog registry（`registry.json`）。
 pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
     let path = PathBuf::from(input.path);
     if !path.exists() {
@@ -142,6 +145,7 @@ pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
 }
 
 // ── 命令（run / list / show / add / rm） ──
+/// catalog 命令入口（list / show / add / rm）。
 pub fn run(args: &CatalogArgs) -> Result<(), CliError> {
     match &args.action {
         CatalogAction::List => list(),

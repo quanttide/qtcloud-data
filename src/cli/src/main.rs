@@ -1,3 +1,5 @@
+//! 二进制入口：CLI 参数解析与命令分发（run_command）。
+
 use clap::{Parser, Subcommand};
 use qtcloud_data_cli::error::CliError;
 use qtcloud_data_cli::{

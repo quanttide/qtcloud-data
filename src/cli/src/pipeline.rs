@@ -1,3 +1,5 @@
+//! 管道定义查看命令（list / show）。
+
 use clap::{Args, Subcommand};
 use serde_json::Value;
 use std::process::Command;
@@ -22,6 +24,7 @@ pub enum PipelineAction {
     },
 }
 
+/// 管道查看命令入口（list / show）。
 pub fn run(args: &PipelineArgs) -> Result<(), CliError> {
     let dir =
         std::env::var("PIPELINE_DIR").unwrap_or_else(|_| ".quanttide/data/pipeline".to_string());

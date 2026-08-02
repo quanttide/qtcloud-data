@@ -1,3 +1,5 @@
+//! 规格版本管理命令：基于 git 历史（list / show / diff）。
+
 use clap::{Args, Subcommand};
 use std::process::Command;
 
@@ -35,6 +37,7 @@ pub enum VersionAction {
     },
 }
 
+/// 规格版本管理命令入口（list / show / diff）。
 pub fn run(args: &VersionArgs) -> Result<(), CliError> {
     let dir = util::spec_dir();
 

@@ -1,3 +1,5 @@
+//! 代码实现命令：Blueprint → Python（`ImplementHandler`）。
+
 use clap::Args;
 use std::path::{Path, PathBuf};
 
@@ -215,6 +217,7 @@ mod tests {
 /// Build the implement prompt for a single pipeline step.
 /// Generates a Python function for that step.
 // ── prompt 与命名工具 ──
+/// 构建单步实现 prompt：生成一个 Python 函数。
 pub fn implement_step_prompt(
     step_name: &str,
     from_desc: &str,
@@ -285,6 +288,13 @@ pub fn implement_assemble_prompt(
 }
 
 /// Convert a step name to snake_case function name.
+
+/// # 示例
+///
+/// ```
+/// assert_eq!(qtcloud_data_cli::implement::to_snake("Normalize Data"), "normalize_data");
+/// assert_eq!(qtcloud_data_cli::implement::to_snake("load-csv"), "load_csv");
+/// ```
 pub fn to_snake(s: &str) -> String {
     s.to_lowercase()
         .replace([' ', '-', '.'], "_")
