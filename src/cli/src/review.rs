@@ -1,7 +1,8 @@
 use clap::Args;
 
 use crate::error::CliError;
-use crate::{blueprint_core, spec};
+use crate::spec;
+use crate::util;
 
 #[derive(Args)]
 pub struct ReviewArgs {
@@ -19,11 +20,9 @@ impl ReviewHandler {
     }
 
     pub fn run(&self, args: &ReviewArgs) -> Result<(), CliError> {
-        let dir = blueprint_core::spec_dir();
-        let cue_path = blueprint_core::resolve_cue_path(&args.input, &dir)
-            .or_else(|| {
-                blueprint_core::resolve_cue_path(&args.input, &blueprint_core::blueprint_dir())
-            })
+        let dir = util::spec_dir();
+        let cue_path = util::resolve_cue_path(&args.input, &dir)
+            .or_else(|| util::resolve_cue_path(&args.input, &util::blueprint_dir()))
             .ok_or_else(|| CliError::new(format!("找不到 Specification: {}", args.input)))?;
 
         let cue_content = std::fs::read_to_string(&cue_path)
@@ -40,7 +39,7 @@ impl ReviewHandler {
                 .join("\n"),
         };
 
-        let prompt = blueprint_core::review_prompt(
+        let prompt = review_prompt(
             &blueprint.name,
             blueprint.status.as_str(),
             blueprint.pipeline.steps.len(),
@@ -80,6 +79,32 @@ impl ReviewHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_review_prompt_contains_key_info() {
+        let prompt = review_prompt("test-bp", "draft", 5, "input-schema", "output-schema", "");
+        assert!(prompt.contains("test-bp"));
+        assert!(prompt.contains("draft"));
+        assert!(prompt.contains("管道步骤数: 5"));
+        assert!(prompt.contains("input-schema"));
+        assert!(prompt.contains("output-schema"));
+        assert!(prompt.contains("【严重】"));
+        assert!(prompt.contains("【警告】"));
+        assert!(prompt.contains("【建议】"));
+    }
+
+    #[test]
+    fn test_review_prompt_with_issues() {
+        let prompt = review_prompt("bp", "submitted", 0, "in", "out", "step1: missing desc");
+        assert!(prompt.contains("step1: missing desc"));
+    }
+
+    #[test]
+    fn test_review_prompt_empty_issues_shows_none() {
+        let prompt = review_prompt("bp", "draft", 0, "in", "out", "");
+        assert!(prompt.contains("无"));
+    }
+
     use crate::ENV_LOCK;
     use crate::test_support::fake_llm;
 
@@ -111,4 +136,43 @@ mod tests {
 
         std::fs::remove_dir_all(&root).ok();
     }
+}
+
+// ── 自 blueprint_core 回迁 ──
+
+/// Build the review prompt for LLM.
+pub fn review_prompt(
+    name: &str,
+    status: &str,
+    step_count: usize,
+    input_schema: &str,
+    output_schema: &str,
+    issues: &str,
+) -> String {
+    format!(
+        r#"你是数据工程 Blueprint 审计专家。请审查以下 Blueprint 并输出结构化问题清单。
+
+Blueprint:
+- 名称: {name}
+- 状态: {status}
+- 管道步骤数: {step_count}
+- 输入 schema: {input_schema}
+- 输出 schema: {output_schema}
+
+结构校验问题:
+{issues_section}
+
+请按以下格式输出问题清单：
+1. 【严重】阻断性问题（缺失必填字段、契约不完整）
+2. 【警告】可能导致交付偏差的问题（口径不明确、步骤描述过于简略）
+3. 【建议】可以优化的地方（命名规范、文档完整性）
+
+每个问题标注：严重程度、位置（字段/步骤名）、具体问题、建议修复。"#,
+        name = name,
+        status = status,
+        step_count = step_count,
+        input_schema = input_schema,
+        output_schema = output_schema,
+        issues_section = if issues.is_empty() { "无" } else { issues },
+    )
 }

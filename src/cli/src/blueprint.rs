@@ -2,7 +2,6 @@ use clap::{Args, Subcommand};
 use serde_json::Value;
 use std::process::Command;
 
-use crate::blueprint_core;
 use crate::error::CliError;
 use crate::process::collect_defined_names;
 
@@ -24,7 +23,7 @@ pub enum BlueprintAction {
 }
 
 pub fn run(args: &BlueprintArgs) -> Result<(), CliError> {
-    let dir = blueprint_core::blueprint_dir();
+    let dir = crate::util::blueprint_dir();
 
     match &args.action {
         BlueprintAction::List => cmd_list(&dir),
@@ -55,7 +54,7 @@ fn cmd_list(dir: &str) -> Result<(), CliError> {
 }
 
 fn cmd_show(dir: &str, name: &str) -> Result<(), CliError> {
-    let key = blueprint_core::to_camel(name);
+    let key = crate::process::to_camel(name);
     let output = Command::new("cue")
         .args(["export", "--out", "json", "--expression", &key, dir])
         .output()

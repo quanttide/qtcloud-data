@@ -1,8 +1,8 @@
 use clap::{Args, Subcommand};
 use std::process::Command;
 
-use crate::blueprint_core;
 use crate::error::CliError;
+use crate::util;
 
 #[derive(Args)]
 pub struct VersionArgs {
@@ -36,7 +36,7 @@ pub enum VersionAction {
 }
 
 pub fn run(args: &VersionArgs) -> Result<(), CliError> {
-    let dir = blueprint_core::spec_dir();
+    let dir = util::spec_dir();
 
     match &args.action {
         VersionAction::List { name } => {
@@ -56,7 +56,7 @@ pub fn run(args: &VersionArgs) -> Result<(), CliError> {
                 }
                 _ => {
                     // Fallback to old blueprint directory
-                    let old_dir = blueprint_core::blueprint_dir();
+                    let old_dir = util::blueprint_dir();
                     let output2 = Command::new("git")
                         .args(["log", "--oneline", "--follow", &format!("{name}.cue")])
                         .current_dir(&old_dir)

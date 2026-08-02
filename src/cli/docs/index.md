@@ -12,7 +12,7 @@
 | [catalog.md](catalog.md) | `catalog.rs` | 数据格式（registry/jobs/delivery-links 字段级定义） |
 | [process.md](process.md) | `process.rs` | StepExecutor 编排（receive → pipeline → send） |
 | [llm.md](llm.md) | `clarify.rs`、`design.rs`、`implement.rs`、`review.rs` | LLM 命令与 Handler 注入模式 |
-| [specification.md](specification.md) | `spec.rs`、`blueprint_core.rs` | Specification YAML 契约与 Blueprint 工作流模型 |
+| [specification.md](specification.md) | `spec.rs` | Specification YAML 契约与 Blueprint 工作流模型 |
 | [blueprint.md](blueprint.md) | `blueprint.rs` | 蓝图定义查看 |
 | [contract.md](contract.md) | `contract.rs` | 契约定义查看（文件直读） |
 | [pipeline.md](pipeline.md) | `pipeline.rs` | 管道定义查看 |

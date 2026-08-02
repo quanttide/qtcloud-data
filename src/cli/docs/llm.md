@@ -42,7 +42,7 @@ handler.run(&DesignArgs { action: DesignAction::Contract { input } }).unwrap();
 
 ## LLM 调用约定
 
-- 每个命令构建 prompt（`blueprint_core::*_prompt`）→ `Message::new("user", prompt)` →
+- 每个命令在**自己模块内**构建 prompt（`clarify_prompt` / `design_*_prompt` / `review_prompt` / `implement_*_prompt`，v0.2.2 起就近回迁）→ `Message::new("user", prompt)` →
   `llm.complete(&messages, CompleteOptions::default())`
 - 响应解析：design 解析 LLM 输出的 Markdown 表格（`contract_tables_to_yaml` /
   `blueprint_table_to_yaml`）；formalize / implement 提取代码块（`extract_cue` / `extract_python_fn`）

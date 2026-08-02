@@ -1,6 +1,6 @@
 //! 通用工具：数据目录解析与 UTC 时间格式化（原 store.rs 拆出）。
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// 解析 catalog 根目录：`CATALOG_DIR` > `DATA_ROOT/catalog` > `.quanttide/data/catalog`。
 pub fn catalog_dir() -> PathBuf {
@@ -48,6 +48,46 @@ fn days_to_date(mut days: i64) -> (i64, u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_resolve_cue_path_nonexistent() {
+        let result = resolve_cue_path("nonexistent-blueprint-12345", "/tmp");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_resolve_cue_path_by_name() {
+        let tmp = std::env::temp_dir().join("bp-test-resolve");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(
+            tmp.join("my-bp.cue"),
+            "package blueprints\n{name: \"test\"}",
+        )
+        .unwrap();
+
+        let result = resolve_cue_path("my-bp", tmp.to_str().unwrap());
+        assert!(result.is_some());
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn test_blueprint_dir_default() {
+        let dir = blueprint_dir();
+        assert_eq!(dir, ".quanttide/data/blueprint");
+    }
+
+    #[test]
+    fn test_drd_dir_default() {
+        assert_eq!(drd_dir(), ".quanttide/data/drd");
+    }
+
+    #[test]
+    fn test_spec_dir_default() {
+        assert_eq!(spec_dir(), ".quanttide/data/spec");
+    }
+
     use crate::ENV_LOCK;
     use crate::test_support::temp_dir;
 
@@ -91,5 +131,38 @@ mod tests {
         assert_eq!(&bytes[10..11], b" ");
         assert_eq!(&bytes[13..14], b":");
         assert_eq!(&bytes[16..17], b":");
+    }
+}
+
+// ── 自 blueprint_core 回迁 ──
+
+/// Get the blueprint directory from env or default.
+pub fn blueprint_dir() -> String {
+    std::env::var("BLUEPRINT_DIR").unwrap_or_else(|_| ".quanttide/data/blueprint".to_string())
+}
+
+/// Get the DRD directory (Data Requirements Document).
+pub fn drd_dir() -> String {
+    std::env::var("DRD_DIR").unwrap_or_else(|_| ".quanttide/data/drd".to_string())
+}
+
+/// Get the Specification directory.
+pub fn spec_dir() -> String {
+    std::env::var("SPEC_DIR").unwrap_or_else(|_| ".quanttide/data/spec".to_string())
+}
+
+/// Resolve a user input to a .cue or .yaml file path.
+pub fn resolve_cue_path(input: &str, dir: &str) -> Option<PathBuf> {
+    let p = Path::new(input);
+    if p.exists() {
+        Some(p.to_path_buf())
+    } else {
+        for ext in &["yaml", "cue"] {
+            let with_ext = Path::new(dir).join(format!("{input}.{ext}"));
+            if with_ext.exists() {
+                return Some(with_ext);
+            }
+        }
+        None
     }
 }

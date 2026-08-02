@@ -2,7 +2,7 @@ use clap::Args;
 use std::path::{Path, PathBuf};
 
 use crate::error::CliError;
-use crate::{blueprint_core, spec};
+use crate::spec;
 
 #[derive(Args)]
 pub struct ImplementArgs {
@@ -61,7 +61,7 @@ impl ImplementHandler {
         );
 
         for (i, step) in bp.pipeline.steps.iter().enumerate() {
-            let prompt = blueprint_core::implement_step_prompt(
+            let prompt = implement_step_prompt(
                 &step.name,
                 &step.from,
                 &step.to,
@@ -97,7 +97,7 @@ impl ImplementHandler {
         }
 
         // Assemble final script
-        let assemble_prompt = blueprint_core::implement_assemble_prompt(
+        let assemble_prompt = implement_assemble_prompt(
             &bp.name,
             &generated_functions,
             &format!("{} 个步骤的数据处理管道", bp.pipeline.steps.len()),
@@ -144,7 +144,7 @@ fn extract_python_fn(response: &str) -> String {
 }
 
 fn extract_signature(code: &str, step_name: &str) -> String {
-    let snake = blueprint_core::to_snake(step_name);
+    let snake = to_snake(step_name);
     // Find "def func_name" line
     for line in code.lines() {
         let trimmed = line.trim();
@@ -210,4 +210,84 @@ mod tests {
             "def normalize_data(data):  # Normalize Data"
         );
     }
+}
+
+// ── 自 blueprint_core 回迁 ──
+
+/// Build the implement prompt for a single pipeline step.
+/// Generates a Python function for that step.
+pub fn implement_step_prompt(
+    step_name: &str,
+    from_desc: &str,
+    to_desc: &str,
+    step_desc: &str,
+    prev_functions: &str,
+) -> String {
+    format!(
+        r#"你是一个 Python 数据处理工程师。请根据以下步骤描述，生成一个 Python 函数。
+
+函数名: {step_name}
+输入: {from_desc}
+输出: {to_desc}
+处理逻辑: {step_desc}
+
+已生成的前置函数:
+{prev_section}
+
+要求:
+1. 函数名使用 snake_case: {func_name}
+2. 函数接收上一步的输出作为输入参数
+3. 函数返回处理后的数据
+4. 添加类型注解 (from typing import ...)
+5. 添加 docstring 描述输入输出
+6. 只输出 Python 代码，不要解释
+
+生成的函数:
+"#,
+        step_name = step_name,
+        from_desc = from_desc,
+        to_desc = to_desc,
+        step_desc = step_desc,
+        prev_section = if prev_functions.is_empty() {
+            "无（这是第一步）"
+        } else {
+            prev_functions
+        },
+        func_name = to_snake(step_name),
+    )
+}
+
+/// Build the assemble prompt: combine all step functions into a complete script.
+pub fn implement_assemble_prompt(
+    project_name: &str,
+    all_functions: &str,
+    pipeline_desc: &str,
+) -> String {
+    format!(
+        r#"你是一个 Python 数据处理工程师。请将以下函数组装成一个完整的可执行 Python 脚本。
+
+项目: {project_name}
+管道: {pipeline_desc}
+
+函数列表:
+{all_functions}
+
+要求:
+1. 添加 import 语句（放在文件开头）
+2. 添加 if __name__ == "__main__" 入口
+3. 按管道顺序调用函数
+4. 每个函数的输出传递给下一个函数
+5. 添加 argparse 支持输入文件路径参数
+6. 只输出 Python 代码，不要解释
+
+完整脚本:
+"#
+    )
+}
+
+/// Convert a step name to snake_case function name.
+pub fn to_snake(s: &str) -> String {
+    s.to_lowercase()
+        .replace([' ', '-', '.'], "_")
+        .replace("__", "_")
 }
