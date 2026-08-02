@@ -17,7 +17,7 @@
 - [x] `tests/` 查看类命令补测（第二部分）：blueprint 85% / pipeline 82%（fake cue 脚本注入 PATH）；main 仍仅子进程流可测
 - [x] `src/` LLM 命令注入 Handler 补测：clarify 80% / design 63% / implement 82% / review 66%（复用 quanttide-agent 的 `HttpClient` 抽象，`test_support::fake_llm`）
 - [x] `src/providers/` wiremock 补测：google_drive 80% / onedrive 77% / s3 43%
-- [ ] `src/providers/` baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%，需 CI 起 sshd 或本地模拟）
+- [x] `src/storage/` baidu/sftp 补测移至 v0.3.0（需真实服务或本地模拟：CI 起 sshd 或本地模拟）——不阻塞 v0.2.2 发布
 
 > **待排期（不阻塞 v0.2.2）**：CLI 发起 Provider run 的执行入口（`PROVIDER_URL` 配置 + run 请求参数校验），以及业务 e2e（raw + map.dta → review_master，依赖 Provider merge_review / export）——待 Provider ROADMAP [0.0.3] 的 merge_review/export 落地后启动。
 
@@ -25,6 +25,7 @@
 
 ### Added
 
+- [ ] `src/storage/` baidu/sftp 补测（需真实服务或本地模拟：CI 起 sshd 或本地模拟，0% → ≥50%）
 - [ ] `Cargo.toml` 构建 Linux、Windows、macOS 二进制包
 - [ ] `Cargo.toml` 自动上传各平台 Release 制品
 - [ ] `src/lib.rs` 新增 runtimes 模块：RuntimeAdapter trait 与注册表（python / r / stata / matlab / bash / builtin）
