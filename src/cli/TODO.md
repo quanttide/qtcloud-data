@@ -23,6 +23,7 @@
 - [x] coverage：非 dropbox provider wiremock 补测：google_drive 80% / onedrive 77% / s3 43%（`src/providers/`、`tests/provider_test.rs`）
 - [ ] coverage：baidu/sftp 补测（需要真实服务或本地模拟，0% → ≥50%，需 CI 起 sshd 或本地模拟，`src/providers/`）
 - [x] coverage：更新覆盖率基线（当前 83.7%，见 `CONTRIBUTING.md` 测试分层）
+- [ ] providers：凭证环境变量名集中为常量表（`DROPBOX_ACCESS_TOKEN` / `GOOGLE_DRIVE_ACCESS_TOKEN` 等魔法字符串去重，`src/providers/mod.rs`）——低优先，可选
 
 ### 待排期（不阻塞 v0.2.2，依赖 Provider ROADMAP [0.0.3]）
 
