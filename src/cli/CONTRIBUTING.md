@@ -58,7 +58,7 @@ cargo fmt --check
 | 单元测试 | `src/*.rs` 内 `mod tests` | 纯函数 + env 注入 + `test_support::{temp_dir, write_script, fake_llm}` |
 | 命令级集成 | `tests/cli_test.rs` | spawn 二进制测各命令行为（help/spec/doctor/process） |
 | provider 集成 | `tests/providers_test.rs` | wiremock 模拟 HTTP（dropbox/s3/google/onedrive + 注册） |
-| e2e | `tests/e2e_baseline.rs` | 真实 fixture 全链路（`tests/fixtures/github-activity/`） |
+| process e2e | `tests/process_test.rs` | process 全链路端到端 + 命令级（`tests/fixtures/github-activity/`） |
 
 覆盖率：`cargo llvm-cov test --workspace`（当前 83.7%）。
 

@@ -149,3 +149,158 @@ fn e2e_process_full_chain_delivers_normalized_activity() {
 
     std::fs::remove_dir_all(&root).ok();
 }
+
+// ── process 命令级测试（自 cli_test.rs 归位）──
+
+fn fake_qtdata_script() -> &'static str {
+    if cfg!(windows) {
+        "@echo off\r\nif \"%1\"==\"transfer\" if \"%2\"==\"receive\" (\r\n  echo raw,data>\"%5\"\r\n  exit /b 0\r\n)\r\nif \"%1\"==\"transfer\" if \"%2\"==\"send\" (\r\n  echo https://delivery.example/link>\"%5\"\r\n  exit /b 0\r\n)\r\nexit /b 1\r\n"
+    } else {
+        "#!/bin/sh\nif [ \"$1\" = \"transfer\" ] && [ \"$2\" = \"receive\" ]; then\n  printf 'raw,data\\n' > \"$5\"\n  exit 0\nfi\nif [ \"$1\" = \"transfer\" ] && [ \"$2\" = \"send\" ]; then\n  printf 'https://delivery.example/link\\n' > \"$5\"\n  exit 0\nfi\nexit 1\n"
+    }
+}
+
+fn copy_pipeline_script() -> &'static str {
+    if cfg!(windows) {
+        "@echo off\r\ncopy /Y \"%1\" \"%2\" >NUL\r\nexit /b %ERRORLEVEL%\r\n"
+    } else {
+        "#!/bin/sh\ncp \"$1\" \"$2\"\n"
+    }
+}
+
+fn failing_pipeline_script() -> &'static str {
+    if cfg!(windows) {
+        "@echo off\r\nexit /b 7\r\n"
+    } else {
+        "#!/bin/sh\nexit 7\n"
+    }
+}
+
+#[test]
+fn test_process_writes_job_record_after_success() {
+    let root = std::env::temp_dir().join(format!("qtcloud-process-record-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+
+    let fake_qtdata = script_path(&root, "fake-qtdata");
+    let pipeline = script_path(&root, "copy-pipeline");
+    write_script(&fake_qtdata, fake_qtdata_script());
+    write_script(&pipeline, copy_pipeline_script());
+
+    let catalog_dir = root.join("catalog");
+    let work_dir = root.join("work");
+
+    let output = cli()
+        .env("QTDATA_CLI", &fake_qtdata)
+        .env("CATALOG_DIR", &catalog_dir)
+        .env("WORKDIR", &work_dir)
+        .arg("process")
+        .arg("ABC-001")
+        .arg("https://example.com/raw.csv?access_token=secret")
+        .arg("--pipeline")
+        .arg(&pipeline)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "process failed: {}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(!stdout.contains("access_token=secret"));
+    assert!(!stderr.contains("access_token=secret"));
+
+    let jobs_path = catalog_dir.join("jobs.json");
+    let content = std::fs::read_to_string(&jobs_path).unwrap();
+    let jobs: serde_json::Value = serde_json::from_str(&content).unwrap();
+    let jobs = jobs.as_object().unwrap();
+    assert_eq!(jobs.len(), 1);
+
+    let record = jobs.values().next().unwrap();
+    let job_id = record["id"].as_str().unwrap();
+    assert_eq!(record["customer_id"], "ABC-001");
+    assert_eq!(record["source_url"], "https://example.com/raw.csv");
+    assert_eq!(record["status"], "delivered");
+    assert!(
+        record["pipeline"]
+            .as_str()
+            .unwrap()
+            .contains("copy-pipeline")
+    );
+    assert!(record["raw_path"].as_str().unwrap().ends_with("raw.csv"));
+    assert!(
+        record["output_path"]
+            .as_str()
+            .unwrap()
+            .ends_with("final.csv")
+    );
+    assert!(
+        record["link_path"]
+            .as_str()
+            .unwrap()
+            .ends_with("share-link.txt")
+    );
+    assert!(std::path::Path::new(record["log_path"].as_str().unwrap()).is_file());
+    assert!(!content.contains("access_token=secret"));
+
+    let registry_content = std::fs::read_to_string(catalog_dir.join("registry.json")).unwrap();
+    let registry: serde_json::Value = serde_json::from_str(&registry_content).unwrap();
+    let volumes = registry.as_object().unwrap();
+    assert_eq!(volumes.len(), 1);
+
+    let volume = volumes.values().next().unwrap();
+    assert_eq!(volume["provider"], "process");
+    assert_eq!(volume["source"], format!("process:{job_id}"));
+    assert_eq!(volume["status"], "delivered");
+    assert!(volume["path"].as_str().unwrap().ends_with("final.csv"));
+
+    std::fs::remove_dir_all(&root).ok();
+}
+
+#[test]
+fn test_process_writes_failed_job_record_when_pipeline_fails() {
+    let root = std::env::temp_dir().join(format!(
+        "qtcloud-process-failed-record-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+
+    let fake_qtdata = script_path(&root, "fake-qtdata");
+    let pipeline = script_path(&root, "failing-pipeline");
+    write_script(&fake_qtdata, fake_qtdata_script());
+    write_script(&pipeline, failing_pipeline_script());
+
+    let catalog_dir = root.join("catalog");
+    let work_dir = root.join("work");
+
+    let output = cli()
+        .env("QTDATA_CLI", &fake_qtdata)
+        .env("CATALOG_DIR", &catalog_dir)
+        .env("WORKDIR", &work_dir)
+        .arg("process")
+        .arg("ABC-002")
+        .arg("https://example.com/raw.csv?access_token=secret")
+        .arg("--pipeline")
+        .arg(&pipeline)
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+
+    let content = std::fs::read_to_string(catalog_dir.join("jobs.json")).unwrap();
+    let jobs: serde_json::Value = serde_json::from_str(&content).unwrap();
+    let record = jobs.as_object().unwrap().values().next().unwrap();
+    assert_eq!(record["customer_id"], "ABC-002");
+    assert_eq!(record["status"], "failed");
+    assert_eq!(record["source_url"], "https://example.com/raw.csv");
+    assert!(!content.contains("access_token=secret"));
+
+    let log = std::fs::read_to_string(record["log_path"].as_str().unwrap()).unwrap();
+    assert!(log.contains("pipeline failed"));
+
+    std::fs::remove_dir_all(&root).ok();
+}

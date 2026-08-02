@@ -16,7 +16,7 @@
 - 流水线脚本默认 unix shell（CI 为 ubuntu-latest）；Windows 仅本地开发，测试按平台落盘脚本。
 - `expected-final.csv` 作为内容级断言基准：产物必须与之一致（逐字节）。
 
-## 基线 e2e 断言（`tests/e2e_baseline.rs`）
+## process 端到端断言（`tests/process_test.rs`）
 
 - 链路：`process` 全链路（receive → pipeline → send），fixture 驱动假 qtdata 读 `$FIXTURE_RAW`。
 - 产物：`final.csv` 与 `expected-final.csv` 逐字节一致。
