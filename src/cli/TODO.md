@@ -12,7 +12,7 @@
 
 ## [0.2.2] manifest 契约与 catalog 产物类型
 
-- [ ] manifest：定义输入契约，声明 raw、map、配置表和 review decisions（`docs/dev/`）
+- [ ] manifest：定义输入契约，声明 raw、map、配置表和 review decisions（`docs/`）
 - [ ] manifest：增加 YAML 校验和错误提示（`src/spec.rs`）
 - [ ] catalog：记录区分预审核产物、审核决策文件和最终交付产物（`src/catalog.rs`）
 - [ ] view：pipeline/blueprint list/show 改文件直读为主，cue 降为可选增强（对齐 contract.rs，`src/pipeline.rs` / `src/blueprint.rs`）
@@ -26,9 +26,9 @@
 
 ### 待排期（不阻塞 v0.2.2，依赖 Provider ROADMAP [0.0.3]）
 
-- [ ] provider：增加 `PROVIDER_URL` 配置 Provider 服务地址（`src/`、`docs/dev/`）
+- [ ] provider：增加 `PROVIDER_URL` 配置 Provider 服务地址（`src/`、`docs/`）
 - [ ] provider：增加调用 Provider run API 的 CLI 入口，按 Specification/Blueprint 发起执行（`src/`）
-- [ ] provider：增加 run 请求参数的 CLI 校验和错误提示（`src/`、`docs/dev/specification.md`）
+- [ ] provider：增加 run 请求参数的 CLI 校验和错误提示（`src/`、`docs/specification.md`）
 - [ ] testing：业务 e2e raw + map.dta → review_master 全链路（`tests/`，依赖 Provider merge_review / export）
 - [ ] testing：保存业务 e2e 的输入、输出和验证记录（`docs/`）
 

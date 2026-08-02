@@ -16,7 +16,7 @@
 | [view.md](view.md) | `blueprint.rs`、`contract.rs`、`pipeline.rs` | 查看命令与文件直读策略 |
 | [tooling.md](tooling.md) | `doctor.rs`、`version.rs` | 环境检查与版本管理工具 |
 
-贡献与发布流程见 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
+贡献与发布流程见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 
 ## 命令结构总览
 
@@ -107,7 +107,7 @@ fn show(name: &str) -> Result<(), CliError> {
 
 ## 测试
 
-测试分层与运行方式见 [CONTRIBUTING.md](../../CONTRIBUTING.md)（测试分层节）。
+测试分层与运行方式见 [CONTRIBUTING.md](../CONTRIBUTING.md)（测试分层节）。
 覆盖率当前 83.7%，基线变更记录在 TODO 对应版本条目。
 
 ## 数据目录与命令的关系
@@ -128,4 +128,4 @@ fn show(name: &str) -> Result<(), CliError> {
 - 想知道"这个命令属于哪个环节" → 看[命令结构总览](#命令结构总览)
 - 想知道"某个模块怎么实现" → 查[映射表](#文档--模块映射表)
 - 想知道"Specification 契约长什么样" → [specification.md](specification.md)
-- 想知道"发布怎么走" → [CONTRIBUTING.md](../../CONTRIBUTING.md)
+- 想知道"发布怎么走" → [CONTRIBUTING.md](../CONTRIBUTING.md)

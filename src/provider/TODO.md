@@ -12,7 +12,7 @@
 
 ## contract-alignment
 
-- [ ] 稳定 Provider run 与 CLI catalog/job 的字段契约（`src/provider/internal/store/`、`src/cli/docs/dev/specification.md`）。
+- [ ] 稳定 Provider run 与 CLI catalog/job 的字段契约（`src/provider/internal/store/`、`src/cli/docs/specification.md`）。
 - [ ] 补充 Specification envelope 与 legacy Blueprint YAML 的兼容性样例（`src/provider/testdata/`）。
 
 ## smoke-e2e

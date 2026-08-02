@@ -18,7 +18,7 @@
 ## [0.0.3]
 
 ### Added
-- [ ] 定义 review 决策文件格式（与 CLI manifest 契约对齐，参考 `../cli/docs/dev/`）。
+- [ ] 定义 review 决策文件格式（与 CLI manifest 契约对齐，参考 `../cli/docs/`）。
 - [ ] 新增 `merge_review` builtin resource：将审核结果合并回匹配明细。
 - [ ] 新增 `export` builtin resource：生成最终客户交付文件。
 - [ ] 增加真实交付链路的 Provider smoke/e2e 测试。

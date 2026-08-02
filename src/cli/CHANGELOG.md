@@ -197,8 +197,8 @@
 - Google Drive 支持（`--provider google`）。
 - OneDrive 支持（`--provider onedrive`）。
 - wiremock 集成测试（6 个用例覆盖 send/receive/错误处理）。
-- 开发者文档（`docs/dev/transfer.md`）。
-- 用户文档（`docs/user/transfer.md`）。
+- 开发者文档（`docs/transfer.md`）。
+- 用户文档（`docs/transfer.md`）。
 
 ### Changed
 - CLI 增加 `--provider` 选项（默认 `dropbox`），receive 时自动从 URL 识别提供商。
