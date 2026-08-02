@@ -1,4 +1,5 @@
-//! 规格版本管理命令：基于 git 历史（list / show / diff）。
+//! Specification 版本管理：基于 git 历史（list / show / diff）。
+//! 注：顶层 `version` 命令已废弃（v0.3 移除），使用 `spec version`。
 
 use clap::{Args, Subcommand};
 use std::process::Command;
@@ -7,13 +8,13 @@ use crate::error::CliError;
 use crate::util;
 
 #[derive(Args)]
-pub struct VersionArgs {
+pub struct SpecVersionArgs {
     #[command(subcommand)]
-    pub action: VersionAction,
+    pub action: SpecVersionAction,
 }
 
 #[derive(Subcommand)]
-pub enum VersionAction {
+pub enum SpecVersionAction {
     /// 列出版本历史
     List {
         /// blueprint 名称
@@ -38,11 +39,11 @@ pub enum VersionAction {
 }
 
 /// 规格版本管理命令入口（list / show / diff）。
-pub fn run(args: &VersionArgs) -> Result<(), CliError> {
+pub fn run(args: &SpecVersionArgs) -> Result<(), CliError> {
     let dir = util::spec_dir();
 
     match &args.action {
-        VersionAction::List { name } => {
+        SpecVersionAction::List { name } => {
             // Try spec/ first, then old blueprint/
             let output = Command::new("git")
                 .args([
@@ -74,7 +75,7 @@ pub fn run(args: &VersionArgs) -> Result<(), CliError> {
             }
             Ok(())
         }
-        VersionAction::Show { name, version } => {
+        SpecVersionAction::Show { name, version } => {
             let output = Command::new("git")
                 .args(["show", &format!("{version}:{name}-blueprint.cue")])
                 .current_dir(&dir)
@@ -87,7 +88,7 @@ pub fn run(args: &VersionArgs) -> Result<(), CliError> {
                 _ => Err(CliError::new(format!("找不到版本 {version} 的 {name}"))),
             }
         }
-        VersionAction::Diff { name, v1, v2 } => {
+        SpecVersionAction::Diff { name, v1, v2 } => {
             let output = Command::new("git")
                 .args([
                     "diff",
@@ -170,8 +171,8 @@ mod tests {
         unsafe {
             std::env::set_var("SPEC_DIR", &dir);
         }
-        run(&VersionArgs {
-            action: VersionAction::List {
+        run(&SpecVersionArgs {
+            action: SpecVersionAction::List {
                 name: "abc".to_string(),
             },
         })
@@ -191,8 +192,8 @@ mod tests {
         unsafe {
             std::env::set_var("SPEC_DIR", &dir);
         }
-        run(&VersionArgs {
-            action: VersionAction::Show {
+        run(&SpecVersionArgs {
+            action: SpecVersionAction::Show {
                 name: "abc".to_string(),
                 version: v1,
             },
@@ -213,8 +214,8 @@ mod tests {
         unsafe {
             std::env::set_var("SPEC_DIR", &dir);
         }
-        run(&VersionArgs {
-            action: VersionAction::Diff {
+        run(&SpecVersionArgs {
+            action: SpecVersionAction::Diff {
                 name: "abc".to_string(),
                 v1,
                 v2,
@@ -241,8 +242,8 @@ mod tests {
             std::env::set_var("SPEC_DIR", &dir);
             std::env::set_var("BLUEPRINT_DIR", &dir);
         }
-        run(&VersionArgs {
-            action: VersionAction::List {
+        run(&SpecVersionArgs {
+            action: SpecVersionAction::List {
                 name: "missing".to_string(),
             },
         })

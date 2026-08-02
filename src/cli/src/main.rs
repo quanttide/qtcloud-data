@@ -3,7 +3,7 @@
 use clap::{Parser, Subcommand};
 use qtcloud_data_cli::error::CliError;
 use qtcloud_data_cli::stage::{clarify, design, implement, process, transfer};
-use qtcloud_data_cli::{catalog, doctor, pipeline, review, spec, version};
+use qtcloud_data_cli::{catalog, doctor, pipeline, review, spec};
 
 #[derive(Parser)]
 #[command(name = "qtcloud-data", about = "量潮数据云 CLI")]
@@ -22,8 +22,8 @@ enum Commands {
     Review(review::ReviewArgs),
     /// Specification YAML 契约工具
     Spec(spec::SpecArgs),
-    /// 版本管理（list / show / diff）
-    Version(version::VersionArgs),
+    /// 规格版本管理（已废弃：v0.3 移除，改用 `spec version`）
+    Version(spec::version::SpecVersionArgs),
     /// 检查本机 DataOps 环境
     Doctor(doctor::DoctorArgs),
     /// 蓝图管理（list / show）
@@ -65,7 +65,7 @@ fn run_command(command: &Commands) -> Result<(), CliError> {
             review::ReviewHandler::new(quanttide_agent::LLM::default()).run(args)
         }
         Commands::Spec(args) => spec::run(args),
-        Commands::Version(args) => version::run(args),
+        Commands::Version(args) => spec::version::run(args),
         Commands::Doctor(args) => doctor::run(args),
         Commands::Blueprint(args) => spec::blueprint::run(args),
         Commands::Contract(args) => spec::contract::run(args),

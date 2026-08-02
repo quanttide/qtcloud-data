@@ -17,7 +17,7 @@
 | [contract.md](contract.md) | `spec/contract.rs` | 契约定义查看（文件直读） |
 | [pipeline.md](pipeline.md) | `pipeline.rs` | 管道定义查看 |
 | [doctor.md](doctor.md) | `doctor.rs` | 环境检查 |
-| [version.md](version.md) | `version.rs` | 规格版本管理 |
+| [version.md](version.md) | `spec/version.rs` | Specification 版本管理（spec version） |
 
 贡献与发布流程见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 

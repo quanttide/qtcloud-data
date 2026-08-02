@@ -10,7 +10,6 @@ pub mod spec;
 pub mod stage;
 pub mod storage;
 pub mod util;
-pub mod version;
 
 /// 测试共享的全局环境变量锁：各模块测试直接 `std::env::set_var` 时统一互斥，
 /// 避免并行执行互相污染进程级环境变量。

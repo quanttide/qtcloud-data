@@ -2,6 +2,7 @@
 
 pub mod blueprint;
 pub mod contract;
+pub mod version;
 
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
@@ -34,6 +35,8 @@ pub enum SpecAction {
         /// Blueprint YAML 或 Specification YAML
         input: String,
     },
+    /// Specification 版本管理（list / show / diff）
+    Version(version::SpecVersionArgs),
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -79,6 +82,7 @@ pub fn run(args: &SpecArgs) -> Result<(), CliError> {
     match &args.action {
         SpecAction::Wrap { input, output } => wrap_file(input, output),
         SpecAction::Validate { input } => validate_file(input),
+        SpecAction::Version(args) => version::run(args),
     }
 }
 
