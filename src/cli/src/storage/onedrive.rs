@@ -2,13 +2,13 @@ use async_trait::async_trait;
 use reqwest::Client;
 use std::fs;
 
-use super::StorageProvider;
+use super::Storage;
 
-pub struct OneDriveProvider;
+pub struct OneDriveStorage;
 
 const GRAPH_API: &str = "https://graph.microsoft.com/v1.0";
 
-impl OneDriveProvider {
+impl OneDriveStorage {
     fn token(&self) -> Result<String, String> {
         std::env::var("ONEDRIVE_ACCESS_TOKEN")
             .or_else(|_| std::env::var("OD_ACCESS_TOKEN"))
@@ -123,7 +123,7 @@ pub async fn receive_with_base(
 }
 
 #[async_trait]
-impl StorageProvider for OneDriveProvider {
+impl Storage for OneDriveStorage {
     fn name(&self) -> &'static str {
         "onedrive"
     }

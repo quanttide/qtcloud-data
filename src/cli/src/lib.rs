@@ -8,6 +8,7 @@ pub mod error;
 pub mod pipeline;
 pub mod registry;
 pub mod review;
+pub mod runtime;
 pub mod spec;
 pub mod stage;
 pub mod storage;

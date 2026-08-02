@@ -2,14 +2,14 @@ use async_trait::async_trait;
 use reqwest::Client;
 use std::fs;
 
-use super::StorageProvider;
+use super::Storage;
 
-pub struct GoogleDriveProvider;
+pub struct GoogleDriveStorage;
 
 const API_BASE: &str = "https://www.googleapis.com/drive/v3";
 const UPLOAD_BASE: &str = "https://www.googleapis.com/upload/drive/v3";
 
-impl GoogleDriveProvider {
+impl GoogleDriveStorage {
     fn token(&self) -> Result<String, String> {
         std::env::var("GOOGLE_DRIVE_ACCESS_TOKEN")
             .or_else(|_| std::env::var("GDRIVE_ACCESS_TOKEN"))
@@ -159,7 +159,7 @@ pub async fn receive_with_base(
 }
 
 #[async_trait]
-impl StorageProvider for GoogleDriveProvider {
+impl Storage for GoogleDriveStorage {
     fn name(&self) -> &'static str {
         "googledrive"
     }

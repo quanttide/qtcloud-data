@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [Unreleased]
+
+### Changed
+- 新增 `runtime/` 模块（`Runtime` trait + 注册表）：codegen（implement 用）+ execute（process 用），`from_name`/`from_ext` 注册表驱动；Python codegen 逻辑从 `stage/implement.rs` 分离，`process` 执行分发改注册表（`.py`→python / `.sh`→bash）。旧 `stage::implement::{implement_step_prompt, implement_assemble_prompt, to_snake}` 保留为 deprecated 转发（随 v0.3 移除）。
+- `storage/` 统一概念命名：`StorageProvider` → `Storage`、`DropboxProvider` → `DropboxStorage`（等 6 平台）。旧名保留为 deprecated re-export（随 v0.3 移除）。
+
 ## [0.2.2] - 2026-08-02
 
 ### Changed

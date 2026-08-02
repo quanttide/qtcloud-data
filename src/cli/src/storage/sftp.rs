@@ -3,11 +3,11 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::Path;
 
-use super::StorageProvider;
+use super::Storage;
 
-pub struct SftpProvider;
+pub struct SftpStorage;
 
-impl SftpProvider {
+impl SftpStorage {
     #[allow(dead_code)]
     fn connect_from_env() -> Result<(ssh2::Session, ssh2::Sftp), String> {
         let host =
@@ -61,7 +61,7 @@ impl SftpProvider {
 }
 
 #[async_trait]
-impl StorageProvider for SftpProvider {
+impl Storage for SftpStorage {
     fn name(&self) -> &'static str {
         "sftp"
     }

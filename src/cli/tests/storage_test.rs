@@ -1,4 +1,4 @@
-use qtcloud_data_cli::storage::StorageProvider;
+use qtcloud_data_cli::storage::Storage;
 use qtcloud_data_cli::storage::dropbox;
 use qtcloud_data_cli::storage::google_drive::{receive_with_base, send_with_base};
 use qtcloud_data_cli::storage::onedrive;
@@ -71,7 +71,7 @@ async fn test_dropbox_receive() {
         .await;
 
     let tmp = std::env::temp_dir().join("test_recv.txt");
-    let provider = qtcloud_data_cli::storage::DropboxProvider;
+    let provider = qtcloud_data_cli::storage::DropboxStorage;
 
     let result = provider
         .receive(
@@ -96,7 +96,7 @@ async fn test_dropbox_receive_404() {
         .await;
 
     let tmp = std::env::temp_dir().join("test_404.txt");
-    let provider = qtcloud_data_cli::storage::DropboxProvider;
+    let provider = qtcloud_data_cli::storage::DropboxStorage;
 
     let result = provider
         .receive(&format!("{}/missing", server.uri()), tmp.to_str().unwrap())
@@ -129,11 +129,11 @@ async fn test_dropbox_upload_500() {
 
 #[tokio::test]
 async fn test_cloud_providers_receive_path_not_supported() {
-    let providers: Vec<Box<dyn StorageProvider>> = vec![
-        Box::new(qtcloud_data_cli::storage::DropboxProvider),
-        Box::new(qtcloud_data_cli::storage::BaiduDriveProvider),
-        Box::new(qtcloud_data_cli::storage::GoogleDriveProvider),
-        Box::new(qtcloud_data_cli::storage::OneDriveProvider),
+    let providers: Vec<Box<dyn Storage>> = vec![
+        Box::new(qtcloud_data_cli::storage::DropboxStorage),
+        Box::new(qtcloud_data_cli::storage::BaiduDriveStorage),
+        Box::new(qtcloud_data_cli::storage::GoogleDriveStorage),
+        Box::new(qtcloud_data_cli::storage::OneDriveStorage),
     ];
     for p in providers {
         let result = p.receive_path("/some/path", "/tmp/test").await;
@@ -186,7 +186,7 @@ async fn test_s3_receive_path_downloads_from_configured_endpoint() {
         .await;
 
     set_aws_mock_env(&server.uri());
-    let provider = qtcloud_data_cli::storage::S3Provider;
+    let provider = qtcloud_data_cli::storage::S3Storage;
     let out = std::env::temp_dir().join("s3-receive.txt");
 
     let result = provider.receive_path("/key", out.to_str().unwrap()).await;
@@ -208,7 +208,7 @@ async fn test_s3_send_uploads_and_presigns_url() {
         .await;
 
     set_aws_mock_env(&server.uri());
-    let provider = qtcloud_data_cli::storage::S3Provider;
+    let provider = qtcloud_data_cli::storage::S3Storage;
     let file = std::env::temp_dir().join("s3-send.txt");
     std::fs::write(&file, b"upload me").unwrap();
 

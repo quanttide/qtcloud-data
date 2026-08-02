@@ -2,9 +2,9 @@ use async_trait::async_trait;
 use reqwest::Client;
 use std::fs;
 
-use super::StorageProvider;
+use super::Storage;
 
-pub struct DropboxProvider;
+pub struct DropboxStorage;
 
 /// Dropbox 内部 upload 实现（带 mock 支持，供测试用）
 pub async fn upload(
@@ -84,7 +84,7 @@ pub async fn create_shared_link(
 }
 
 #[async_trait]
-impl StorageProvider for DropboxProvider {
+impl Storage for DropboxStorage {
     fn name(&self) -> &'static str {
         "dropbox"
     }

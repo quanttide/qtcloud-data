@@ -9,6 +9,7 @@ use std::process::Command;
 use crate::catalog::{self, RegisterVolume};
 use crate::error::CliError;
 use crate::registry;
+use crate::runtime;
 use crate::stage::transfer;
 use crate::util;
 
@@ -391,25 +392,25 @@ fn run_pipeline(input: &str, work_dir: &str, pipeline_spec: &str) -> Result<Stri
 
         println!("  ▶ Step {}/{}: {step_name}", i + 1, steps.len());
 
-        let status = if step.ends_with(".py") {
-            Command::new("python3")
-                .arg(step)
-                .arg(&prev)
-                .arg(&step_output)
-                .status()
-        } else if step.ends_with(".sh") {
-            Command::new("bash")
-                .arg(step)
-                .arg(&prev)
-                .arg(&step_output)
-                .status()
-        } else {
-            Command::new(step).arg(&prev).arg(&step_output).status()
-        }
-        .map_err(|err| format!("执行 pipeline 步骤 {step_name} 失败: {err}"))?;
-
-        if !status.success() {
-            return Err(format!("Pipeline 步骤 {step_name} 失败"));
+        let step_path = std::path::Path::new(step);
+        let ext = step_path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        match runtime::from_ext(ext) {
+            // 注册表驱动：.py → python / .sh → bash
+            Some(rt) => {
+                rt.execute(step_path, &prev, &step_output, work_dir)
+                    .map_err(|err| format!("执行 pipeline 步骤 {step_name} 失败: {err}"))?;
+            }
+            // 其他：直接执行（builtin 可执行脚本）
+            None => {
+                let status = Command::new(step)
+                    .arg(&prev)
+                    .arg(&step_output)
+                    .status()
+                    .map_err(|err| format!("执行 pipeline 步骤 {step_name} 失败: {err}"))?;
+                if !status.success() {
+                    return Err(format!("Pipeline 步骤 {step_name} 失败"));
+                }
+            }
         }
         prev = step_output;
     }

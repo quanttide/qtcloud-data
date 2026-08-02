@@ -2,14 +2,14 @@ use async_trait::async_trait;
 use reqwest::Client;
 use std::fs;
 
-use super::StorageProvider;
+use super::Storage;
 
-pub struct BaiduDriveProvider;
+pub struct BaiduDriveStorage;
 
 const API_BASE: &str = "https://pan.baidu.com/rest/2.0/xpan/file";
 const SHARE_API: &str = "https://pan.baidu.com/rest/2.0/xpan/share";
 
-impl BaiduDriveProvider {
+impl BaiduDriveStorage {
     fn token(&self) -> Result<String, String> {
         std::env::var("BAIDU_ACCESS_TOKEN")
             .or_else(|_| std::env::var("BAIDUDRIVE_ACCESS_TOKEN"))
@@ -22,7 +22,7 @@ impl BaiduDriveProvider {
 }
 
 #[async_trait]
-impl StorageProvider for BaiduDriveProvider {
+impl Storage for BaiduDriveStorage {
     fn name(&self) -> &'static str {
         "baidudrive"
     }

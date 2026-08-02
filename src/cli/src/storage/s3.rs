@@ -3,11 +3,11 @@ use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::ByteStream;
 use reqwest::Client;
 
-use super::StorageProvider;
+use super::Storage;
 
-pub struct S3Provider;
+pub struct S3Storage;
 
-impl S3Provider {
+impl S3Storage {
     async fn client(&self) -> Result<aws_sdk_s3::Client, String> {
         let config = aws_config::load_from_env().await;
         Ok(aws_sdk_s3::Client::new(&config))
@@ -19,7 +19,7 @@ impl S3Provider {
 }
 
 #[async_trait]
-impl StorageProvider for S3Provider {
+impl Storage for S3Storage {
     fn name(&self) -> &'static str {
         "s3"
     }
