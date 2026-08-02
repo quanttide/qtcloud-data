@@ -7,9 +7,9 @@
 
 | 文档 | 对应模块 | 内容 |
 |------|---------|------|
-| [index.md](index.md)（本文件） | `main.rs`、`lib.rs`、`error.rs` | 命令结构、文档映射、横切基础（错误模型） |
+| [index.md](index.md)（本文件） | `main.rs`、`lib.rs`、`error.rs`、`store.rs` | 命令结构、文档映射、横切基础（错误模型 + store 机制） |
 | [transfer.md](transfer.md) | `transfer.rs`、`providers/` | 传输服务与 StorageProvider trait、添加新平台 |
-| [data-format.md](data-format.md) | `catalog.rs`、`store.rs` | 数据目录与落盘格式（registry/jobs/delivery-links 字段级定义） |
+| [data-format.md](data-format.md) | `catalog.rs` | 数据格式（registry/jobs/delivery-links 字段级定义） |
 | [process.md](process.md) | `process.rs` | StepExecutor 编排（receive → pipeline → send） |
 | [llm.md](llm.md) | `clarify.rs`、`design.rs`、`implement.rs`、`review.rs` | LLM 命令与 Handler 注入模式 |
 | [specification.md](specification.md) | `spec.rs`、`blueprint_core.rs` | Specification YAML 契约与 Blueprint 工作流模型 |
@@ -77,7 +77,11 @@ clarify → design → implement → process → transfer
 
 只读查看定义（需要数据目录中有对应文件；cue 为可选增强）。
 
-## 横切基础：错误模型（error.rs）
+## 横切基础（error.rs + store.rs）
+
+横切基础是不属于任何命令模块、被所有模块共享的**机制层**：
+
+### 错误模型（error.rs）
 
 所有命令入口返回 `Result<(), CliError>`，`main` 顶层统一格式化 `错误: {err}` 并退出码 1。
 
@@ -104,6 +108,15 @@ fn show(name: &str) -> Result<(), CliError> {
 - `Result<_, String>` 的公开函数已收敛为 `CliError`（`From<io::Error>/String/&str`）
 - 错误路径因此可测试：`cmd_xxx(...).unwrap_err()`
 - `CliError` 只携带用户可读消息（`Display` 即消息本体），不携带结构化错误码
+
+### store 机制（store.rs）
+
+`store.rs` 提供 JSON registry 读写的**机制**（不定义数据内容，数据格式见 [data-format.md](data-format.md)）：
+
+- `Registry<T>`：JSON registry 读写（open/get/entries/len/is_empty/insert/remove/save），
+  **原子写盘**（临时文件 + rename，避免半写损坏）
+- `catalog_dir()`：路径解析优先级 `CATALOG_DIR` > `DATA_ROOT/catalog` > `.quanttide/data/catalog`
+- `now_utc()`：UTC 时间格式化（RFC 3339）
 
 ## 测试
 

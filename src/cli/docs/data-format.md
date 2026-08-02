@@ -1,16 +1,10 @@
-# 数据格式（catalog.rs + store.rs）
+# 数据格式（catalog.rs 数据模型）
 
-本文档对应 `src/catalog.rs` 与 `src/store.rs`。定义 `.quanttide/data/catalog/` 下
+本文档对应 `src/catalog.rs` 的领域数据模型，定义 `.quanttide/data/catalog/` 下
 三个 JSON 落盘文件的字段级格式——Studio、Provider 与 CLI 共同消费这些文件，**格式变更需保持兼容**。
 
-## store 模块（共享基础设施）
-
-`store.rs` 提供三处统一（v0.2.1 收敛）：
-
-- `catalog_dir()`：路径解析优先级 `CATALOG_DIR` > `DATA_ROOT/catalog` > `.quanttide/data/catalog`
-- `now_utc()`：UTC 时间格式化（RFC 3339）
-- `Registry<T>`：JSON registry 读写（open/get/entries/len/is_empty/insert/remove/save），
-  **原子写盘**（临时文件 + rename，避免半写损坏）
+> 落盘机制（`store.rs` 的 `Registry<T>` 读写、原子写盘、路径/时间工具）见 [index.md](index.md) 横切基础，
+> 本文档只定义**数据长什么样**，不重复机制。
 
 所有落盘文件均为 pretty JSON，顶层为 key → record 的对象映射。
 
