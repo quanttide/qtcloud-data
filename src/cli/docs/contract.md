@@ -1,6 +1,6 @@
 # contract（contract.rs）
 
-本文档对应 `src/contract.rs`。
+本文档对应 `src/spec/contract.rs`（Specification 域）。
 
 ## 命令
 

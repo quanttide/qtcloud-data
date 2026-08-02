@@ -1,6 +1,6 @@
 # blueprint（blueprint.rs）
 
-本文档对应 `src/blueprint.rs`。
+本文档对应 `src/spec/blueprint.rs`（Specification 域）。
 
 ## 命令
 

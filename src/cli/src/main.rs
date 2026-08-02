@@ -3,7 +3,7 @@
 use clap::{Parser, Subcommand};
 use qtcloud_data_cli::error::CliError;
 use qtcloud_data_cli::stage::{clarify, design, implement, process, transfer};
-use qtcloud_data_cli::{blueprint, catalog, contract, doctor, pipeline, review, spec, version};
+use qtcloud_data_cli::{catalog, doctor, pipeline, review, spec, version};
 
 #[derive(Parser)]
 #[command(name = "qtcloud-data", about = "量潮数据云 CLI")]
@@ -27,9 +27,9 @@ enum Commands {
     /// 检查本机 DataOps 环境
     Doctor(doctor::DoctorArgs),
     /// 蓝图管理（list / show）
-    Blueprint(blueprint::BlueprintArgs),
+    Blueprint(spec::blueprint::BlueprintArgs),
     /// 契约查看
-    Contract(contract::ContractArgs),
+    Contract(spec::contract::ContractArgs),
     /// 管道管理
     Pipeline(pipeline::PipelineArgs),
     /// 数据目录
@@ -67,8 +67,8 @@ fn run_command(command: &Commands) -> Result<(), CliError> {
         Commands::Spec(args) => spec::run(args),
         Commands::Version(args) => version::run(args),
         Commands::Doctor(args) => doctor::run(args),
-        Commands::Blueprint(args) => blueprint::run(args),
-        Commands::Contract(args) => contract::run(args),
+        Commands::Blueprint(args) => spec::blueprint::run(args),
+        Commands::Contract(args) => spec::contract::run(args),
         Commands::Pipeline(args) => pipeline::run(args),
         Commands::Catalog(args) => catalog::run(args),
         Commands::Implement(args) => {

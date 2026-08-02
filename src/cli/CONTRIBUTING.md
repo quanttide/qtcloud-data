@@ -23,9 +23,9 @@
 | [docs/catalog.md](docs/catalog.md) | catalog | 数据格式（registry/jobs/delivery-links 字段级） |
 | [docs/process.md](docs/process.md) | process | StepExecutor 编排 |
 | [docs/llm.md](docs/llm.md) | clarify/design/implement/review | LLM 命令与 Handler 注入 |
-| [docs/specification.md](docs/specification.md) | spec | Specification YAML 契约 |
-| [docs/blueprint.md](docs/blueprint.md) | blueprint | 蓝图定义查看 |
-| [docs/contract.md](docs/contract.md) | contract | 契约定义查看（文件直读） |
+| [docs/specification.md](docs/specification.md) | spec/ | Specification 域（契约工具 + 查看） |
+| [docs/blueprint.md](docs/blueprint.md) | spec/blueprint | 蓝图定义查看 |
+| [docs/contract.md](docs/contract.md) | spec/contract | 契约定义查看（文件直读） |
 | [docs/pipeline.md](docs/pipeline.md) | pipeline | 管道定义查看 |
 | [docs/doctor.md](docs/doctor.md) | doctor | 环境检查 |
 | [docs/version.md](docs/version.md) | version | 规格版本管理 |

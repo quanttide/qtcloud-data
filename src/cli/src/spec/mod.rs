@@ -1,4 +1,7 @@
-//! Specification 工具命令：wrap / validate（envelope 契约）。
+//! Specification 域（整体）：spec 契约工具 + blueprint/contract 查看命令。
+
+pub mod blueprint;
+pub mod contract;
 
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
