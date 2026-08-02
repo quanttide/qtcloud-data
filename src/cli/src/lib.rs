@@ -2,19 +2,15 @@
 
 pub mod blueprint;
 pub mod catalog;
-pub mod clarify;
 pub mod contract;
-pub mod design;
 pub mod doctor;
 pub mod error;
-pub mod implement;
 pub mod pipeline;
-pub mod process;
-pub mod storage;
 pub mod registry;
 pub mod review;
 pub mod spec;
-pub mod transfer;
+pub mod stage;
+pub mod storage;
 pub mod util;
 pub mod version;
 

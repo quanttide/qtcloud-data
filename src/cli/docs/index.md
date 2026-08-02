@@ -10,8 +10,8 @@
 | [index.md](index.md)（本文件） | `main.rs`、`lib.rs`、`error.rs`、`registry.rs`、`util.rs` | 命令结构、文档映射、横切基础（错误模型 + 注册表/工具机制） |
 | [transfer.md](transfer.md) | `transfer.rs`、`storage/` | 传输服务与 StorageProvider trait、添加新平台 |
 | [catalog.md](catalog.md) | `catalog.rs` | 数据格式（registry/jobs/delivery-links 字段级定义） |
-| [process.md](process.md) | `process.rs` | StepExecutor 编排（receive → pipeline → send） |
-| [llm.md](llm.md) | `clarify.rs`、`design.rs`、`implement.rs`、`review.rs` | LLM 命令与 Handler 注入模式 |
+| [process.md](process.md) | `stage/process.rs` | StepExecutor 编排（receive → pipeline → send） |
+| [llm.md](llm.md) | `stage/clarify.rs`、`stage/design.rs`、`stage/implement.rs`、`review.rs` | LLM 命令与 Handler 注入模式 |
 | [specification.md](specification.md) | `spec.rs` | Specification YAML 契约与 Blueprint 工作流模型 |
 | [blueprint.md](blueprint.md) | `blueprint.rs` | 蓝图定义查看 |
 | [contract.md](contract.md) | `contract.rs` | 契约定义查看（文件直读） |

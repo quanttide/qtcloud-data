@@ -9,7 +9,7 @@ use std::process::Command;
 use crate::catalog::{self, RegisterVolume};
 use crate::error::CliError;
 use crate::registry;
-use crate::transfer;
+use crate::stage::transfer;
 use crate::util;
 
 #[derive(Args)]

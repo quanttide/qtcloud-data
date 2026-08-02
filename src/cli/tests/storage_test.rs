@@ -226,13 +226,10 @@ async fn test_s3_send_uploads_and_presigns_url() {
 
 #[tokio::test]
 async fn test_provider_detect_from_url() {
-    assert!(
-        qtcloud_data_cli::storage::detect("https://www.dropbox.com/s/abc/file.csv").is_some(),
-    );
+    assert!(qtcloud_data_cli::storage::detect("https://www.dropbox.com/s/abc/file.csv").is_some(),);
     assert!(qtcloud_data_cli::storage::detect("https://pan.baidu.com/s/1abc").is_some(),);
     assert!(
-        qtcloud_data_cli::storage::detect("https://drive.google.com/file/d/abc123/view")
-            .is_some(),
+        qtcloud_data_cli::storage::detect("https://drive.google.com/file/d/abc123/view").is_some(),
     );
     assert!(qtcloud_data_cli::storage::detect("https://1drv.ms/u/s!abc123").is_some(),);
     assert!(

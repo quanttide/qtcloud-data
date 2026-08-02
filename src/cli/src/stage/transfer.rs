@@ -6,8 +6,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::error::CliError;
-use crate::storage;
 use crate::registry;
+use crate::storage;
 use crate::util;
 
 #[derive(Args)]

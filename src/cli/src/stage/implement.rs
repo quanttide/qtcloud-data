@@ -292,8 +292,8 @@ pub fn implement_assemble_prompt(
 /// # 示例
 ///
 /// ```
-/// assert_eq!(qtcloud_data_cli::implement::to_snake("Normalize Data"), "normalize_data");
-/// assert_eq!(qtcloud_data_cli::implement::to_snake("load-csv"), "load_csv");
+/// assert_eq!(qtcloud_data_cli::stage::implement::to_snake("Normalize Data"), "normalize_data");
+/// assert_eq!(qtcloud_data_cli::stage::implement::to_snake("load-csv"), "load_csv");
 /// ```
 pub fn to_snake(s: &str) -> String {
     s.to_lowercase()
