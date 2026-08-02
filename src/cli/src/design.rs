@@ -249,6 +249,8 @@ mod tests {
     use super::*;
 
     #[test]
+
+    // ── contract 生成 ──
     fn test_formalize_prompt_contains_md() {
         let prompt = design_formalize_prompt("# Test Blueprint\n\nSome content");
         assert!(prompt.contains("# Test Blueprint"));
@@ -264,6 +266,8 @@ mod tests {
     }
 
     #[test]
+
+    // ── extract_cue ──
     fn test_extract_cue_from_markdown_block() {
         let response =
             "Here is the CUE:\n```cue\npackage blueprints\nx: {name: \"test\"}\n```\nDone.";
@@ -287,6 +291,8 @@ mod tests {
     }
 
     #[test]
+
+    // ── render_html ──
     fn test_render_html_contains_name() {
         let html = render_html(
             "test",
@@ -338,6 +344,8 @@ mod tests {
     }
 
     #[test]
+
+    // ── blueprint 生成 ──
     fn test_design_blueprint_prompt() {
         let prompt = design_blueprint_prompt("清洗订单数据");
         assert!(prompt.contains("处理步骤"));
@@ -472,88 +480,9 @@ mod tests {
     }
 }
 
-// ── 自 blueprint_core 回迁 ──
+// ── prompt 与解析（纯函数，自 blueprint_core 回迁，按子领域分组）──
 
-/// (v0.1.0-beta.1) Formalize prompt — converts Markdown to YAML.
-pub fn design_formalize_prompt(md: &str) -> String {
-    format!(
-        r#"你是一个数据工程规格设计师。请将以下 Blueprint Markdown 文档转化为 YAML 格式。
-
-输出格式:
-name: "项目名称"
-description: "业务描述"
-pipeline:
-  name: "管道名称"
-  steps:
-    - name: "步骤1"
-      from: "输入"
-      to: "输出"
-      desc: "业务逻辑描述"
-
-只输出 YAML，不要解释。
-
-文档:
-{md}"#
-    )
-}
-
-/// Extract CUE code from LLM response (handles markdown code blocks).
-pub fn extract_cue(response: &str) -> String {
-    for marker in &["```cue", "```CUE", "```"] {
-        if let Some(start) = response.find(marker) {
-            let s = start + marker.len();
-            let e = response[s..]
-                .find("```")
-                .map(|i| s + i)
-                .unwrap_or(response.len());
-            let code = response[s..e].trim();
-            if code.contains("package") || code.contains("#Blueprint") {
-                return code.to_string();
-            }
-        }
-    }
-    response.to_string()
-}
-
-/// Render a Blueprint to HTML.
-#[allow(clippy::too_many_arguments)]
-pub fn render_html(
-    name: &str,
-    description: Option<&str>,
-    status: &str,
-    created_at: &str,
-    updated_at: &str,
-    input_schema: &str,
-    output_schema: &str,
-    steps: &[(&str, &str, &str, &str)],
-) -> String {
-    let mut steps_html = String::new();
-    for (i, (name, from, to, desc)) in steps.iter().enumerate() {
-        steps_html.push_str(&format!(
-            r#"<tr><td>{i}</td><td>{name}</td><td>{from}</td><td>{to}</td><td>{desc}</td></tr>"#,
-            i = i + 1,
-        ));
-    }
-
-    format!(
-        r#"<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><title>{name} — Blueprint</title>
-<style>body{{font-family:sans-serif;max-width:960px;margin:0 auto;padding:2rem}}h1{{color:#2563eb}}table{{width:100%;border-collapse:collapse}}th,td{{text-align:left;padding:.5rem;border-bottom:1px solid #ddd}}th{{color:#6c757d}}</style></head>
-<body><h1>{name}</h1><p>{desc}</p><p>状态: {status} | 创建: {created} | 更新: {updated}</p>
-<h2>契约</h2><h3>输入</h3><pre>{input_schema}</pre><h3>输出</h3><pre>{output_schema}</pre>
-<h2>管道 ({step_count} 步)</h2><table><tr><th>#</th><th>名称</th><th>From</th><th>To</th><th>描述</th></tr>{steps}</table>
-</body></html>"#,
-        name = name,
-        desc = description.unwrap_or(""),
-        status = status,
-        created = created_at,
-        updated = updated_at,
-        input_schema = input_schema,
-        output_schema = output_schema,
-        step_count = steps.len(),
-        steps = steps_html,
-    )
-}
+// ── contract 生成 ──
 
 /// Build the design-contract prompt: DRD → Contract (Markdown tables).
 /// CLI 代码解析 Markdown 表格，生成 .cue + .md 文件。LLM 不直接写 CUE。
@@ -706,6 +635,8 @@ fn render_contract_md(input: &[Vec<String>], output: &[Vec<String>]) -> String {
     }
     md
 }
+
+// ── blueprint 生成 ──
 
 /// Build the design-blueprint prompt: DRD → Blueprint (Markdown table).
 /// CLI 代码解析 Markdown 表格，生成 .cue + .md + .html 文件。LLM 不直接写 CUE。
@@ -868,4 +799,89 @@ fn render_blueprint_md(name: &str, steps: &[Vec<String>]) -> String {
         md.push_str(&format!("| {} |\n", padded.join(" | ")));
     }
     md
+}
+
+// ── formalize ──
+
+/// (v0.1.0-beta.1) Formalize prompt — converts Markdown to YAML.
+pub fn design_formalize_prompt(md: &str) -> String {
+    format!(
+        r#"你是一个数据工程规格设计师。请将以下 Blueprint Markdown 文档转化为 YAML 格式。
+
+输出格式:
+name: "项目名称"
+description: "业务描述"
+pipeline:
+  name: "管道名称"
+  steps:
+    - name: "步骤1"
+      from: "输入"
+      to: "输出"
+      desc: "业务逻辑描述"
+
+只输出 YAML，不要解释。
+
+文档:
+{md}"#
+    )
+}
+
+/// Extract CUE code from LLM response (handles markdown code blocks).
+pub fn extract_cue(response: &str) -> String {
+    for marker in &["```cue", "```CUE", "```"] {
+        if let Some(start) = response.find(marker) {
+            let s = start + marker.len();
+            let e = response[s..]
+                .find("```")
+                .map(|i| s + i)
+                .unwrap_or(response.len());
+            let code = response[s..e].trim();
+            if code.contains("package") || code.contains("#Blueprint") {
+                return code.to_string();
+            }
+        }
+    }
+    response.to_string()
+}
+
+// ── 渲染 ──
+
+/// Render a Blueprint to HTML.
+#[allow(clippy::too_many_arguments)]
+pub fn render_html(
+    name: &str,
+    description: Option<&str>,
+    status: &str,
+    created_at: &str,
+    updated_at: &str,
+    input_schema: &str,
+    output_schema: &str,
+    steps: &[(&str, &str, &str, &str)],
+) -> String {
+    let mut steps_html = String::new();
+    for (i, (name, from, to, desc)) in steps.iter().enumerate() {
+        steps_html.push_str(&format!(
+            r#"<tr><td>{i}</td><td>{name}</td><td>{from}</td><td>{to}</td><td>{desc}</td></tr>"#,
+            i = i + 1,
+        ));
+    }
+
+    format!(
+        r#"<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><title>{name} — Blueprint</title>
+<style>body{{font-family:sans-serif;max-width:960px;margin:0 auto;padding:2rem}}h1{{color:#2563eb}}table{{width:100%;border-collapse:collapse}}th,td{{text-align:left;padding:.5rem;border-bottom:1px solid #ddd}}th{{color:#6c757d}}</style></head>
+<body><h1>{name}</h1><p>{desc}</p><p>状态: {status} | 创建: {created} | 更新: {updated}</p>
+<h2>契约</h2><h3>输入</h3><pre>{input_schema}</pre><h3>输出</h3><pre>{output_schema}</pre>
+<h2>管道 ({step_count} 步)</h2><table><tr><th>#</th><th>名称</th><th>From</th><th>To</th><th>描述</th></tr>{steps}</table>
+</body></html>"#,
+        name = name,
+        desc = description.unwrap_or(""),
+        status = status,
+        created = created_at,
+        updated = updated_at,
+        input_schema = input_schema,
+        output_schema = output_schema,
+        step_count = steps.len(),
+        steps = steps_html,
+    )
 }
