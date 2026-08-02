@@ -10,17 +10,22 @@
 命令结构与分类（生命周期 / 横向工具 / 查看）以 [docs/dev/index.md](docs/dev/index.md) 为事实源，
 本文件不重复展开——贡献流程请往下看，命令用法见 [README.md](README.md)。
 
-相关文档：
+相关文档（文档与 `src/` 模块一一对应，见 [docs/dev/index.md](docs/dev/index.md) 映射表）：
 
-| 文档 | 用途 |
-|------|------|
-| [README.md](README.md) | 快速开始、命令一览、安装 |
-| [ROADMAP.md](ROADMAP.md) | 版本里程碑和 checkbox 计划 |
-| [TODO.md](TODO.md) | 按模块拆解的执行任务 |
-| [CHANGELOG.md](CHANGELOG.md) | 版本变更记录（发布事实源） |
-| [docs/dev/index.md](docs/dev/index.md) | 命令结构总览（生命周期 / 横向工具 / 查看） |
-| [docs/dev/transfer.md](docs/dev/transfer.md) | 开发者文档：架构、错误模型、测试 |
-| [docs/dev/specification.md](docs/dev/specification.md) | CLI 与 Provider 共用的 YAML envelope |
+| 文档 | 对应模块 | 用途 |
+|------|---------|------|
+| [README.md](README.md) | — | 快速开始、命令一览、安装 |
+| [ROADMAP.md](ROADMAP.md) | — | 版本里程碑和 checkbox 计划 |
+| [TODO.md](TODO.md) | — | 按模块拆解的执行任务 |
+| [CHANGELOG.md](CHANGELOG.md) | — | 版本变更记录（发布事实源） |
+| [docs/dev/index.md](docs/dev/index.md) | main/lib/error | 命令结构总览 + 文档映射表 + 错误模型 |
+| [docs/dev/transfer.md](docs/dev/transfer.md) | transfer/providers | 传输服务与 StorageProvider |
+| [docs/dev/data-format.md](docs/dev/data-format.md) | catalog/store | 数据格式（registry/jobs/delivery-links 字段级） |
+| [docs/dev/process.md](docs/dev/process.md) | process | StepExecutor 编排 |
+| [docs/dev/llm.md](docs/dev/llm.md) | clarify/design/implement/review | LLM 命令与 Handler 注入 |
+| [docs/dev/specification.md](docs/dev/specification.md) | spec/blueprint_core | Specification YAML 契约 |
+| [docs/dev/view.md](docs/dev/view.md) | blueprint/contract/pipeline | 查看命令与文件直读策略 |
+| [docs/dev/tooling.md](docs/dev/tooling.md) | doctor/version | 环境检查与版本管理 |
 
 ## 开发环境
 

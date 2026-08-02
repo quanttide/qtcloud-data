@@ -1,14 +1,20 @@
 # qtcloud-data CLI — 开发者文档索引
 
-本目录是 qtcloud-data CLI 的开发者文档入口。
+本目录是 qtcloud-data CLI 的开发者文档入口。文档与 `src/` 模块**一一对应**（按模块组组织），
+找模块 → 查映射表 → 读对应文档。
 
-## 文档索引
+## 文档 ↔ 模块映射表
 
-| 文档 | 内容 |
-|------|------|
-| [index.md](index.md)（本文件） | 命令结构总览、命令分类 |
-| [transfer.md](transfer.md) | 架构概览、错误模型、LLM 注入、测试分层 |
-| [specification.md](specification.md) | Specification YAML envelope 契约（CLI 与 Provider 共用） |
+| 文档 | 对应模块 | 内容 |
+|------|---------|------|
+| [index.md](index.md)（本文件） | `main.rs`、`lib.rs`、`error.rs` | 命令结构、文档映射、横切基础（错误模型） |
+| [transfer.md](transfer.md) | `transfer.rs`、`providers/` | 传输服务与 StorageProvider trait、添加新平台 |
+| [data-format.md](data-format.md) | `catalog.rs`、`store.rs` | 数据目录与落盘格式（registry/jobs/delivery-links 字段级定义） |
+| [process.md](process.md) | `process.rs` | StepExecutor 编排（receive → pipeline → send） |
+| [llm.md](llm.md) | `clarify.rs`、`design.rs`、`implement.rs`、`review.rs` | LLM 命令与 Handler 注入模式 |
+| [specification.md](specification.md) | `spec.rs`、`blueprint_core.rs` | Specification YAML 契约与 Blueprint 工作流模型 |
+| [view.md](view.md) | `blueprint.rs`、`contract.rs`、`pipeline.rs` | 查看命令与文件直读策略 |
+| [tooling.md](tooling.md) | `doctor.rs`、`version.rs` | 环境检查与版本管理工具 |
 
 贡献与发布流程见 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
 
@@ -47,7 +53,7 @@ qtcloud-data
 
 ```
 clarify → design → implement → process → transfer
-  DRD        Spec       代码       编排      交付
+  DRD        Spec       代码      编排      交付
 ```
 
 - 每个命令消费上一阶段的产物，产出一份新文档/代码/数据
@@ -71,9 +77,42 @@ clarify → design → implement → process → transfer
 
 只读查看定义（需要数据目录中有对应文件；cue 为可选增强）。
 
+## 横切基础：错误模型（error.rs）
+
+所有命令入口返回 `Result<(), CliError>`，`main` 顶层统一格式化 `错误: {err}` 并退出码 1。
+
+```rust
+// 命令实现（以 catalog 为例）
+pub fn run(args: &CatalogArgs) -> Result<(), CliError> {
+    match &args.action {
+        CatalogAction::Show { name } => show(name),
+        // ...
+    }
+}
+
+fn show(name: &str) -> Result<(), CliError> {
+    match registry.get(name) {
+        Some(v) => { /* 打印 */ Ok(()) }
+        None => Err(CliError::new(format!("未找到 volume: {name}"))),
+    }
+}
+```
+
+约定：
+
+- 错误路径通过 `Result` 传播，**不直接 `std::process::exit(1)`**（仅 `main` 保留 bin 入口 exit）
+- `Result<_, String>` 的公开函数已收敛为 `CliError`（`From<io::Error>/String/&str`）
+- 错误路径因此可测试：`cmd_xxx(...).unwrap_err()`
+- `CliError` 只携带用户可读消息（`Display` 即消息本体），不携带结构化错误码
+
+## 测试
+
+测试分层与运行方式见 [CONTRIBUTING.md](../../CONTRIBUTING.md)（测试分层节）。
+覆盖率当前 83.7%，基线变更记录在 TODO 对应版本条目。
+
 ## 数据目录与命令的关系
 
-命令的产物落在 `.quanttide/data/` 下（可用 `DATA_ROOT` 覆盖）：
+命令的产物落在 `.quanttide/data/` 下（可用 `DATA_ROOT` 覆盖），字段级格式见 [data-format.md](data-format.md)：
 
 | 目录 | 产物 | 生产命令 | 消费命令 |
 |------|------|---------|---------|
@@ -87,6 +126,6 @@ clarify → design → implement → process → transfer
 ## 快速导航
 
 - 想知道"这个命令属于哪个环节" → 看[命令结构总览](#命令结构总览)
-- 想知道"命令内部怎么实现" → [transfer.md](transfer.md)
+- 想知道"某个模块怎么实现" → 查[映射表](#文档--模块映射表)
 - 想知道"Specification 契约长什么样" → [specification.md](specification.md)
 - 想知道"发布怎么走" → [CONTRIBUTING.md](../../CONTRIBUTING.md)
