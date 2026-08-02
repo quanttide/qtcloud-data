@@ -5,8 +5,10 @@
 ## 仓库定位
 
 `src/cli` 是量潮数据云（qtcloud-data）的命令行工具 crate（`qtcloud-data-cli`），位于
-`apps/qtcloud-data` 子模块内。CLI 把数据交付里容易卡住的碎片环节串成可重复命令：
-`clarify → design → review → implement → process → transfer`。
+`apps/qtcloud-data` 子模块内。CLI 把数据交付里容易卡住的碎片环节串成可重复命令。
+
+命令结构与分类（生命周期 / 横向工具 / 查看）以 [docs/dev/index.md](docs/dev/index.md) 为事实源，
+本文件不重复展开——贡献流程请往下看，命令用法见 [README.md](README.md)。
 
 相关文档：
 
