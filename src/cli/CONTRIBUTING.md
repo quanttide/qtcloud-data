@@ -56,7 +56,7 @@ cargo fmt --check
 | 层次 | 位置 | 手段 |
 |---|---|---|
 | 单元测试 | `src/*.rs` 内 `mod tests` | 纯函数 + env 注入 + `test_support::{temp_dir, write_script, fake_llm}` |
-| 命令级集成 | `tests/cli_test.rs` | spawn 二进制测各命令行为（help/spec/doctor/process） |
+| 命令级集成 | `tests/{module}_test.rs`（按 src/ 模块一一对应：cli/clarify/design/review/version/spec/doctor/blueprint） | spawn 二进制测命令行为，共享 helper 在 `tests/common/mod.rs` |
 | provider 集成 | `tests/providers_test.rs` | wiremock 模拟 HTTP（dropbox/s3/google/onedrive + 注册） |
 | process e2e | `tests/process_test.rs` | process 全链路端到端 + 命令级（`tests/fixtures/github-activity/`） |
 
