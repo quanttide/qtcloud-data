@@ -3,7 +3,7 @@
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::error::CliError;
 use crate::registry;
@@ -103,8 +103,36 @@ fn open_registry() -> registry::Registry<Volume> {
 }
 
 // ── 数据模型（VolumeStatus / Volume / RegisterVolume） ──
-/// 登记一个文件到 catalog registry（`registry.json`）。
+/// 登记一个文件到 catalog registry（`registry.json`，目录取自 `CATALOG_DIR`/`DATA_ROOT`）。
 pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
+    register_volume_in(input, &util::catalog_dir())
+}
+
+/// 登记一个文件到指定 catalog 目录（注入式，供测试/文档示例使用）。
+///
+/// # 示例
+///
+/// ```
+/// use std::path::PathBuf;
+///
+/// let dir = std::env::temp_dir().join("qtcloud-doc-catalog");
+/// let vol = qtcloud_data_cli::catalog::register_volume_in(
+///     qtcloud_data_cli::catalog::RegisterVolume {
+///         path: "Cargo.toml",
+///         name: Some("doc-demo"),
+///         provider: None,
+///         source: None,
+///         status: qtcloud_data_cli::catalog::VolumeStatus::Received,
+///     },
+///     &dir,
+/// );
+/// assert!(vol.is_ok());
+/// let _ = std::fs::remove_dir_all(&dir);
+/// ```
+pub fn register_volume_in(
+    input: RegisterVolume<'_>,
+    catalog_dir: &Path,
+) -> Result<Volume, CliError> {
     let path = PathBuf::from(input.path);
     if !path.exists() {
         return Err(CliError::new(format!("文件不存在: {}", input.path)));
@@ -136,7 +164,8 @@ pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
         status: input.status,
     };
 
-    let mut registry = open_registry();
+    let registry_path = catalog_dir.join("registry.json");
+    let mut registry = registry::Registry::open(&registry_path).unwrap_or_default();
     registry
         .insert(volume_name, volume.clone())
         .map_err(|err| CliError::new(format!("写入 registry 失败: {err}")))?;
@@ -260,27 +289,23 @@ mod tests {
 
     #[test]
     fn register_volume_writes_registry_entry() {
-        let _guard = ENV_LOCK.lock().unwrap();
         let root = temp_dir("qtcloud-catalog-register");
         let catalog_dir = root.join("catalog");
         std::fs::create_dir_all(&catalog_dir).unwrap();
         let file = root.join("final.csv");
         std::fs::write(&file, "a,b\n1,2\n").unwrap();
 
-        unsafe {
-            std::env::set_var("CATALOG_DIR", &catalog_dir);
-        }
-        let volume = register_volume(RegisterVolume {
-            path: file.to_str().unwrap(),
-            name: Some("ABC-001-final"),
-            provider: Some("process"),
-            source: Some("process:ABC-001-123"),
-            status: VolumeStatus::Delivered,
-        })
+        let volume = register_volume_in(
+            RegisterVolume {
+                path: file.to_str().unwrap(),
+                name: Some("ABC-001-final"),
+                provider: Some("process"),
+                source: Some("process:ABC-001-123"),
+                status: VolumeStatus::Delivered,
+            },
+            &catalog_dir,
+        )
         .unwrap();
-        unsafe {
-            std::env::remove_var("CATALOG_DIR");
-        }
 
         assert_eq!(volume.name, "ABC-001-final");
         assert_eq!(volume.provider.as_deref(), Some("process"));
@@ -393,13 +418,16 @@ mod tests {
     fn seed_volume(catalog_dir: &std::path::Path) -> String {
         let file = catalog_dir.parent().unwrap().join("final.csv");
         std::fs::write(&file, "a,b\n1,2\n").unwrap();
-        let volume = register_volume(RegisterVolume {
-            path: file.to_str().unwrap(),
-            name: Some("ABC-001"),
-            provider: Some("process"),
-            source: None,
-            status: VolumeStatus::Delivered,
-        })
+        let volume = register_volume_in(
+            RegisterVolume {
+                path: file.to_str().unwrap(),
+                name: Some("ABC-001"),
+                provider: Some("process"),
+                source: None,
+                status: VolumeStatus::Delivered,
+            },
+            catalog_dir,
+        )
         .unwrap();
         volume.name
     }
