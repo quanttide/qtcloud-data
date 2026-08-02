@@ -21,7 +21,6 @@
 | [docs/dev/index.md](docs/dev/index.md) | 命令结构总览（生命周期 / 横向工具 / 查看） |
 | [docs/dev/transfer.md](docs/dev/transfer.md) | 开发者文档：架构、错误模型、测试 |
 | [docs/dev/specification.md](docs/dev/specification.md) | CLI 与 Provider 共用的 YAML envelope |
-| [docs/dev/e2e-baseline.md](docs/dev/e2e-baseline.md) | 基线 e2e 验证记录与覆盖率基线 |
 
 ## 开发环境
 

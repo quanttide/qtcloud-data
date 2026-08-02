@@ -9,7 +9,6 @@
 | [index.md](index.md)（本文件） | 命令结构总览、命令分类 |
 | [transfer.md](transfer.md) | 架构概览、错误模型、LLM 注入、测试分层 |
 | [specification.md](specification.md) | Specification YAML envelope 契约（CLI 与 Provider 共用） |
-| [e2e-baseline.md](e2e-baseline.md) | 基线 e2e 验证记录与覆盖率基线 |
 
 贡献与发布流程见 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
 
