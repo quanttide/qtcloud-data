@@ -6,8 +6,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::catalog::{self, RegisterVolume};
 use crate::error::CliError;
+use crate::implementation::catalog::{self, RegisterVolume};
 use crate::registry;
 use crate::runtime;
 use crate::stage::transfer;

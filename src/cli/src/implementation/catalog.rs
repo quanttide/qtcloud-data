@@ -116,13 +116,13 @@ pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
 /// use std::path::PathBuf;
 ///
 /// let dir = std::env::temp_dir().join("qtcloud-doc-catalog");
-/// let vol = qtcloud_data_cli::catalog::register_volume_in(
-///     qtcloud_data_cli::catalog::RegisterVolume {
+/// let vol = qtcloud_data_cli::implementation::catalog::register_volume_in(
+///     qtcloud_data_cli::implementation::catalog::RegisterVolume {
 ///         path: "Cargo.toml",
 ///         name: Some("doc-demo"),
 ///         provider: None,
 ///         source: None,
-///         status: qtcloud_data_cli::catalog::VolumeStatus::Received,
+///         status: qtcloud_data_cli::implementation::catalog::VolumeStatus::Received,
 ///     },
 ///     &dir,
 /// );

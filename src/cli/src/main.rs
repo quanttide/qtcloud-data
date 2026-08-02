@@ -2,8 +2,9 @@
 
 use clap::{Parser, Subcommand};
 use qtcloud_data_cli::error::CliError;
+use qtcloud_data_cli::implementation::{catalog, pipeline};
 use qtcloud_data_cli::stage::{clarify, design, implement, process, transfer};
-use qtcloud_data_cli::{catalog, doctor, pipeline, review, spec};
+use qtcloud_data_cli::{doctor, review, spec};
 
 #[derive(Parser)]
 #[command(name = "qtcloud-data", about = "量潮数据云 CLI")]
