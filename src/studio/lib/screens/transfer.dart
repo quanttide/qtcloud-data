@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme.dart';
 
 /// 传输页：发送 / 接收演示
@@ -19,14 +21,9 @@ class TransferScreen extends StatefulWidget {
 }
 
 class _TransferScreenState extends State<TransferScreen> {
-  static const _providers = [
-    'dropbox',
-    'baidu',
-    'google',
-    'onedrive',
-    's3',
-    'sftp'
-  ];
+  static const _seedAsset = 'assets/data/seed_dashboard.json';
+
+  List<String> _providers = const ['dropbox'];
 
   late final TextEditingController _providerCtl =
       TextEditingController(text: widget.initialProvider ?? 'dropbox');
@@ -35,6 +32,27 @@ class _TransferScreenState extends State<TransferScreen> {
   final _urlCtl = TextEditingController();
   String _result = '';
   bool _sendMode = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProviders();
+  }
+
+  /// 提供商列表与总览页同源（seed_dashboard.json）
+  Future<void> _loadProviders() async {
+    try {
+      final raw = await rootBundle.loadString(_seedAsset);
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final providers = (decoded['providers'] as List<dynamic>? ?? const [])
+          .map((e) => e as String)
+          .toList();
+      if (!mounted || providers.isEmpty) return;
+      setState(() => _providers = providers);
+    } catch (e) {
+      debugPrint('提供商列表加载失败: $e');
+    }
+  }
 
   @override
   void dispose() {
