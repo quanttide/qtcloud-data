@@ -126,7 +126,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${r.client} · ${r.created}',
+                  '${r.project.isNotEmpty ? '${r.project} · ' : ''}${r.client} · ${r.created}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 12),

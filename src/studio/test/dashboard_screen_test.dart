@@ -25,8 +25,9 @@ void main() {
     for (final label in ['需求', '蓝图', '契约', '管道', '执行', '传输']) {
       expect(find.text(label), findsWidgets);
     }
-    // 需求 2 条、蓝图 2 条、契约 3 条、管道 2 条、执行 3 条、传输 6 个提供商
-    expect(find.text('2'), findsNWidgets(3));
+    // 需求 1 条、蓝图 2 条、契约 3 条、管道 2 条、执行 3 条、传输 6 个提供商
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('2'), findsNWidgets(2));
     expect(find.text('3'), findsNWidgets(2));
     expect(find.text('6'), findsOneWidget);
 

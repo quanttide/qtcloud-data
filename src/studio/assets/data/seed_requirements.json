@@ -2,23 +2,14 @@
   "requirements": [
     {
       "id": "resolution-data",
+      "project": "量潮科技数字化",
       "name": "议事决议数据需求点",
       "client": "量潮科技（内部项目）",
       "status": "active",
       "created": "2026-08-01",
-      "summary": "量潮科技数字化 · 议事决议数据需求点：飞书议事档案 → 决议提取与标准化 → 治理视图与周会报告",
+      "summary": "飞书议事档案 → 决议提取与标准化 → 治理视图与周会报告",
       "goal": "建立决议档案库（一决议一文件 YAML），支持逾期推导、责任人分布与周会决议汇总",
       "output_expectation": "决议档案（YAML）+ 治理视图 JSON + 周会决议汇总与质量基线"
-    },
-    {
-      "id": "history-batch",
-      "name": "历史周会批量整理",
-      "client": "量潮科技（内部项目）",
-      "status": "active",
-      "created": "2026-08-08",
-      "summary": "第 30/31/32 周等历史周会纪要批量导出与决议提取",
-      "goal": "复用导入/治理流水线批量处理历史纪要，补齐决议档案",
-      "output_expectation": "历史决议档案补齐 + 质量校验（编号/决议质量）"
     }
   ]
 }

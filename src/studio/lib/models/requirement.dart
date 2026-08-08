@@ -6,6 +6,9 @@ class Requirement {
   final String id;
   final String name;
 
+  /// 所属项目（完整案例，如 量潮科技数字化）
+  final String project;
+
   /// 客户
   final String client;
 
@@ -25,6 +28,7 @@ class Requirement {
   const Requirement({
     required this.id,
     required this.name,
+    required this.project,
     required this.client,
     required this.status,
     required this.created,
@@ -36,6 +40,7 @@ class Requirement {
   factory Requirement.fromJson(Map<String, dynamic> json) => Requirement(
         id: json['id'] as String,
         name: json['name'] as String,
+        project: json['project'] as String? ?? '',
         client: json['client'] as String? ?? '',
         status: json['status'] as String? ?? 'draft',
         created: json['created'] as String? ?? '',
