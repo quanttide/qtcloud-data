@@ -27,6 +27,20 @@ qtcloud-devops release publish -v studio/v0.1.0-alpha.1 -f -y   # -f：强制重
 - 预检常见失败项：`pubspec.yaml` 版本未对齐、`CHANGELOG.md` 缺条目、工作区有未提交变更
 - tag 命名 `studio/*` 与 `deploy-studio.yml` 触发条件一致
 
+**坑：GitHub Release notes 为空**
+
+`release publish` 会自动生成 Release notes，但它解析 CHANGELOG 时要求版本头格式为
+`## [0.1.0-beta.1]`（**不带 scope 前缀**）。仓库现有格式 `## [studio/v0.1.0-beta.1]`
+会导致「CHANGELOG 写入失败」且 **Release body 为空**（audit 的 CHANGELOG 检查仍会通过，
+因为它是子串匹配）。
+
+修复方式：发布后手动补 body：
+
+```bash
+gh release edit studio/v0.1.0-beta.1 --repo quanttide/qtcloud-data \
+  --notes-file release_notes.md   # 内容从 src/studio/CHANGELOG.md 对应条目提取
+```
+
 ### 2. 创建 OSS 桶并开放公共读（核心！）
 
 **坑：新桶默认开启桶级 BlockPublicAccess（`BlockPublicAccess=true`），此时所有设置公共读的 API 都会被拒**
