@@ -20,7 +20,7 @@ pub enum DesignAction {
         /// DRD .md 文件路径
         input: String,
     },
-    /// 从 DRD 生成处理蓝图（Blueprint: .yaml + .md + .html）
+    /// 从 DRD 生成数据蓝图（Blueprint: .yaml + .md + .html）
     Blueprint {
         /// DRD .md 文件路径
         input: String,
@@ -644,7 +644,7 @@ fn render_contract_md(input: &[Vec<String>], output: &[Vec<String>]) -> String {
 /// CLI 代码解析 Markdown 表格，生成 .cue + .md + .html 文件。LLM 不直接写 CUE。
 pub fn design_blueprint_prompt(drd: &str) -> String {
     format!(
-        r#"你是一个数据工程规格设计师。请根据以下数据需求文档（DRD），生成处理蓝图（Blueprint）的工作流步骤。
+        r#"你是一个数据工程规格设计师。请根据以下数据需求文档（DRD），生成数据蓝图（Blueprint）的工作流步骤。
 
 Blueprint 是设计与实现之间的中间规格，参考 AWS Step Functions 的状态机思路：先描述工作流结构，再由 implement/execute 转换为代码或执行计划。当前 CLI 会根据表格生成 YAML，其中包含兼容旧实现的 steps，以及更明确的 start_at/states 状态机结构。
 

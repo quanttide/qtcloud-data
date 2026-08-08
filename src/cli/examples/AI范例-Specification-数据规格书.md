@@ -39,7 +39,7 @@
 
 ---
 
-## Part B：处理蓝图（Blueprint）
+## Part B：数据蓝图（Blueprint）
 
 ### 处理流程
 

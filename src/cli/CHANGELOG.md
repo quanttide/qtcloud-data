@@ -148,7 +148,7 @@
 ### Added
 - `clarify from-chat <file>`：从聊天记录或上下文生成数据需求文档（DRD）。
 - `design contract <drd>`：从 DRD 生成数据契约（Contract: .yaml + .md）。
-- `design blueprint <drd>`：从 DRD 生成处理蓝图（Blueprint: .yaml + .md + .html）。
+- `design blueprint <drd>`：从 DRD 生成数据蓝图（Blueprint: .yaml + .md + .html）。
 - `review <input>`：提升为顶级命令，审计 Specification。
 - `version {list,show,diff}`：提升为顶级命令。
 
