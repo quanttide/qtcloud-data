@@ -139,5 +139,5 @@ print(call('<bucket>', 'publicAccessBlock'))
 ## 六、相关资源
 
 - 部署工作流：`.github/workflows/deploy-studio.yml`
-- 基础设施定义：`infra/studio/`（Terraform：桶 + CDN；含 BPA 踩坑注释）
+- 基础设施定义：`manifests/terraform/`（Terraform：桶 + CDN；含 BPA 踩坑注释）
 - 组织运维手册：`quanttide-platform/docs/site-ops-handbook.md`

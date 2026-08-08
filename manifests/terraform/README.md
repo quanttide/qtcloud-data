@@ -10,7 +10,7 @@ Terraform 管理「量潮数据云控制台」的云上基础设施：
 前置要求：`terraform` ≥ 1.5，阿里云 AccessKey（具备 OSS / CDN 管理权限）。
 
 ```bash
-cd infra/studio
+cd manifests/terraform
 cp terraform.tfvars.example terraform.tfvars   # 按需修改
 export ALICLOUD_ACCESS_KEY_ID=xxx
 export ALICLOUD_ACCESS_KEY_SECRET=xxx
