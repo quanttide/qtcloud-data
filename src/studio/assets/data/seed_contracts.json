@@ -1,0 +1,109 @@
+{
+  "contracts": [
+    {
+      "id": "source-questionnaire",
+      "name": "原始问卷",
+      "description": "问卷调研原始数据契约：CSV 格式，一行一份问卷答复",
+      "format": "csv",
+      "fields": [
+        {
+          "name": "respondent_id",
+          "type": "string",
+          "required": true,
+          "description": "答卷人唯一标识"
+        },
+        {
+          "name": "submitted_at",
+          "type": "datetime",
+          "required": true,
+          "description": "提交时间"
+        },
+        {
+          "name": "question_1",
+          "type": "string",
+          "required": false,
+          "description": "第一题答复"
+        },
+        {
+          "name": "question_2",
+          "type": "string",
+          "required": false,
+          "description": "第二题答复"
+        }
+      ],
+      "example": "respondent_id,submitted_at,question_1,question_2\nR-001,2026-07-28T10:00:00Z,是,否"
+    },
+    {
+      "id": "csv-standard-output",
+      "name": "CSV 标准化输出",
+      "description": "CSV 数据标准化后的输出契约：原始 CSV + 元数据（行数/列数/空值统计）",
+      "format": "csv + yaml",
+      "fields": [
+        {
+          "name": "row_id",
+          "type": "string",
+          "required": true,
+          "description": "行唯一标识"
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "required": true,
+          "description": "标准化后的内容"
+        },
+        {
+          "name": "metadata",
+          "type": "yaml",
+          "required": false,
+          "description": "元数据：来源、统计、质量指标"
+        }
+      ],
+      "example": "row_id,content\nR-001,标准化后的内容"
+    },
+    {
+      "id": "resolution-archive",
+      "name": "决议档案",
+      "description": "议事决议数据契约：一决议一 YAML 文件，对齐 id/title/owner/due/status/source 结构",
+      "format": "yaml",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "description": "决议编号"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "决议标题"
+        },
+        {
+          "name": "owner",
+          "type": "string",
+          "required": true,
+          "description": "责任人"
+        },
+        {
+          "name": "due",
+          "type": "date",
+          "required": true,
+          "description": "完成期限"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "description": "状态：open / done / overdue"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "required": true,
+          "description": "溯源：来源提案/纪要编号"
+        }
+      ],
+      "example": "id: 2026-033-001\ntitle: 决议示例\nowner: 张工\ndue: 2026-08-15\nstatus: open\nsource: 提案 P2026-033"
+    }
+  ]
+}
