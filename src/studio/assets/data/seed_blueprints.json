@@ -5,14 +5,132 @@
       "name": "决议提取与标准化",
       "contract": "input: 飞书议事档案 → output: 决议档案 YAML",
       "pipeline": "resolution-import",
-      "rules": 8
+      "rules": 8,
+      "version": "v1",
+      "description": "从飞书议事档案（提案/纪要/简报）中提取决议并标准化为决议档案（一决议一 YAML 文件）",
+      "inputs": [
+        {
+          "name": "feishu_archive",
+          "type": "文本",
+          "meaning": "飞书导出的议事档案（提案、会议纪要、部门简报）",
+          "constraint": "由 lark-cli drive +export 导出"
+        },
+        {
+          "name": "agenda_structure",
+          "type": "文本",
+          "meaning": "议程结构（编号、提案人、poll 标记）",
+          "constraint": "需包含决定类记录标记"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "resolution_archive",
+          "type": "YAML",
+          "meaning": "决议档案",
+          "commitment": "一决议一文件，对齐 schema（id/title/content/owner/due/status/vote/source/evidence/history）"
+        },
+        {
+          "name": "archive_index",
+          "type": "YAML",
+          "meaning": "决议索引",
+          "commitment": "编号唯一，聚合统计可查询"
+        }
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "采集原始数据",
+          "logic": "lark-cli drive +export 导出提案/纪要/简报",
+          "action": "按周归档至原始数据目录"
+        },
+        {
+          "number": 2,
+          "name": "解析文档结构",
+          "logic": "提取编号、提案人、poll 标记、议程结构",
+          "action": "生成结构化中间表示"
+        },
+        {
+          "number": 3,
+          "name": "决议标准化",
+          "logic": "对齐决议 schema（id/title/owner/due/status/溯源）",
+          "action": "缺失字段标记（无责任人/无期限）"
+        },
+        {
+          "number": 4,
+          "name": "纪要决议提取",
+          "logic": "从议程中提取决定类记录（决定/通过/落实/确定）",
+          "action": "第33周示例提取 8 条决议"
+        },
+        {
+          "number": 5,
+          "name": "档案落库",
+          "logic": "一决议一 YAML 文件，索引聚合",
+          "action": "生成 index.yaml 与聚合统计"
+        }
+      ]
     },
     {
       "id": "governance-report",
       "name": "治理与周会报告",
       "contract": "input: 决议档案 → output: 治理视图 JSON + 周会汇总",
       "pipeline": "governance-report",
-      "rules": 8
+      "rules": 8,
+      "version": "v1",
+      "description": "基于决议档案生成治理视图与周会决议汇总，输出质量基线（8 项实验基线）",
+      "inputs": [
+        {
+          "name": "resolution_archive",
+          "type": "YAML",
+          "meaning": "决议档案（一决议一文件）",
+          "constraint": "对齐决议 schema"
+        },
+        {
+          "name": "archive_index",
+          "type": "YAML",
+          "meaning": "决议索引",
+          "constraint": "含编号与状态"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "governance_view",
+          "type": "JSON",
+          "meaning": "治理视图",
+          "commitment": "stats / overdue / by_owner / resolutions，客户端可消费"
+        },
+        {
+          "name": "weekly_summary",
+          "type": "JSON",
+          "meaning": "周会决议汇总",
+          "commitment": "决议清单 + 质量指标（编号错位/辩论记录/决议落档）"
+        }
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "索引与逾期推导",
+          "logic": "聚合统计，逾期 = due < today 且未完成",
+          "action": "生成 index 统计"
+        },
+        {
+          "number": 2,
+          "name": "治理视图生成",
+          "logic": "组装 stats / overdue / by_owner / resolutions",
+          "action": "输出治理视图 JSON"
+        },
+        {
+          "number": 3,
+          "name": "周会报告",
+          "logic": "决议清单 + 质量指标（编号错位/辩论记录/决议落档）",
+          "action": "输出周会决议汇总"
+        },
+        {
+          "number": 4,
+          "name": "质量基线",
+          "logic": "8 项实验基线：编号错位 100%、辩论记录 20%、决议落档 0 条",
+          "action": "输出基线报告"
+        }
+      ]
     }
   ]
 }

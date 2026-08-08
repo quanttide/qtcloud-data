@@ -1,169 +1,65 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../models/blueprint.dart';
 import '../theme.dart';
-
-// --- Models ---
-
-class InputField {
-  final String name;
-  final String type;
-  final String meaning;
-  final String constraint;
-  const InputField({
-    required this.name,
-    required this.type,
-    required this.meaning,
-    required this.constraint,
-  });
-}
-
-class OutputField {
-  final String name;
-  final String type;
-  final String meaning;
-  final String commitment;
-  const OutputField({
-    required this.name,
-    required this.type,
-    required this.meaning,
-    required this.commitment,
-  });
-}
-
-class ProcessStep {
-  final int number;
-  final String name;
-  final String logic;
-  final String action;
-  const ProcessStep({
-    required this.number,
-    required this.name,
-    required this.logic,
-    required this.action,
-  });
-}
-
-class BlueprintDetailData {
-  final String id;
-  final String name;
-  final String version;
-  final String description;
-  final List<InputField> inputs;
-  final List<OutputField> outputs;
-  final List<ProcessStep> steps;
-  const BlueprintDetailData({
-    required this.id,
-    required this.name,
-    required this.version,
-    required this.description,
-    required this.inputs,
-    required this.outputs,
-    required this.steps,
-  });
-}
-
-// --- Mock data ---
-
-const _mockBlueprints = {
-  'csv-standard': BlueprintDetailData(
-    id: 'csv-standard',
-    name: '客户画像标准化方案',
-    version: 'v1.2',
-    description: '将多源原始客户数据清洗、标准化，输出统一的用户画像格式，确保数据质量符合下游分析要求。',
-    inputs: [
-      InputField(name: 'raw_user_id', type: '文本', meaning: '原始用户标识', constraint: '必填，不可全数字'),
-      InputField(name: 'raw_age', type: '数字', meaning: '原始年龄', constraint: '必填，范围 0-120'),
-      InputField(name: 'raw_gender', type: '文本', meaning: '原始性别', constraint: '必填，枚举值 [M, F]'),
-      InputField(name: 'raw_date', type: '日期', meaning: '注册日期', constraint: '必填，格式 YYYY-MM-DD'),
-    ],
-    outputs: [
-      OutputField(name: 'standard_user_id', type: '文本', meaning: '标准化用户标识', commitment: '去重，非空，长度固定 16 位'),
-      OutputField(name: 'age_group', type: '文本', meaning: '年龄段', commitment: '枚举值 [18-25, 26-35, 36-45, 46+]'),
-      OutputField(name: 'gender_full', type: '文本', meaning: '性别全称', commitment: '枚举值 [男, 女]，空值率 < 1%'),
-      OutputField(name: 'register_quarter', type: '文本', meaning: '注册季度', commitment: '格式 YYYY-QX，去重率 100%'),
-    ],
-    steps: [
-      ProcessStep(
-        number: 1,
-        name: '数据格式与完整性校验',
-        logic: '检查必填字段是否为空，验证日期/数字格式是否合规。',
-        action: '不合规的记录将被剔除并记录在《异常数据报告》中。',
-      ),
-      ProcessStep(
-        number: 2,
-        name: '缺失值与异常值处理',
-        logic: '对于年龄为负数或大于 120 的记录，标记为异常并置空。',
-        action: '确保进入下一步的数据在逻辑上是合理的。',
-      ),
-      ProcessStep(
-        number: 3,
-        name: '字段标准化映射',
-        logic: '将性别缩写 (M/F) 统一转换为全称 (男/女)，将连续的年龄数值映射为年龄段。',
-        action: '如 28 岁映射为 "26-35"，M 映射为 "男"。',
-      ),
-      ProcessStep(
-        number: 4,
-        name: '去重与最终封装',
-        logic: '基于 standard_user_id 进行去重，保留最新记录。',
-        action: '生成最终符合输出规格的交付文件。',
-      ),
-    ],
-  ),
-  'survey-clean': BlueprintDetailData(
-    id: 'survey-clean',
-    name: '问卷清洗',
-    version: 'v1.0',
-    description: '对原始问卷数据进行清洗和结构化处理，去除无效回答，标准化字段格式，输出可直接用于分析的结构化数据集。',
-    inputs: [
-      InputField(name: 'respondent_id', type: '文本', meaning: '受访者编号', constraint: '必填，唯一标识'),
-      InputField(name: 'answer_text', type: '文本', meaning: '开放题回答', constraint: '必填，不超过 5000 字符'),
-      InputField(name: 'choice_ids', type: '文本', meaning: '选择题选项', constraint: '必填，逗号分隔的数字列表'),
-      InputField(name: 'submit_time', type: '日期时间', meaning: '提交时间', constraint: '必填，ISO 8601 格式'),
-    ],
-    outputs: [
-      OutputField(name: 'clean_respondent_id', type: '文本', meaning: '清洗后受访者编号', commitment: '去重，非空'),
-      OutputField(name: 'answer_tokens', type: '文本数组', meaning: '分词结果', commitment: '已去停用词，空值率 < 5%'),
-      OutputField(name: 'choice_labels', type: '文本数组', meaning: '选项标签', commitment: '已映射为可读文本'),
-      OutputField(name: 'duration_minutes', type: '数字', meaning: '答题时长(分钟)', commitment: '非负，异常值已剔除'),
-    ],
-    steps: [
-      ProcessStep(
-        number: 1,
-        name: '问卷完整性检查',
-        logic: '检查每份问卷的必答题是否全部作答，筛除答题时长异常的记录。',
-        action: '不合格问卷标记为无效，不进入后续处理。',
-      ),
-      ProcessStep(
-        number: 2,
-        name: '开放题文本清洗',
-        logic: '对开放题回答进行分词、去停用词处理。',
-        action: '生成标准化的词条列表。',
-      ),
-      ProcessStep(
-        number: 3,
-        name: '选择题选项映射',
-        logic: '将选项 ID 映射为对应的标签文本。',
-        action: '便于分析人员直接阅读。',
-      ),
-      ProcessStep(
-        number: 4,
-        name: '输出格式化',
-        logic: '汇总所有清洗后的字段，生成最终数据集。',
-        action: '附带数据质量报告。',
-      ),
-    ],
-  ),
-};
 
 // --- Screen ---
 
-class BlueprintDetailScreen extends StatelessWidget {
+class BlueprintDetailScreen extends StatefulWidget {
   final String id;
   const BlueprintDetailScreen({super.key, required this.id});
 
   @override
+  State<BlueprintDetailScreen> createState() => _BlueprintDetailScreenState();
+}
+
+class _BlueprintDetailScreenState extends State<BlueprintDetailScreen> {
+  static const _seedAsset = 'assets/data/seed_blueprints.json';
+
+  BlueprintDetailData? _bp;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final raw = await rootBundle.loadString(_seedAsset);
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final blueprints = (decoded['blueprints'] as List<dynamic>)
+          .map((e) => BlueprintDetailData.fromJson(e as Map<String, dynamic>))
+          .toList();
+      BlueprintDetailData? found;
+      for (final b in blueprints) {
+        if (b.id == widget.id) {
+          found = b;
+          break;
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _bp = found;
+        _loaded = true;
+      });
+    } catch (e) {
+      debugPrint('蓝图详情种子数据加载失败: $e');
+      if (!mounted) return;
+      setState(() => _loaded = true);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final bp = _mockBlueprints[id];
+    if (!_loaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final bp = _bp;
     if (bp == null) {
       return Padding(
         padding: const EdgeInsets.all(24),
@@ -234,7 +130,8 @@ class _Header extends StatelessWidget {
           ),
           child: Text(
             version,
-            style: const TextStyle(color: primaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                color: primaryColor, fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -259,7 +156,8 @@ class _ModuleOne extends StatelessWidget {
           children: [
             const _SectionTitle(icon: Icons.description, label: '方案概要'),
             const SizedBox(height: 12),
-            Text(bp.description, style: const TextStyle(fontSize: 14, height: 1.6)),
+            Text(bp.description,
+                style: const TextStyle(fontSize: 14, height: 1.6)),
           ],
         ),
       ),
@@ -339,7 +237,9 @@ class _FieldTable extends StatelessWidget {
               children: [
                 Icon(icon, size: 18, color: iconColor),
                 const SizedBox(width: 8),
-                Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold)),
               ],
             ),
             const Divider(height: 24),
@@ -371,7 +271,10 @@ class _FieldRow extends StatelessWidget {
             children: [
               Text(
                 field.name,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'monospace'),
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace'),
               ),
               const SizedBox(width: 8),
               Container(
@@ -380,16 +283,23 @@ class _FieldRow extends StatelessWidget {
                   color: Colors.white10,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text(field.type, style: const TextStyle(fontSize: 11, color: Colors.white54)),
+                child: Text(field.type,
+                    style:
+                        const TextStyle(fontSize: 11, color: Colors.white54)),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(field.meaning, style: const TextStyle(fontSize: 13, color: Colors.white70)),
+          Text(field.meaning,
+              style: const TextStyle(fontSize: 13, color: Colors.white70)),
           const SizedBox(height: 2),
           Text(
             '$hint: $constraintOrCommitment',
-            style: TextStyle(fontSize: 12, color: field is InputField ? Colors.orange.withOpacity(0.8) : Colors.green.withOpacity(0.8)),
+            style: TextStyle(
+                fontSize: 12,
+                color: field is InputField
+                    ? Colors.orange.withOpacity(0.8)
+                    : Colors.green.withOpacity(0.8)),
           ),
         ],
       ),
@@ -410,9 +320,11 @@ class _ModuleThree extends StatelessWidget {
       children: [
         const _SectionTitle(icon: Icons.settings, label: '处理过程详解（透明化业务流）'),
         const SizedBox(height: 4),
-        const Text('我们将严格按照以下步骤处理您的数据：', style: TextStyle(fontSize: 13, color: Colors.white54)),
+        const Text('我们将严格按照以下步骤处理您的数据：',
+            style: TextStyle(fontSize: 13, color: Colors.white54)),
         const SizedBox(height: 16),
-        ...bp.steps.map((step) => _TimelineStep(step: step, isLast: step.number == bp.steps.length)),
+        ...bp.steps.map((step) =>
+            _TimelineStep(step: step, isLast: step.number == bp.steps.length)),
       ],
     );
   }
@@ -444,7 +356,10 @@ class _TimelineStep extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Text(
                     '${step.number}',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
                 ),
                 if (!isLast)
@@ -471,7 +386,8 @@ class _TimelineStep extends StatelessWidget {
                     children: [
                       Text(
                         '步骤 ${step.number}：${step.name}',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       _StepDetail(label: '逻辑', text: step.logic),
@@ -527,7 +443,8 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Icon(icon, size: 20, color: primaryColor),
         const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
       ],
     );
   }
