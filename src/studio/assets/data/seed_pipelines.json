@@ -1,14 +1,14 @@
 {
   "pipelines": [
     {
-      "id": "csv-standard",
-      "desc": "CSV 格式校验 → 元数据注入 → 空值分析",
-      "steps": "processor → enricher"
+      "id": "resolution-import",
+      "desc": "飞书议事档案导出 → 文档解析 → 决议提取与标准化 → 档案落库",
+      "steps": "lark export → parse → extract → standardize → archive"
     },
     {
-      "id": "annotation",
-      "desc": "LLM 辅助数据标注",
-      "steps": "preprocess（预留）"
+      "id": "governance-report",
+      "desc": "索引聚合与逾期推导 → 治理视图生成 → 周会报告与质量基线",
+      "steps": "index → overdue → view → report"
     }
   ]
 }

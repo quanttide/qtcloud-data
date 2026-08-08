@@ -25,14 +25,14 @@ void main() {
     for (final label in ['需求', '蓝图', '契约', '管道', '执行', '传输']) {
       expect(find.text(label), findsWidgets);
     }
-    // 需求 3 条、蓝图 2 条、契约 3 条、管道 2 条、执行 3 条、传输 6 个提供商
-    expect(find.text('3'), findsNWidgets(3));
-    expect(find.text('2'), findsNWidgets(2));
+    // 需求 2 条、蓝图 2 条、契约 3 条、管道 2 条、执行 3 条、传输 6 个提供商
+    expect(find.text('2'), findsNWidgets(3));
+    expect(find.text('3'), findsNWidgets(2));
     expect(find.text('6'), findsOneWidget);
 
-    // 最近执行记录
+    // 最近执行记录（量潮科技数字化案例）
     expect(find.text('最近执行'), findsOneWidget);
-    expect(find.textContaining('ABC-001'), findsWidgets);
+    expect(find.textContaining('resolution-33w'), findsOneWidget);
 
     // 无服务端错误卡
     expect(find.textContaining('连接失败'), findsNothing);

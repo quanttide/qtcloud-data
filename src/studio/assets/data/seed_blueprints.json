@@ -1,18 +1,18 @@
 {
   "blueprints": [
     {
-      "id": "csv-standard",
-      "name": "CSV 数据标准化",
-      "contract": "input: CSV → output: CSV + 元数据",
-      "pipeline": "csv-standard",
-      "rules": 4
+      "id": "resolution-standard",
+      "name": "决议提取与标准化",
+      "contract": "input: 飞书议事档案 → output: 决议档案 YAML",
+      "pipeline": "resolution-import",
+      "rules": 8
     },
     {
-      "id": "survey-clean",
-      "name": "问卷清洗",
-      "contract": "input: 原始问卷 → output: 清洗后问卷",
-      "pipeline": "csv-standard",
-      "rules": 4
+      "id": "governance-report",
+      "name": "治理与周会报告",
+      "contract": "input: 决议档案 → output: 治理视图 JSON + 周会汇总",
+      "pipeline": "governance-report",
+      "rules": 8
     }
   ]
 }

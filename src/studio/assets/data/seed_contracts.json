@@ -1,76 +1,16 @@
 {
   "contracts": [
     {
-      "id": "source-questionnaire",
-      "name": "原始问卷",
-      "description": "问卷调研原始数据契约：CSV 格式，一行一份问卷答复",
-      "format": "csv",
-      "fields": [
-        {
-          "name": "respondent_id",
-          "type": "string",
-          "required": true,
-          "description": "答卷人唯一标识"
-        },
-        {
-          "name": "submitted_at",
-          "type": "datetime",
-          "required": true,
-          "description": "提交时间"
-        },
-        {
-          "name": "question_1",
-          "type": "string",
-          "required": false,
-          "description": "第一题答复"
-        },
-        {
-          "name": "question_2",
-          "type": "string",
-          "required": false,
-          "description": "第二题答复"
-        }
-      ],
-      "example": "respondent_id,submitted_at,question_1,question_2\nR-001,2026-07-28T10:00:00Z,是,否"
-    },
-    {
-      "id": "csv-standard-output",
-      "name": "CSV 标准化输出",
-      "description": "CSV 数据标准化后的输出契约：原始 CSV + 元数据（行数/列数/空值统计）",
-      "format": "csv + yaml",
-      "fields": [
-        {
-          "name": "row_id",
-          "type": "string",
-          "required": true,
-          "description": "行唯一标识"
-        },
-        {
-          "name": "content",
-          "type": "string",
-          "required": true,
-          "description": "标准化后的内容"
-        },
-        {
-          "name": "metadata",
-          "type": "yaml",
-          "required": false,
-          "description": "元数据：来源、统计、质量指标"
-        }
-      ],
-      "example": "row_id,content\nR-001,标准化后的内容"
-    },
-    {
       "id": "resolution-archive",
       "name": "决议档案",
-      "description": "议事决议数据契约：一决议一 YAML 文件，对齐 id/title/owner/due/status/source 结构",
+      "description": "一决议一 YAML 文件，对齐决议 schema：id/title/content/owner/due/status/vote/source/evidence/history",
       "format": "yaml",
       "fields": [
         {
           "name": "id",
           "type": "string",
           "required": true,
-          "description": "决议编号"
+          "description": "决议编号（提案按发布周、会议按召开周编号）"
         },
         {
           "name": "title",
@@ -79,31 +19,109 @@
           "description": "决议标题"
         },
         {
+          "name": "content",
+          "type": "text",
+          "required": true,
+          "description": "决议内容"
+        },
+        {
           "name": "owner",
           "type": "string",
           "required": true,
-          "description": "责任人"
+          "description": "责任人（未指定时标记「未指定」，治理视图提示补全）"
         },
         {
           "name": "due",
           "type": "date",
           "required": true,
-          "description": "完成期限"
+          "description": "完成期限（缺失时逾期推导跳过）"
         },
         {
           "name": "status",
           "type": "enum",
           "required": true,
-          "description": "状态：open / done / overdue"
+          "description": "open / done / overdue"
+        },
+        {
+          "name": "vote",
+          "type": "string",
+          "required": false,
+          "description": "表决记录（poll 标记）"
         },
         {
           "name": "source",
           "type": "string",
           "required": true,
           "description": "溯源：来源提案/纪要编号"
+        },
+        {
+          "name": "evidence",
+          "type": "string",
+          "required": false,
+          "description": "证据链"
+        },
+        {
+          "name": "history",
+          "type": "string",
+          "required": false,
+          "description": "变更历史"
         }
       ],
-      "example": "id: 2026-033-001\ntitle: 决议示例\nowner: 张工\ndue: 2026-08-15\nstatus: open\nsource: 提案 P2026-033"
+      "example": "id: 2026-033-001\ntitle: 第33周决议示例\ncontent: 决议内容\nowner: 张工\ndue: 2026-08-15\nstatus: open\nvote: 通过\nsource: 纪要 2026-033\nevidence: —\nhistory: —"
+    },
+    {
+      "id": "governance-view",
+      "name": "治理视图",
+      "description": "客户端可消费的治理数据：stats / overdue / by_owner / resolutions",
+      "format": "json",
+      "fields": [
+        {
+          "name": "stats",
+          "type": "object",
+          "required": true,
+          "description": "聚合统计"
+        },
+        {
+          "name": "overdue",
+          "type": "list",
+          "required": true,
+          "description": "逾期决议（due < today 且未完成）"
+        },
+        {
+          "name": "by_owner",
+          "type": "object",
+          "required": true,
+          "description": "责任人分布"
+        },
+        {
+          "name": "resolutions",
+          "type": "list",
+          "required": true,
+          "description": "决议清单"
+        }
+      ],
+      "example": "{\"stats\": {\"total\": 8}, \"overdue\": [], \"by_owner\": {}, \"resolutions\": []}"
+    },
+    {
+      "id": "weekly-summary",
+      "name": "周会决议汇总",
+      "description": "周会决议清单 + 质量指标（编号错位 / 辩论记录 / 决议落档）",
+      "format": "json",
+      "fields": [
+        {
+          "name": "resolutions",
+          "type": "list",
+          "required": true,
+          "description": "本周决议清单"
+        },
+        {
+          "name": "quality",
+          "type": "object",
+          "required": true,
+          "description": "质量基线：编号错位率 / 辩论记录率 / 决议落档数"
+        }
+      ],
+      "example": "{\"resolutions\": [...], \"quality\": {\"misnumber_rate\": 1.0}}"
     }
   ]
 }
