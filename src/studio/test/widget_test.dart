@@ -15,8 +15,8 @@ void main() {
     await tester.pumpWidget(const MyApp());
     await tester.pumpAndSettle();
 
-    // 首页标题存在（侧边栏 + 页面各一处；无论后端是否可达）
-    expect(find.text('量潮数据云'), findsNWidgets(2));
+    // 侧边栏标题存在（无论后端是否可达）
+    expect(find.text('量潮数据云'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

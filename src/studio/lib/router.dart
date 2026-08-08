@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'screens/dashboard.dart';
+import 'screens/requirements.dart';
 import 'screens/transfer.dart';
 import 'screens/jobs.dart';
 import 'screens/pipelines.dart';
@@ -14,6 +15,10 @@ final GoRouter router = GoRouter(
       builder: (context, state, child) => AppLayout(child: child),
       routes: [
         GoRoute(path: '/', builder: (_, __) => const DashboardScreen()),
+        GoRoute(
+          path: '/requirements',
+          builder: (_, __) => const RequirementsScreen(),
+        ),
         GoRoute(
           path: '/transfer',
           builder: (_, state) =>

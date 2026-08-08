@@ -1,0 +1,34 @@
+{
+  "requirements": [
+    {
+      "id": "github-activity",
+      "name": "GitHub 活动数据标准化",
+      "client": "示例客户",
+      "status": "approved",
+      "created": "2026-08-01",
+      "summary": "将 GitHub 活动原始数据（raw.csv）标准化为统一格式并输出元数据",
+      "goal": "统一 GitHub 活动数据格式，支持后续统计分析",
+      "output_expectation": "标准化 CSV + 元数据（行数/列数/空值统计）"
+    },
+    {
+      "id": "survey-clean",
+      "name": "问卷数据清洗",
+      "client": "示例客户（问卷调研）",
+      "status": "approved",
+      "created": "2026-08-05",
+      "summary": "对原始问卷答复做清洗与标准化，去除无效回答并补齐字段",
+      "goal": "得到可直接用于分析的清洗后问卷数据",
+      "output_expectation": "清洗后 CSV，含答复校验与字段说明"
+    },
+    {
+      "id": "resolution-data",
+      "name": "议事决议数据治理",
+      "client": "量潮议事数据（示例）",
+      "status": "active",
+      "created": "2026-08-08",
+      "summary": "飞书议事档案导出 → 决议提取与标准化 → 治理视图",
+      "goal": "建立决议档案库，支持逾期推导与治理视图",
+      "output_expectation": "一决议一 YAML 档案 + 治理视图 JSON"
+    }
+  ]
+}

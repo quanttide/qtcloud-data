@@ -75,11 +75,12 @@ class _NavItem {
 
 const _items = [
   _NavItem(Icons.dashboard, '总览', '/'),
+  _NavItem(Icons.description_outlined, '需求', '/requirements'),
+  _NavItem(Icons.article_outlined, '契约', '/contracts'),
+  _NavItem(Icons.account_tree, '蓝图', '/blueprints'),
+  _NavItem(Icons.schema_outlined, '管道', '/pipelines'),
+  _NavItem(Icons.receipt_long, '执行', '/jobs'),
   _NavItem(Icons.swap_horiz, '传输', '/transfer'),
-  _NavItem(Icons.receipt_long, '执行记录', '/jobs'),
-  _NavItem(Icons.account_tree, '管道', '/pipelines'),
-  _NavItem(Icons.map, '蓝图', '/blueprints'),
-  _NavItem(Icons.description, '契约', '/contracts'),
 ];
 
 class _SidebarItem extends StatelessWidget {

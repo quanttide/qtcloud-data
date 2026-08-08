@@ -1,0 +1,14 @@
+{
+  "pipelines": [
+    {
+      "id": "csv-standard",
+      "desc": "CSV 格式校验 → 元数据注入 → 空值分析",
+      "steps": "processor → enricher"
+    },
+    {
+      "id": "annotation",
+      "desc": "LLM 辅助数据标注",
+      "steps": "preprocess（预留）"
+    }
+  ]
+}

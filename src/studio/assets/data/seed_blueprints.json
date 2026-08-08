@@ -1,0 +1,18 @@
+{
+  "blueprints": [
+    {
+      "id": "csv-standard",
+      "name": "CSV 数据标准化",
+      "contract": "input: CSV → output: CSV + 元数据",
+      "pipeline": "csv-standard",
+      "rules": 4
+    },
+    {
+      "id": "survey-clean",
+      "name": "问卷清洗",
+      "contract": "input: 原始问卷 → output: 清洗后问卷",
+      "pipeline": "csv-standard",
+      "rules": 4
+    }
+  ]
+}
