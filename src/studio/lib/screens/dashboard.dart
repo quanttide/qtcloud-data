@@ -4,13 +4,17 @@ import '../api/client.dart';
 import '../theme.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({super.key, this.client});
+
+  /// 可注入的 API 客户端（测试用）；默认使用 ApiClient()
+  final ApiClient? client;
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final _client = ApiClient();
+  late final ApiClient _client = widget.client ?? ApiClient();
   String _version = '';
   List<String> _providers = [];
   String _error = '';

@@ -27,38 +27,40 @@ class _Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 200,
+    return Material(
       color: secondaryColor,
-      child: Column(
-        children: [
-          const SizedBox(height: 24),
-          Text(
-            '量潮数据云',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const Divider(height: 32),
-          ..._items.map(
-            (item) => _SidebarItem(
-              icon: item.icon,
-              label: item.label,
-              path: item.path,
-            ),
-          ),
-          const Spacer(),
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              'v0.1.0-alpha',
+      child: SizedBox(
+        width: 200,
+        child: Column(
+          children: [
+            const SizedBox(height: 24),
+            Text(
+              '量潮数据云',
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
-          ),
-        ],
+            const Divider(height: 32),
+            ..._items.map(
+              (item) => _SidebarItem(
+                icon: item.icon,
+                label: item.label,
+                path: item.path,
+              ),
+            ),
+            const Spacer(),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                'v0.1.0-alpha',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

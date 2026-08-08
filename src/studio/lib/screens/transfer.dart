@@ -3,13 +3,17 @@ import '../api/client.dart';
 import '../theme.dart';
 
 class TransferScreen extends StatefulWidget {
-  const TransferScreen({super.key});
+  const TransferScreen({super.key, this.client});
+
+  /// 可注入的 API 客户端（测试用）；默认使用 ApiClient()
+  final ApiClient? client;
+
   @override
   State<TransferScreen> createState() => _TransferScreenState();
 }
 
 class _TransferScreenState extends State<TransferScreen> {
-  final _client = ApiClient();
+  late final ApiClient _client = widget.client ?? ApiClient();
   final _providerCtl = TextEditingController(text: 'dropbox');
   final _localCtl = TextEditingController();
   final _remoteCtl = TextEditingController();
