@@ -1,5 +1,12 @@
 # Changelog
 
+## [studio/v0.1.0-beta.2] - 2026-08-08
+
+### 修复
+- 总览页版本号与发布版本对齐（seed 0.1.0-beta.1 → 0.1.0-beta.2）
+- 补全 alpha.1 / alpha.2 / beta.1 三个 Release 的空 notes（工具 CHANGELOG 解析不兼容 scope 前缀格式所致）
+- 部署运维文档补充「Release notes 为空」坑与修复方法
+
 ## [studio/v0.1.0-beta.1] - 2026-08-08
 
 ### 重构
