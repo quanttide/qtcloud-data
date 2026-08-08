@@ -1,6 +1,6 @@
 {
-    "name": "qtcloud_data",
-    "short_name": "qtcloud_data",
+    "name": "量潮数据云",
+    "short_name": "量潮数据云",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
