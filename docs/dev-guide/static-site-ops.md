@@ -27,6 +27,22 @@ qtcloud-devops release publish -v studio/v0.1.0-alpha.1 -f -y   # -f：强制重
 - 预检常见失败项：`pubspec.yaml` 版本未对齐、`CHANGELOG.md` 缺条目、工作区有未提交变更
 - tag 命名 `studio/*` 与 `deploy-studio.yml` 触发条件一致
 
+**坑：Flutter Web 子路由刷新 404（SPA fallback）**
+
+`usePathUrlStrategy()` 的 path 路由（如 `/transfer`）直接访问/刷新时，
+静态托管按路径找物理文件 → 404 `NoSuchKey`。
+
+解决（OSS 静态托管 ErrorDocument 指向 index.html）：
+
+```bash
+# ① 更新 OSS 静态托管：ErrorDocument → index.html（URL 不变，返回 index.html 内容）
+#    注意：不要用 CDN error_page（302 会丢失路径，Flutter 路由失配）
+PUT /?website  body: <WebsiteConfiguration><IndexDocument><Suffix>index.html</Suffix></IndexDocument>
+                     <ErrorDocument><Key>index.html</Key></ErrorDocument></WebsiteConfiguration>
+# ② 验证：curl -o /dev/null -w "%{http_code}" https://<domain>/transfer  → 404 但内容为 index.html
+#    浏览器正常渲染，Flutter 路径路由接管
+```
+
 **坑：GitHub Release notes 为空**
 
 `release publish` 会自动生成 Release notes，但它解析 CHANGELOG 时要求版本头格式为
