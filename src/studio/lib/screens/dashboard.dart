@@ -1,23 +1,26 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import '../api/client.dart';
 import '../theme.dart';
 
+/// 总览页：版本信息与提供商入口
+///
+/// 数据来自 seed 资源（assets/data/seed_dashboard.json），
+/// 不依赖服务端——客户端无需先关联服务端即可使用。
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key, this.client});
-
-  /// 可注入的 API 客户端（测试用）；默认使用 ApiClient()
-  final ApiClient? client;
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late final ApiClient _client = widget.client ?? ApiClient();
+  static const _seedAsset = 'assets/data/seed_dashboard.json';
+
   String _version = '';
   List<String> _providers = [];
-  String _error = '';
 
   @override
   void initState() {
@@ -27,15 +30,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _load() async {
     try {
-      final v = await _client.getVersion();
-      final p = await _client.listProviders();
+      final raw = await rootBundle.loadString(_seedAsset);
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      if (!mounted) return;
       setState(() {
-        _version = v['version'] ?? '';
-        _providers = p;
-        _error = '';
+        _version = decoded['version'] as String? ?? '';
+        _providers = (decoded['providers'] as List<dynamic>? ?? const [])
+            .map((e) => e as String)
+            .toList();
       });
     } catch (e) {
-      setState(() => _error = e.toString());
+      debugPrint('总览种子数据加载失败: $e');
     }
   }
 
@@ -49,22 +54,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text('量潮数据云', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 8),
           Text(
-            'Provider: $_version',
+            '控制台 v$_version',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          if (_error.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Card(
-              color: Colors.red.shade900,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  '连接失败: $_error',
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 32),
           Text('提供商', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),

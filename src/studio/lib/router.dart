@@ -14,7 +14,11 @@ final GoRouter router = GoRouter(
       builder: (context, state, child) => AppLayout(child: child),
       routes: [
         GoRoute(path: '/', builder: (_, __) => const DashboardScreen()),
-        GoRoute(path: '/transfer', builder: (_, __) => const TransferScreen()),
+        GoRoute(
+          path: '/transfer',
+          builder: (_, state) =>
+              TransferScreen(initialProvider: state.extra as String?),
+        ),
         GoRoute(path: '/jobs', builder: (_, __) => const JobsScreen()),
         GoRoute(
           path: '/pipelines',

@@ -1,25 +1,39 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import '../api/client.dart';
 import '../theme.dart';
 
+/// 传输页：发送 / 接收演示
+///
+/// 本地模拟交互，不依赖服务端——客户端无需先关联服务端即可使用。
+/// 分享链接格式对齐 CLI 输出（见 docs/transfer.md）：
+///   https://www.dropbox.com/s/<id>/<文件名>?dl=1
 class TransferScreen extends StatefulWidget {
-  const TransferScreen({super.key, this.client});
+  const TransferScreen({super.key, this.initialProvider});
 
-  /// 可注入的 API 客户端（测试用）；默认使用 ApiClient()
-  final ApiClient? client;
+  /// 从总览页提供商卡片进入时预填的提供商（可选）
+  final String? initialProvider;
 
   @override
   State<TransferScreen> createState() => _TransferScreenState();
 }
 
 class _TransferScreenState extends State<TransferScreen> {
-  late final ApiClient _client = widget.client ?? ApiClient();
-  final _providerCtl = TextEditingController(text: 'dropbox');
+  static const _providers = [
+    'dropbox',
+    'baidu',
+    'google',
+    'onedrive',
+    's3',
+    'sftp'
+  ];
+
+  late final TextEditingController _providerCtl =
+      TextEditingController(text: widget.initialProvider ?? 'dropbox');
   final _localCtl = TextEditingController();
   final _remoteCtl = TextEditingController();
   final _urlCtl = TextEditingController();
   String _result = '';
-  bool _loading = false;
   bool _sendMode = true;
 
   @override
@@ -28,46 +42,30 @@ class _TransferScreenState extends State<TransferScreen> {
     _localCtl.dispose();
     _remoteCtl.dispose();
     _urlCtl.dispose();
-    _client.dispose();
     super.dispose();
   }
 
-  Future<void> _send() async {
+  /// 本地模拟发送：生成分享链接（不发起网络请求）
+  void _send() {
+    final fileName = _remoteCtl.text.split('/').last;
+    final safeName = fileName.isEmpty ? 'file' : fileName;
+    final id = List.generate(8, (_) => _randomChar()).join();
     setState(() {
-      _loading = true;
-      _result = '';
+      _result = '模拟上传完成\nhttps://www.dropbox.com/s/$id/$safeName?dl=1';
     });
-    try {
-      final res = await _client.sendFile(
-        provider: _providerCtl.text,
-        localPath: _localCtl.text,
-        remotePath: _remoteCtl.text,
-      );
-      setState(() => _result = 'URL: ${res['url']}');
-    } catch (e) {
-      setState(() => _result = '错误: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
   }
 
-  Future<void> _receive() async {
+  /// 本地模拟接收（不发起网络请求）
+  void _receive() {
     setState(() {
-      _loading = true;
-      _result = '';
+      _result = '模拟接收完成\n${_urlCtl.text.isEmpty ? '（未填写链接）' : _urlCtl.text}'
+          '\n→ ${_localCtl.text.isEmpty ? '（未填写保存路径）' : _localCtl.text}';
     });
-    try {
-      await _client.receiveFile(
-        provider: _providerCtl.text,
-        url: _urlCtl.text,
-        localPath: _localCtl.text,
-      );
-      setState(() => _result = '接收成功');
-    } catch (e) {
-      setState(() => _result = '错误: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
+  }
+
+  String _randomChar() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    return chars[Random().nextInt(chars.length)];
   }
 
   @override
@@ -79,6 +77,11 @@ class _TransferScreenState extends State<TransferScreen> {
         children: [
           Text('数据传输', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 8),
+          Text(
+            '本地演示：发送 / 接收结果模拟生成，不依赖服务端',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 16),
           SegmentedButton<bool>(
             segments: const [
               ButtonSegment(value: true, label: Text('发送')),
@@ -88,7 +91,7 @@ class _TransferScreenState extends State<TransferScreen> {
             onSelectionChanged: (v) => setState(() => _sendMode = v.first),
           ),
           const SizedBox(height: 24),
-          _Field('提供商', _providerCtl),
+          _ProviderField(controller: _providerCtl, providers: _providers),
           const SizedBox(height: 12),
           if (_sendMode) ...[
             _Field('本地路径', _localCtl),
@@ -101,14 +104,8 @@ class _TransferScreenState extends State<TransferScreen> {
           ],
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: _loading ? null : (_sendMode ? _send : _receive),
-            child: _loading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(_sendMode ? '发送' : '接收'),
+            onPressed: _sendMode ? _send : _receive,
+            child: Text(_sendMode ? '发送' : '接收'),
           ),
           if (_result.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -121,6 +118,31 @@ class _TransferScreenState extends State<TransferScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ProviderField extends StatelessWidget {
+  final TextEditingController controller;
+  final List<String> providers;
+  const _ProviderField({required this.controller, required this.providers});
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      initialValue: controller.text,
+      items: providers
+          .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+          .toList(),
+      onChanged: (v) {
+        if (v != null) controller.text = v;
+      },
+      decoration: const InputDecoration(
+        labelText: '提供商',
+        border: OutlineInputBorder(),
+        filled: true,
+        fillColor: secondaryColor,
       ),
     );
   }
