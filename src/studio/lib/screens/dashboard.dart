@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../constants.dart';
 import '../models/job.dart';
 import '../theme.dart';
 
@@ -82,7 +83,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text('总览', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 4),
           Text(
-            '数据云系统汇总：需求 → 规格 → 实现 → 执行 → 交付',
+            appVersion.isEmpty
+                ? '数据云系统汇总：需求 → 规格 → 实现 → 执行 → 交付'
+                : '数据云系统汇总 v$appVersion：需求 → 规格 → 实现 → 执行 → 交付',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 24),

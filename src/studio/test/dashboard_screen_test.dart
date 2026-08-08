@@ -21,6 +21,7 @@ void main() {
 
     // 标题与模块统计卡
     expect(find.text('总览'), findsWidgets);
+    expect(find.textContaining('数据云系统汇总'), findsOneWidget);
     for (final label in ['需求', '蓝图', '契约', '管道', '执行', '传输']) {
       expect(find.text(label), findsWidgets);
     }

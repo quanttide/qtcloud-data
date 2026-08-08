@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../constants.dart';
 import '../theme.dart';
 
 class AppLayout extends StatelessWidget {
@@ -53,7 +54,7 @@ class _Sidebar extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                'v0.1.0-alpha',
+                appVersion.isEmpty ? '' : 'v$appVersion',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: Colors.grey),
