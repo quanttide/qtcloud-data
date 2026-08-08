@@ -24,7 +24,13 @@ jobs:
           access-key-id: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
           access-key-secret: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
 
-      - run: ossutil cp src/studio/build/web/ oss://qtcloud-data-studio/ -r -f --meta=Cache-Control:public,max-age=31536000
+      # 长缓存：Flutter 产物文件名含内容哈希，可放心 max-age=31536000
+      - name: Upload to OSS
+        run: ossutil cp src/studio/build/web/ oss://qtcloud-data-studio/ -r -f --meta=Cache-Control:public,max-age=31536000
+
+      # seed 数据（assets/data/）无内容哈希：长缓存会导致页面数据更新不生效，改用短缓存
+      - name: Upload seed data with short cache
+        run: ossutil cp src/studio/build/web/assets/assets/data/ oss://qtcloud-data-studio/assets/assets/data/ -r -f --meta=Cache-Control:public,max-age=60
 
       - name: Refresh CDN
         run: |
