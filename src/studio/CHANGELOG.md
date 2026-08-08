@@ -1,5 +1,15 @@
 # Changelog
 
+## [studio/v0.1.0-alpha.2] - 2026-08-08
+
+### 新增
+- deploy-studio CI 工作流：`studio/*` tag 触发构建，OSS 上传 + CDN 刷新（data.cloud.quanttide.com）
+- Terraform IaC（`infra/studio/`）：OSS 桶 + CDN 域名定义
+- 脱敏版部署运维记录（`docs/dev-guide/static-site-ops.md`）
+
+### 修复
+- OSS 桶开放公共读并开启静态网站托管（关闭新桶默认的桶级 BlockPublicAccess 后生效）
+
 ## [studio/v0.1.0-alpha.1] - 2026-08-08
 
 ### 新增
