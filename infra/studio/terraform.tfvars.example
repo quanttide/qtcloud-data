@@ -1,0 +1,5 @@
+# 复制为 terraform.tfvars 并按需修改
+region      = "cn-hangzhou"
+bucket_name = "qtcloud-data-studio"
+cdn_domain  = "data.cloud.quanttide.com"
+cdn_scope   = "global"
