@@ -18,9 +18,12 @@ provider "alicloud" {
 # ============================================================
 resource "alicloud_oss_bucket" "studio" {
   bucket = var.bucket_name
-  # CDN 回源需要可读；后续如需收紧，可改为 private 并在 CDN 上配置
-  # 「阿里云 OSS 私有回源」，届时同步调整 workflow 中的上传方式
-  acl = "public-read"
+  # 注意：阿里云「公共读保护」新规禁止通过 API 将桶设为 public-read
+  # （ACL / bucket policy / 对象级 ACL 均被拒绝）。
+  # 桶保持私有；线上访问需在 CDN 控制台开启「私有回源」
+  # （自动创建服务关联角色 AliyunServiceRoleForCdn 后签名回源），
+  # 或在 OSS 控制台手动设置公共读（有风险确认流程，qtdata-studio 即如此）。
+  acl = "private"
 
   tags = {
     App = "qtcloud-data-studio"

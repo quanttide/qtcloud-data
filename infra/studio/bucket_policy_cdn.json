@@ -1,0 +1,11 @@
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["oss:GetObject", "oss:HeadObject"],
+      "Principal": ["acs:ram::1516128880017737:role/AliyunCDNRoleForOssPrivateAuth"],
+      "Resource": ["acs:oss:*:*:qtcloud-data-studio/*"]
+    }
+  ]
+}
