@@ -164,10 +164,10 @@ print(call('<bucket>', 'publicAccessBlock'))
 - [ ] CDN：回源指向正确桶、`DescribeCdnDomainDetail` 显示 `online`
 - [ ] `curl https://<domain>/` 返回 200
 - [ ] 页面内容校验（`<title>` 等）
-- [ ] 组织级运维手册：`quanttide-platform/docs/site-ops-handbook.md`
+- [ ] 组织级运维手册：`quanttide-platform/docs/dev-guide/site-ops-handbook.md`
 
 ## 六、相关资源
 
 - 部署工作流：`.github/workflows/deploy-studio.yml`
 - 基础设施定义：`manifests/terraform/`（Terraform：桶 + CDN；含 BPA 踩坑注释）
-- 组织运维手册：`quanttide-platform/docs/site-ops-handbook.md`
+- 组织运维手册：`quanttide-platform/docs/dev-guide/site-ops-handbook.md`
