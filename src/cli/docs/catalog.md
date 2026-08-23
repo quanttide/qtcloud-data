@@ -1,6 +1,6 @@
-# catalog — 数据格式（catalog.rs）
+# catalog — 数据格式（implementation/catalog.rs）
 
-本文档对应 `src/catalog.rs`（数据目录与登记），定义 `.quanttide/data/catalog/` 下
+本文档对应 `src/implementation/catalog.rs`（数据目录与登记），定义 `.quanttide/data/catalog/` 下
 三个 JSON 落盘文件的字段级格式——Studio、Provider 与 CLI 共同消费这些文件，**格式变更需保持兼容**。
 
 > 落盘机制（`registry.rs` 的 `Registry<T>` 读写、原子写盘，`util.rs` 的路径/时间工具）见 [index.md](index.md) 横切基础，
@@ -21,7 +21,8 @@
     "received_at": "2026-08-02T00:00:00Z",
     "provider": "process",
     "source": "process:job-id",
-    "status": "delivered"
+    "status": "delivered",
+    "artifact_type": "final_delivery"
   }
 }
 ```
@@ -37,6 +38,7 @@
 | `provider` | string? | 来源 provider（缺省省略） |
 | `source` | string? | 来源描述（缺省省略） |
 | `status` | enum | 见下 |
+| `artifact_type` | enum | 见下，旧记录缺字段时回退 `unknown` |
 
 ### VolumeStatus 枚举
 
@@ -52,6 +54,25 @@
 
 **兼容约定**：`#[serde(other)]` 保证未知状态字符串不会导致整表反序列化失败；
 `#[serde(default)]` 保证旧记录缺 `status` 字段时回退 `received`。
+
+### VolumeArtifactType 枚举
+
+序列化 `snake_case`，用于区分不同阶段产物：
+
+| 值 | 含义 |
+|----|------|
+| `pre_review` | 预审核产物 |
+| `review_decision` | 审核决策文件 |
+| `final_delivery` | 最终交付产物 |
+| `unknown` | 未知类型（兼容旧数据/未来新增类型） |
+
+`catalog add` 默认写入 `pre_review`；可通过 `--artifact-type pre_review|review_decision|final_delivery` 指定。
+`process` 成功交付时登记最终产物为 `final_delivery`。
+
+### 状态流转
+
+`catalog set-status <name> <status>` 用于显式推进 registry 中的 volume 状态，支持
+`received`、`processing`、`processed`、`delivered`。该命令补齐 v0.2.2 的 catalog 状态闭环，避免只有 `add(received)` 与 `process(delivered)` 两条路径可达。
 
 ## jobs.json（process job 记录）
 
@@ -122,7 +143,7 @@
 ## 落盘格式兼容约定
 
 1. **字段名与枚举字符串稳定**：`registry.json` / `jobs.json` / `delivery-links.json` 的字段名、
-   `VolumeStatus` 的枚举字符串不得变更（Studio / Provider 在读取）
+   `VolumeStatus` / `VolumeArtifactType` 的枚举字符串不得变更（Studio / Provider 在读取）
 2. **向后兼容优先**：新增字段用 `Option` + `skip_serializing_if`；未知枚举值用 `#[serde(other)]`
 3. **原子写盘**：所有 registry 写入走临时文件 + rename，杜绝半写
 4. **路径规范化**：`file_path` / `path` 记录规范化绝对路径（`canonicalize`，失败回退原始路径）

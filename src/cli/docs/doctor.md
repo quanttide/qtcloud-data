@@ -17,8 +17,8 @@ qtcloud-data doctor --fix-dirs      # 自动创建 .quanttide/data 目录结构
 
 | 类别 | 内容 | required |
 |------|------|----------|
-| 工具 | `git` / `cargo` / `rustc` / `cue` | 前三 required，cue required（v0.2.2 计划降为 optional） |
-| 工具（可选） | `python3` / `bash` | optional |
+| 工具 | `git` / `cargo` / `rustc` | required |
+| 工具（可选） | `python3` / `bash` / `cue` | optional；cue 仅用于 CUE 模块化目录查看增强 |
 | 目录 | DRD / SPEC / BLUEPRINT / CONTRACT / PIPELINE / CATALOG | warn（缺省不阻断） |
 | 凭证 | DROPBOX / BAIDU / GOOGLE / ONEDRIVE / SFTP / AWS | optional |
 

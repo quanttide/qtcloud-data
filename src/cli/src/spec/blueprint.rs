@@ -2,10 +2,13 @@
 
 use clap::{Args, Subcommand};
 use serde_json::Value;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::error::CliError;
 use crate::util::collect_defined_names;
+
+const BLUEPRINT_EXTS: [&str; 4] = [".yaml", ".yml", ".cue", ".json"];
 
 #[derive(Args)]
 pub struct BlueprintArgs {
@@ -35,12 +38,19 @@ pub fn run(args: &BlueprintArgs) -> Result<(), CliError> {
 }
 
 fn cmd_list(dir: &str) -> Result<(), CliError> {
-    let output = Command::new("cue")
-        .args(["export", "--out", "json", dir])
-        .output()
-        .map_err(|_| {
-            CliError::new("需要 cue CLI。安装: https://cuelang.org/docs/install/".to_string())
-        })?;
+    let dir_path = Path::new(dir);
+    if dir_path.is_dir() {
+        let names = definition_names(dir_path);
+        println!("可用的 Blueprint:");
+        for name in names {
+            println!("  - {name}");
+        }
+        return Ok(());
+    }
+
+    let output = cue_export(&["export", "--out", "json", dir]).map_err(|_| {
+        CliError::new("需要 cue CLI。安装: https://cuelang.org/docs/install/".to_string())
+    })?;
     if !output.status.success() {
         return Err(CliError::new(
             String::from_utf8_lossy(&output.stderr).to_string(),
@@ -57,11 +67,17 @@ fn cmd_list(dir: &str) -> Result<(), CliError> {
 }
 
 fn cmd_show(dir: &str, name: &str) -> Result<(), CliError> {
+    let dir_path = Path::new(dir);
+    if let Some(path) = find_definition(dir_path, name) {
+        let content = std::fs::read_to_string(&path)
+            .map_err(|err| CliError::new(format!("读取 Blueprint 失败: {err}")))?;
+        println!("{content}");
+        return Ok(());
+    }
+
     let key = crate::util::to_camel(name);
-    let output = Command::new("cue")
-        .args(["export", "--out", "json", "--expression", &key, dir])
-        .output()
-        .map_err(|_| CliError::new("需要 cue CLI".to_string()))?;
+    let output = cue_export(&["export", "--out", "json", "--expression", &key, dir])
+        .map_err(|_| CliError::new(format!("找不到 Blueprint: {name}")))?;
     if !output.status.success() {
         return Err(CliError::new(format!("找不到 Blueprint: {name}")));
     }
@@ -75,6 +91,51 @@ fn cmd_show(dir: &str, name: &str) -> Result<(), CliError> {
     Ok(())
 }
 
+fn definition_names(dir: &Path) -> Vec<String> {
+    let mut names = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if !entry.path().is_file() {
+                continue;
+            }
+            let Some(file_name) = entry.file_name().to_str().map(str::to_string) else {
+                continue;
+            };
+            for ext in BLUEPRINT_EXTS {
+                if let Some(stem) = file_name.strip_suffix(ext) {
+                    names.push(stem.to_string());
+                    break;
+                }
+            }
+        }
+    }
+    names.sort();
+    names.dedup();
+    names
+}
+
+fn find_definition(dir: &Path, name: &str) -> Option<PathBuf> {
+    for ext in BLUEPRINT_EXTS {
+        let candidate = dir.join(format!("{name}{ext}"));
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+fn cue_export(args: &[&str]) -> std::io::Result<std::process::Output> {
+    #[cfg(windows)]
+    {
+        let mut command = Command::new("cmd");
+        command.arg("/C").arg("cue").args(args).output()
+    }
+    #[cfg(not(windows))]
+    {
+        Command::new("cue").args(args).output()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,10 +147,13 @@ mod tests {
         let root = temp_dir("qtcloud-blueprint-fake-cue");
         let bin = root.join("bin");
         std::fs::create_dir_all(&bin).unwrap();
-        write_script(
-            &bin.join("cue"),
-            "#!/bin/sh\ncase \"$*\" in\n  *--expression*) echo '{\"name\": \"demo\", \"desc\": \"x\"}' ;;\n  *) echo '{\"alpha\": {\"name\": \"alpha\"}, \"beta\": {\"name\": \"beta\"}}' ;;\nesac\n",
-        );
+        let cue_bin = if cfg!(windows) { "cue.cmd" } else { "cue" };
+        let cue_script = if cfg!(windows) {
+            "@echo off\r\nif \"%4\"==\"--expression\" goto show\r\necho {\"alpha\":{\"name\":\"alpha\"},\"beta\":{\"name\":\"beta\"}}\r\nexit /b 0\r\n:show\r\necho {\"name\":\"demo\",\"desc\":\"x\"}\r\nexit /b 0\r\n"
+        } else {
+            "#!/bin/sh\ncase \"$*\" in\n  *--expression*) echo '{\"name\": \"demo\", \"desc\": \"x\"}' ;;\n  *) echo '{\"alpha\": {\"name\": \"alpha\"}, \"beta\": {\"name\": \"beta\"}}' ;;\nesac\n"
+        };
+        write_script(&bin.join(cue_bin), cue_script);
         let old_path = std::env::var_os("PATH");
         unsafe {
             std::env::set_var("PATH", &bin);

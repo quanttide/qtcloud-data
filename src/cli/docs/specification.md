@@ -21,6 +21,19 @@ metadata:
   generated_by: qtcloud-data-cli
   source_path: .quanttide/data/spec/sample-blueprint.yaml
 spec:
+  manifest:
+    raw:
+      - path: data/raw/orders.csv
+        format: csv
+    map:
+      path: data/map/orders-map.dta
+      format: stata
+    config_tables:
+      - path: data/config/rules.xlsx
+        sheet: rules
+    review_decisions:
+      - path: data/review/decisions.csv
+        format: csv
   blueprint:
     name: sample
     contract:
@@ -63,6 +76,27 @@ qtcloud-data spec validate .quanttide/data/spec/sample-spec.yaml
 ```
 
 Provider 对齐时优先读取 envelope 中的 `api_version`、`kind` 和 `spec.blueprint.pipeline`。
+
+## Manifest 输入契约
+
+`spec.manifest` 声明本次数据处理所需输入，供 CLI、Provider 和 Studio 在运行前做确定性校验。
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `raw` | array | 是 | 原始数据文件清单，至少 1 个元素 |
+| `map` | object | 是 | 映射表 / 变量字典 / 编码表，常见格式为 Stata `.dta`、CSV 或 Excel |
+| `config_tables` | array | 否 | 配置表、规则表或口径表 |
+| `review_decisions` | array | 否 | 审核决策文件，用于记录预审核后的人工接受/拒绝/修正决策 |
+
+每个文件对象支持以下字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `path` | string | 是 | 文件路径，不能为空 |
+| `format` | string | 否 | 文件格式，如 `csv` / `xlsx` / `stata` |
+| `sheet` | string | 否 | Excel / 表格类文件的 sheet 名 |
+
+`qtcloud-data spec validate` 会校验 manifest：`raw` 不能为空，`map` 必须声明，所有文件对象的 `path` 必须非空；`format` 和 `sheet` 如出现也不得为空字符串。
 
 ## Blueprint 工作流模型
 

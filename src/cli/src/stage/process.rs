@@ -270,6 +270,7 @@ fn register_process_output(job_id: &str, result_path: &str) {
         provider: Some("process"),
         source: Some(&source),
         status: catalog::VolumeStatus::Delivered,
+        artifact_type: catalog::VolumeArtifactType::FinalDelivery,
     }) {
         eprintln!("登记 process 产物到 catalog 失败: {err}");
     }

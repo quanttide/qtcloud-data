@@ -294,6 +294,14 @@ mod tests {
     use crate::test_support::temp_dir;
     use crate::test_support::write_script;
 
+    fn fake_qtdata_path(root: &Path) -> PathBuf {
+        if cfg!(windows) {
+            root.join("fake-qtdata.cmd")
+        } else {
+            root.join("fake-qtdata.sh")
+        }
+    }
+
     #[test]
     fn handle_sent_link_writes_output_file_and_delivery_record() {
         let root = temp_dir("qtcloud-transfer-link-record");
@@ -369,11 +377,13 @@ mod tests {
     fn receive_delegates_to_external_cli_when_qtdata_cli_set() {
         let _guard = ENV_LOCK.lock().unwrap();
         let root = temp_dir("qtcloud-transfer-receive-delegated");
-        let script = root.join("fake-qtdata.sh");
-        write_script(
-            &script,
-            "#!/bin/sh\nout=''\nwhile [ $# -gt 0 ]; do\n  case \"$1\" in\n    --output) out=\"$2\"; shift 2 ;;\n    *) shift ;;\n  esac\ndone\n[ -n \"$out\" ] && echo downloaded > \"$out\"\nexit 0\n",
-        );
+        let script = fake_qtdata_path(&root);
+        let script_content = if cfg!(windows) {
+            "@echo off\r\necho downloaded>%5\r\nexit /b 0\r\n"
+        } else {
+            "#!/bin/sh\nout=''\nwhile [ $# -gt 0 ]; do\n  case \"$1\" in\n    --output) out=\"$2\"; shift 2 ;;\n    *) shift ;;\n  esac\ndone\n[ -n \"$out\" ] && echo downloaded > \"$out\"\nexit 0\n"
+        };
+        write_script(&script, script_content);
         let out = root.join("received.csv");
 
         unsafe {
@@ -385,7 +395,10 @@ mod tests {
         }
 
         assert!(result.is_ok(), "{result:?}");
-        assert_eq!(std::fs::read_to_string(&out).unwrap(), "downloaded\n");
+        assert_eq!(
+            std::fs::read_to_string(&out).unwrap().trim_end(),
+            "downloaded"
+        );
 
         std::fs::remove_dir_all(&root).ok();
     }
@@ -394,8 +407,13 @@ mod tests {
     fn receive_reports_delegated_cli_failure() {
         let _guard = ENV_LOCK.lock().unwrap();
         let root = temp_dir("qtcloud-transfer-receive-fail");
-        let script = root.join("fake-qtdata.sh");
-        write_script(&script, "#!/bin/sh\nexit 1\n");
+        let script = fake_qtdata_path(&root);
+        let script_content = if cfg!(windows) {
+            "@echo off\r\nexit /b 1\r\n"
+        } else {
+            "#!/bin/sh\nexit 1\n"
+        };
+        write_script(&script, script_content);
         let out = root.join("received.csv");
 
         unsafe {
@@ -416,11 +434,13 @@ mod tests {
     fn send_delegates_and_reads_link_from_output_file() {
         let _guard = ENV_LOCK.lock().unwrap();
         let root = temp_dir("qtcloud-transfer-send-delegated");
-        let script = root.join("fake-qtdata.sh");
-        write_script(
-            &script,
-            "#!/bin/sh\nout=''\nwhile [ $# -gt 0 ]; do\n  case \"$1\" in\n    --output) out=\"$2\"; shift 2 ;;\n    *) shift ;;\n  esac\ndone\nprintf '%s' 'https://delivery.example/link' > \"$out\"\nexit 0\n",
-        );
+        let script = fake_qtdata_path(&root);
+        let script_content = if cfg!(windows) {
+            "@echo off\r\n<nul set /p=\"https://delivery.example/link\">%5\r\nexit /b 0\r\n"
+        } else {
+            "#!/bin/sh\nout=''\nwhile [ $# -gt 0 ]; do\n  case \"$1\" in\n    --output) out=\"$2\"; shift 2 ;;\n    *) shift ;;\n  esac\ndone\nprintf '%s' 'https://delivery.example/link' > \"$out\"\nexit 0\n"
+        };
+        write_script(&script, script_content);
         let file = root.join("data.csv");
         std::fs::write(&file, "a,b\n").unwrap();
         let link_out = root.join("link.txt");
@@ -447,11 +467,13 @@ mod tests {
     fn send_without_output_reads_link_from_stdout() {
         let _guard = ENV_LOCK.lock().unwrap();
         let root = temp_dir("qtcloud-transfer-send-stdout");
-        let script = root.join("fake-qtdata.sh");
-        write_script(
-            &script,
-            "#!/bin/sh\necho 'https://delivery.example/from-stdout'\nexit 0\n",
-        );
+        let script = fake_qtdata_path(&root);
+        let script_content = if cfg!(windows) {
+            "@echo off\r\necho https://delivery.example/from-stdout\r\nexit /b 0\r\n"
+        } else {
+            "#!/bin/sh\necho 'https://delivery.example/from-stdout'\nexit 0\n"
+        };
+        write_script(&script, script_content);
         let file = root.join("data.csv");
         std::fs::write(&file, "a,b\n").unwrap();
 

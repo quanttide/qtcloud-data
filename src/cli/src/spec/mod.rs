@@ -58,7 +58,31 @@ pub struct SpecificationMetadata {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SpecificationBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub manifest: Option<Manifest>,
     pub blueprint: quanttide_data::Blueprint,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct Manifest {
+    #[serde(default)]
+    pub raw: Vec<ManifestFile>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub map: Option<ManifestFile>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub config_tables: Vec<ManifestFile>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub review_decisions: Vec<ManifestFile>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct ManifestFile {
+    #[serde(default)]
+    pub path: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sheet: Option<String>,
 }
 
 impl Specification {
@@ -71,7 +95,10 @@ impl Specification {
                 generated_by: SPEC_GENERATED_BY.to_string(),
                 source_path: source_path.map(|path| path.to_string()),
             },
-            spec: SpecificationBody { blueprint },
+            spec: SpecificationBody {
+                manifest: None,
+                blueprint,
+            },
         }
     }
 }
@@ -124,6 +151,10 @@ pub fn parse_specification_yaml(yaml: &str) -> Result<Specification, CliError> {
             "不支持的 kind: {}，期望 {}",
             spec.kind, SPEC_KIND
         )));
+    }
+
+    if let Some(manifest) = &spec.spec.manifest {
+        validate_manifest(manifest)?;
     }
 
     Ok(spec)
@@ -182,6 +213,51 @@ fn is_specification_envelope(value: &serde_yaml::Value) -> bool {
     map.contains_key(serde_yaml::Value::String("api_version".to_string()))
         || map.contains_key(serde_yaml::Value::String("kind".to_string()))
         || map.contains_key(serde_yaml::Value::String("spec".to_string()))
+}
+
+fn validate_manifest(manifest: &Manifest) -> Result<(), CliError> {
+    if manifest.raw.is_empty() {
+        return Err(CliError::new("manifest.raw 至少需要声明一个 raw 输入"));
+    }
+
+    for (index, file) in manifest.raw.iter().enumerate() {
+        validate_manifest_file(&format!("manifest.raw[{index}]"), file)?;
+    }
+
+    let map = manifest
+        .map
+        .as_ref()
+        .ok_or_else(|| CliError::new("manifest.map 必须声明 map 文件"))?;
+    validate_manifest_file("manifest.map", map)?;
+
+    for (index, file) in manifest.config_tables.iter().enumerate() {
+        validate_manifest_file(&format!("manifest.config_tables[{index}]"), file)?;
+    }
+    for (index, file) in manifest.review_decisions.iter().enumerate() {
+        validate_manifest_file(&format!("manifest.review_decisions[{index}]"), file)?;
+    }
+
+    Ok(())
+}
+
+fn validate_manifest_file(field: &str, file: &ManifestFile) -> Result<(), CliError> {
+    if file.path.trim().is_empty() {
+        return Err(CliError::new(format!("{field}.path 不能为空")));
+    }
+
+    if let Some(format) = &file.format
+        && format.trim().is_empty()
+    {
+        return Err(CliError::new(format!("{field}.format 不能为空")));
+    }
+
+    if let Some(sheet) = &file.sheet
+        && sheet.trim().is_empty()
+    {
+        return Err(CliError::new(format!("{field}.sheet 不能为空")));
+    }
+
+    Ok(())
 }
 
 fn default_spec_output_path(input: &str) -> PathBuf {

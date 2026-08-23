@@ -4,6 +4,7 @@ use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use crate::error::CliError;
 use crate::registry;
@@ -37,6 +38,16 @@ pub enum CatalogAction {
         /// 来源 URL
         #[arg(long)]
         source: Option<String>,
+        /// 产物类型：pre_review / review_decision / final_delivery
+        #[arg(long, default_value_t = VolumeArtifactType::PreReview)]
+        artifact_type: VolumeArtifactType,
+    },
+    /// 更新 volume 状态
+    SetStatus {
+        /// volume 名称
+        name: String,
+        /// 新状态：received / processing / processed / delivered
+        status: VolumeStatus,
     },
     /// 删除 volume
     Rm {
@@ -72,6 +83,63 @@ impl fmt::Display for VolumeStatus {
     }
 }
 
+impl FromStr for VolumeStatus {
+    type Err = CliError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value.trim() {
+            "received" => Ok(VolumeStatus::Received),
+            "processing" => Ok(VolumeStatus::Processing),
+            "processed" => Ok(VolumeStatus::Processed),
+            "delivered" => Ok(VolumeStatus::Delivered),
+            "unknown" => Ok(VolumeStatus::Unknown),
+            other => Err(CliError::new(format!(
+                "未知 catalog 状态: {other}，可选: received / processing / processed / delivered"
+            ))),
+        }
+    }
+}
+
+/// Catalog 产物类型，区分预审核产物、审核决策文件和最终交付产物。
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VolumeArtifactType {
+    PreReview,
+    ReviewDecision,
+    FinalDelivery,
+    #[default]
+    #[serde(other)]
+    Unknown,
+}
+
+impl fmt::Display for VolumeArtifactType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let text = match self {
+            VolumeArtifactType::PreReview => "pre_review",
+            VolumeArtifactType::ReviewDecision => "review_decision",
+            VolumeArtifactType::FinalDelivery => "final_delivery",
+            VolumeArtifactType::Unknown => "unknown",
+        };
+        f.write_str(text)
+    }
+}
+
+impl FromStr for VolumeArtifactType {
+    type Err = CliError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value.trim() {
+            "pre_review" => Ok(VolumeArtifactType::PreReview),
+            "review_decision" => Ok(VolumeArtifactType::ReviewDecision),
+            "final_delivery" => Ok(VolumeArtifactType::FinalDelivery),
+            "unknown" => Ok(VolumeArtifactType::Unknown),
+            other => Err(CliError::new(format!(
+                "未知 catalog 产物类型: {other}，可选: pre_review / review_decision / final_delivery"
+            ))),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Volume {
     pub name: String,
@@ -84,6 +152,8 @@ pub struct Volume {
     pub source: Option<String>,
     #[serde(default)]
     pub status: VolumeStatus,
+    #[serde(default)]
+    pub artifact_type: VolumeArtifactType,
 }
 
 pub struct RegisterVolume<'a> {
@@ -92,6 +162,7 @@ pub struct RegisterVolume<'a> {
     pub provider: Option<&'a str>,
     pub source: Option<&'a str>,
     pub status: VolumeStatus,
+    pub artifact_type: VolumeArtifactType,
 }
 
 fn registry_path() -> PathBuf {
@@ -123,6 +194,7 @@ pub fn register_volume(input: RegisterVolume<'_>) -> Result<Volume, CliError> {
 ///         provider: None,
 ///         source: None,
 ///         status: qtcloud_data_cli::implementation::catalog::VolumeStatus::Received,
+///         artifact_type: qtcloud_data_cli::implementation::catalog::VolumeArtifactType::PreReview,
 ///     },
 ///     &dir,
 /// );
@@ -162,6 +234,7 @@ pub fn register_volume_in(
         provider: input.provider.map(|provider| provider.to_string()),
         source: input.source.map(|source| source.to_string()),
         status: input.status,
+        artifact_type: input.artifact_type,
     };
 
     let registry_path = catalog_dir.join("registry.json");
@@ -184,12 +257,15 @@ pub fn run(args: &CatalogArgs) -> Result<(), CliError> {
             name,
             provider,
             source,
+            artifact_type,
         } => add(
             path,
             name.as_deref(),
             provider.as_deref(),
             source.as_deref(),
+            artifact_type.clone(),
         ),
+        CatalogAction::SetStatus { name, status } => set_status(name, status.clone()),
         CatalogAction::Rm { name } => rm(name),
     }
 }
@@ -223,6 +299,7 @@ fn show(name: &str) -> Result<(), CliError> {
             println!("大小:       {}", format_size(v.size));
             println!("接收时间:   {}", v.received_at);
             println!("状态:       {}", v.status);
+            println!("产物类型:   {}", v.artifact_type);
             if let Some(p) = &v.provider {
                 println!("Provider:   {p}");
             }
@@ -240,6 +317,7 @@ fn add(
     name: Option<&str>,
     provider: Option<&str>,
     source: Option<&str>,
+    artifact_type: VolumeArtifactType,
 ) -> Result<(), CliError> {
     let volume = register_volume(RegisterVolume {
         path: path_str,
@@ -247,10 +325,36 @@ fn add(
         provider,
         source,
         status: VolumeStatus::Received,
+        artifact_type,
     })?;
 
     println!("✓ 已注册 volume: {}", volume.name);
     Ok(())
+}
+
+fn set_status(name: &str, status: VolumeStatus) -> Result<(), CliError> {
+    let volume = set_volume_status_in(&util::catalog_dir(), name, status)?;
+    println!("✓ 已更新 volume 状态: {} -> {}", volume.name, volume.status);
+    Ok(())
+}
+
+pub fn set_volume_status_in(
+    catalog_dir: &Path,
+    name: &str,
+    status: VolumeStatus,
+) -> Result<Volume, CliError> {
+    let registry_path = catalog_dir.join("registry.json");
+    let mut registry: registry::Registry<Volume> =
+        registry::Registry::open(&registry_path).unwrap_or_default();
+    let mut volume = registry
+        .get(name)
+        .cloned()
+        .ok_or_else(|| CliError::new(format!("未找到 volume: {name}")))?;
+    volume.status = status;
+    registry
+        .insert(name.to_string(), volume.clone())
+        .map_err(|err| CliError::new(format!("写入 registry 失败: {err}")))?;
+    Ok(volume)
 }
 
 fn rm(name: &str) -> Result<(), CliError> {
@@ -302,6 +406,7 @@ mod tests {
                 provider: Some("process"),
                 source: Some("process:ABC-001-123"),
                 status: VolumeStatus::Delivered,
+                artifact_type: VolumeArtifactType::FinalDelivery,
             },
             &catalog_dir,
         )
@@ -367,22 +472,16 @@ mod tests {
         )
         .unwrap();
 
-        let updated = set_volume_status_in(
-            &catalog_dir,
-            "ABC-001-pre-review",
-            VolumeStatus::Processing,
-        )
-        .unwrap();
+        let updated =
+            set_volume_status_in(&catalog_dir, "ABC-001-pre-review", VolumeStatus::Processing)
+                .unwrap();
 
         assert_eq!(updated.status, VolumeStatus::Processing);
         assert_eq!(updated.artifact_type, VolumeArtifactType::PreReview);
 
-        let updated = set_volume_status_in(
-            &catalog_dir,
-            "ABC-001-pre-review",
-            VolumeStatus::Processed,
-        )
-        .unwrap();
+        let updated =
+            set_volume_status_in(&catalog_dir, "ABC-001-pre-review", VolumeStatus::Processed)
+                .unwrap();
         assert_eq!(updated.status, VolumeStatus::Processed);
 
         std::fs::remove_dir_all(&root).ok();
@@ -481,7 +580,14 @@ mod tests {
         unsafe {
             std::env::set_var("CATALOG_DIR", &catalog_dir);
         }
-        let err = add("/nonexistent/file.csv", None, None, None).unwrap_err();
+        let err = add(
+            "/nonexistent/file.csv",
+            None,
+            None,
+            None,
+            VolumeArtifactType::PreReview,
+        )
+        .unwrap_err();
         unsafe {
             std::env::remove_var("CATALOG_DIR");
         }
@@ -502,6 +608,7 @@ mod tests {
                 provider: Some("process"),
                 source: None,
                 status: VolumeStatus::Delivered,
+                artifact_type: VolumeArtifactType::FinalDelivery,
             },
             catalog_dir,
         )
@@ -585,6 +692,7 @@ mod tests {
             Some("DATA-1"),
             Some("process"),
             None,
+            VolumeArtifactType::PreReview,
         );
         unsafe {
             std::env::remove_var("CATALOG_DIR");

@@ -104,7 +104,7 @@ fn checks_with_dirs(dirs: &[DataDir]) -> Vec<Check> {
             "process 执行 Python pipeline 时会用到 python3",
         ),
         check_command("bash", false, "process 执行 shell pipeline 时会用到 bash"),
-        check_command("cue", true, "pipeline/blueprint/contract 查看命令需要 cue"),
+        check_command("cue", false, "cue 可选增强：CUE 模块化目录查看时使用"),
     ];
 
     for dir in dirs {
@@ -531,6 +531,8 @@ mod tests {
             std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
         }
 
+        let old_path = std::env::var_os("PATH");
+
         unsafe {
             std::env::set_var("PATH", &dir);
         }
@@ -542,6 +544,12 @@ mod tests {
 
         // PATH 未设置时返回 false（不 panic）
         assert!(!command_exists("fakecmd"));
+        unsafe {
+            match old_path {
+                Some(path) => std::env::set_var("PATH", path),
+                None => std::env::remove_var("PATH"),
+            }
+        }
 
         std::fs::remove_dir_all(&dir).ok();
     }
@@ -557,6 +565,8 @@ mod tests {
             use std::os::unix::fs::PermissionsExt;
             std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
         }
+
+        let old_path = std::env::var_os("PATH");
 
         unsafe {
             std::env::set_var("PATH", &dir);
@@ -577,7 +587,10 @@ mod tests {
             CheckStatus::Warn
         );
         unsafe {
-            std::env::remove_var("PATH");
+            match old_path {
+                Some(path) => std::env::set_var("PATH", path),
+                None => std::env::remove_var("PATH"),
+            }
         }
 
         std::fs::remove_dir_all(&dir).ok();

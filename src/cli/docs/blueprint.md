@@ -9,10 +9,11 @@
 | `blueprint list` | `BLUEPRINT_DIR` | 列出所有可用 blueprint |
 | `blueprint show <name>` | `BLUEPRINT_DIR` | 查看 blueprint 定义详情 |
 
-## 读取策略：cue 解析（v0.2.2 计划改文件直读）
+## 读取策略：文件直读为主，cue 可选增强
 
-当前 `blueprint list/show` 通过 `cue export --out json` 解析（需要 cue CLI 与目录模块化）。
+`blueprint list/show` 默认直接读取 `BLUEPRINT_DIR` 中的 `.yaml` / `.yml` / `.cue` / `.json` 文件：
 
-**v0.2.2 计划**：改为文件直读为主（对齐 `contract.rs`），cue 降为可选增强——
-cue 对非 CUE 格式目录要求 `cue.mod/module.cue`，用户装完 CLI 应能直接 list/show，
-不应暴露 cue 模块概念。
+- `list` 按文件名 stem 列出可用 blueprint。
+- `show <name>` 按 `.yaml → .yml → .cue → .json` 顺序查找并输出原文件内容。
+
+当目录不存在或需要读取 CUE 模块化目录时，命令保留 `cue export --out json` 兜底路径；因此 cue 是可选增强，不再是装完即用的硬依赖。

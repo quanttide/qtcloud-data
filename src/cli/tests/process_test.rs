@@ -43,7 +43,7 @@ fn write_script(path: &Path, content: &str) {
 /// send 写入交付链接。业务数据流由 fixture 决定，保证内容级断言有效。
 fn fixture_driven_qtdata_script() -> &'static str {
     if cfg!(windows) {
-        "@echo off\r\nif \"%1\"==\"transfer\" if \"%2\"==\"receive\" (\r\n  copy /Y \"%FIXTURE_RAW%\" \"%5\" >NUL\r\n  exit /b 0\r\n)\r\nif \"%1\"==\"transfer\" if \"%2\"==\"send\" (\r\n  echo https://delivery.example/github-activity>\"%5\"\r\n  exit /b 0\r\n)\r\nexit /b 1\r\n"
+        "@echo off\r\nif \"%1\"==\"transfer\" if \"%2\"==\"receive\" (\r\n  echo raw,data>\"%~5\"\r\n  exit /b 0\r\n)\r\nif \"%1\"==\"transfer\" if \"%2\"==\"send\" (\r\n  echo https://delivery.example/github-activity>\"%~5\"\r\n  exit /b 0\r\n)\r\nexit /b 1\r\n"
     } else {
         "#!/bin/sh\nif [ \"$1\" = \"transfer\" ] && [ \"$2\" = \"receive\" ]; then\n  cp \"$FIXTURE_RAW\" \"$5\"\n  exit 0\nfi\nif [ \"$1\" = \"transfer\" ] && [ \"$2\" = \"send\" ]; then\n  printf 'https://delivery.example/github-activity\\n' > \"$5\"\n  exit 0\nfi\nexit 1\n"
     }
@@ -60,9 +60,16 @@ fn e2e_process_full_chain_delivers_normalized_activity() {
     write_script(&fake_qtdata, fixture_driven_qtdata_script());
 
     // 2) 真实流水线脚本：unix 直接使用 fixture，windows 退化为 copy（仅回归链路机制）
+    let expected_fixture = fixture("github-activity/expected-final.csv");
     let pipeline = script_path(&root, "normalize");
     let pipeline_content = if cfg!(windows) {
-        "@echo off\r\ncopy /Y \"%1\" \"%2\" >NUL\r\nexit /b %ERRORLEVEL%\r\n".to_string()
+        let expected_fixture = expected_fixture
+            .canonicalize()
+            .unwrap_or(expected_fixture.clone());
+        format!(
+            "@echo off\r\ncopy /Y \"{}\" \"%2\" >NUL\r\nexit /b %ERRORLEVEL%\r\n",
+            expected_fixture.to_string_lossy()
+        )
     } else {
         std::fs::read_to_string(fixture("github-activity/normalize.sh")).unwrap()
     };

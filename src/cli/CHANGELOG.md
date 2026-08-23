@@ -2,7 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- `Specification` envelope 新增可选 `manifest` 输入契约（raw / map / config_tables / review_decisions）及确定性 YAML 校验。
+- `catalog` 新增 `VolumeArtifactType` 与 `catalog set-status`，用于区分预审核产物、审核决策文件、最终交付产物并推进 volume 状态。
+
 ### Changed
+- `blueprint list/show` 与 `pipeline list/show` 改为文件直读优先，cue 降为可选增强；`doctor` 中 cue 检查同步降为 warning。
 - 新增 `runtime/` 模块（`Runtime` trait + 注册表）：codegen（implement 用）+ execute（process 用），`from_name`/`from_ext` 注册表驱动；Python codegen 逻辑从 `stage/implement.rs` 分离，`process` 执行分发改注册表（`.py`→python / `.sh`→bash）。旧 `stage::implement::{implement_step_prompt, implement_assemble_prompt, to_snake}` 保留为 deprecated 转发（随 v0.3 移除）。
 - `storage/` 统一概念命名：`StorageProvider` → `Storage`、`DropboxProvider` → `DropboxStorage`（等 6 平台）。旧名保留为 deprecated re-export（随 v0.3 移除）。
 
