@@ -319,6 +319,83 @@ mod tests {
     }
 
     #[test]
+    fn register_volume_records_artifact_type() {
+        let root = temp_dir("qtcloud-catalog-artifact-type");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+        let file = root.join("review-decisions.csv");
+        std::fs::write(&file, "id,decision\n1,accept\n").unwrap();
+
+        let volume = register_volume_in(
+            RegisterVolume {
+                path: file.to_str().unwrap(),
+                name: Some("ABC-001-review-decisions"),
+                provider: Some("review"),
+                source: Some("review:ABC-001"),
+                status: VolumeStatus::Processed,
+                artifact_type: VolumeArtifactType::ReviewDecision,
+            },
+            &catalog_dir,
+        )
+        .unwrap();
+
+        assert_eq!(volume.artifact_type, VolumeArtifactType::ReviewDecision);
+        let registry = std::fs::read_to_string(catalog_dir.join("registry.json")).unwrap();
+        assert!(registry.contains("review_decision"), "{registry}");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn set_volume_status_updates_existing_registry_entry() {
+        let root = temp_dir("qtcloud-catalog-set-status");
+        let catalog_dir = root.join("catalog");
+        std::fs::create_dir_all(&catalog_dir).unwrap();
+        let file = root.join("pre-review.csv");
+        std::fs::write(&file, "id,value\n1,10\n").unwrap();
+
+        register_volume_in(
+            RegisterVolume {
+                path: file.to_str().unwrap(),
+                name: Some("ABC-001-pre-review"),
+                provider: Some("process"),
+                source: Some("process:ABC-001"),
+                status: VolumeStatus::Received,
+                artifact_type: VolumeArtifactType::PreReview,
+            },
+            &catalog_dir,
+        )
+        .unwrap();
+
+        let updated = set_volume_status_in(
+            &catalog_dir,
+            "ABC-001-pre-review",
+            VolumeStatus::Processing,
+        )
+        .unwrap();
+
+        assert_eq!(updated.status, VolumeStatus::Processing);
+        assert_eq!(updated.artifact_type, VolumeArtifactType::PreReview);
+
+        let updated = set_volume_status_in(
+            &catalog_dir,
+            "ABC-001-pre-review",
+            VolumeStatus::Processed,
+        )
+        .unwrap();
+        assert_eq!(updated.status, VolumeStatus::Processed);
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn parse_volume_status_rejects_invalid_status_text() {
+        let err = "almost_done".parse::<VolumeStatus>().unwrap_err();
+
+        assert!(err.to_string().contains("未知 catalog 状态"), "{err}");
+    }
+
+    #[test]
     fn volume_status_serializes_to_legacy_strings() {
         assert_eq!(
             serde_json::to_string(&VolumeStatus::Delivered).unwrap(),

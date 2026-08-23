@@ -640,6 +640,35 @@ mod tests {
     }
 
     #[test]
+    fn checks_with_dirs_treats_cue_as_optional_warning() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = crate::test_support::temp_dir("qtcloud-doctor-cue-optional");
+        let empty_bin = root.join("empty-bin");
+        std::fs::create_dir_all(&empty_bin).unwrap();
+        let old_path = std::env::var_os("PATH");
+
+        unsafe {
+            std::env::set_var("PATH", &empty_bin);
+        }
+        let checks = checks_with_dirs(&[]);
+        unsafe {
+            match old_path {
+                Some(path) => std::env::set_var("PATH", path),
+                None => std::env::remove_var("PATH"),
+            }
+        }
+
+        let cue = checks
+            .iter()
+            .find(|check| check.name == "cue")
+            .expect("cue check should exist");
+        assert_eq!(cue.status, CheckStatus::Warn);
+        assert!(cue.message.contains("可选"), "{}", cue.message);
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
     fn render_json_report_produces_machine_readable_json() {
         let checks = vec![Check::pass("git", "found"), Check::fail("cue", "not found")];
         let json = render_json_report(&checks);

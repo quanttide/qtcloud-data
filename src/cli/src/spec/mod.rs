@@ -369,4 +369,96 @@ updated_at: "2026-07-30T00:00:00+00:00"
 
         assert!(err.to_string().contains("kind"));
     }
+
+    #[test]
+    fn parse_specification_accepts_valid_manifest_contract() {
+        let yaml = wrap_blueprint_yaml(blueprint_yaml(), None)
+            .unwrap()
+            .replace(
+                "spec:\n  blueprint:",
+                r#"spec:
+  manifest:
+    raw:
+    - path: data/raw/orders.csv
+      format: csv
+    map:
+      path: data/map/orders-map.dta
+      format: stata
+    config_tables:
+    - path: data/config/rules.xlsx
+      sheet: rules
+    review_decisions:
+    - path: data/review/decisions.csv
+      format: csv
+  blueprint:"#,
+            );
+
+        let spec = parse_specification_yaml(&yaml).unwrap();
+        let manifest = spec.spec.manifest.expect("manifest should parse");
+
+        assert_eq!(manifest.raw[0].path, "data/raw/orders.csv");
+        assert_eq!(manifest.map.unwrap().path, "data/map/orders-map.dta");
+        assert_eq!(manifest.config_tables[0].sheet.as_deref(), Some("rules"));
+        assert_eq!(
+            manifest.review_decisions[0].path,
+            "data/review/decisions.csv"
+        );
+    }
+
+    #[test]
+    fn parse_specification_rejects_manifest_without_raw_inputs() {
+        let yaml = wrap_blueprint_yaml(blueprint_yaml(), None)
+            .unwrap()
+            .replace(
+                "spec:\n  blueprint:",
+                r#"spec:
+  manifest:
+    raw: []
+    map:
+      path: data/map/orders-map.dta
+  blueprint:"#,
+            );
+
+        let err = parse_specification_yaml(&yaml).unwrap_err();
+
+        assert!(err.to_string().contains("manifest.raw"), "{err}");
+    }
+
+    #[test]
+    fn parse_specification_rejects_manifest_without_map() {
+        let yaml = wrap_blueprint_yaml(blueprint_yaml(), None)
+            .unwrap()
+            .replace(
+                "spec:\n  blueprint:",
+                r#"spec:
+  manifest:
+    raw:
+    - path: data/raw/orders.csv
+  blueprint:"#,
+            );
+
+        let err = parse_specification_yaml(&yaml).unwrap_err();
+
+        assert!(err.to_string().contains("manifest.map"), "{err}");
+    }
+
+    #[test]
+    fn parse_specification_rejects_manifest_files_without_path() {
+        let yaml = wrap_blueprint_yaml(blueprint_yaml(), None)
+            .unwrap()
+            .replace(
+                "spec:\n  blueprint:",
+                r#"spec:
+  manifest:
+    raw:
+    - format: csv
+    map:
+      path: data/map/orders-map.dta
+  blueprint:"#,
+            );
+
+        let err = parse_specification_yaml(&yaml).unwrap_err();
+
+        assert!(err.to_string().contains("manifest.raw[0].path"), "{err}");
+    }
 }

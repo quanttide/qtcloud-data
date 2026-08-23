@@ -131,9 +131,11 @@ mod tests {
     }
 
     #[test]
-    fn cmd_list_reports_cue_missing_as_error() {
+    fn cmd_list_reads_yaml_files_without_cue() {
         let _guard = ENV_LOCK.lock().unwrap();
-        let root = temp_dir("qtcloud-blueprint-no-cue");
+        let root = temp_dir("qtcloud-blueprint-file-list");
+        std::fs::write(root.join("alpha.yaml"), "name: alpha\n").unwrap();
+        std::fs::write(root.join("beta.json"), "{\"name\":\"beta\"}\n").unwrap();
         let empty_bin = root.join("empty-bin");
         std::fs::create_dir_all(&empty_bin).unwrap();
 
@@ -141,10 +143,29 @@ mod tests {
         unsafe {
             std::env::set_var("PATH", &empty_bin);
         }
-        let err = cmd_list(root.to_str().unwrap()).unwrap_err();
+        let result = cmd_list(root.to_str().unwrap());
         restore_path(old_path);
 
-        assert!(err.to_string().contains("需要 cue"), "{err}");
+        assert!(result.is_ok(), "{result:?}");
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn cmd_show_reads_yaml_file_without_cue() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = temp_dir("qtcloud-blueprint-file-show");
+        std::fs::write(root.join("demo.yaml"), "name: demo\n").unwrap();
+        let empty_bin = root.join("empty-bin");
+        std::fs::create_dir_all(&empty_bin).unwrap();
+
+        let old_path = std::env::var_os("PATH");
+        unsafe {
+            std::env::set_var("PATH", &empty_bin);
+        }
+        let result = cmd_show(root.to_str().unwrap(), "demo");
+        restore_path(old_path);
+
+        assert!(result.is_ok(), "{result:?}");
         std::fs::remove_dir_all(&root).ok();
     }
 }
