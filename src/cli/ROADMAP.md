@@ -7,6 +7,7 @@
 ## [0.2.2]
 
 > manifest 契约与 catalog 产物类型；不依赖 Provider。Provider run 入口与业务 e2e 待 Provider 侧稳定后另行排期（见下方注记）。
+> 实现项已完成；发布动作按 TODO 的 release 流程执行。
 
 ### Added
 
