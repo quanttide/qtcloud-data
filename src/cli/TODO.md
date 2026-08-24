@@ -47,7 +47,7 @@
 - [x] 将 `run_command` 分发移入库层，使 `Commands` 和参数注入路径可单测（`src/cli.rs`、`src/lib.rs`）
 - [x] 在 `src/stage/transfer.rs` 使用结构化 provider 枚举，替代字符串匹配
 - [x] 在 `src/stage/process.rs` 使用结构化 Blueprint states 引用，替代逗号分隔字符串
-- [ ] 将无副作用查看命令和 catalog/pipeline 命令迁移到统一成功结果模型（`src/cli.rs`、`src/spec/`、`src/implementation/`）
+- [x] 将无副作用查看命令和 catalog/pipeline 命令迁移到统一成功结果模型（`src/cli.rs`、`src/spec/`、`src/implementation/`）
 
 ## 0.3.0 传输测试与发布
 

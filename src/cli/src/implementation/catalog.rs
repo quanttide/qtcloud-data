@@ -263,15 +263,18 @@ pub fn run_with_mode(args: &CatalogArgs, mode: OutputMode) -> Result<(), CliErro
             provider,
             source,
             artifact_type,
-        } => add(
+        } => add_with_mode(
             path,
             name.as_deref(),
             provider.as_deref(),
             source.as_deref(),
             artifact_type.clone(),
+            mode,
         ),
-        CatalogAction::SetStatus { name, status } => set_status(name, status.clone()),
-        CatalogAction::Rm { name } => rm(name),
+        CatalogAction::SetStatus { name, status } => {
+            set_status_with_mode(name, status.clone(), mode)
+        }
+        CatalogAction::Rm { name } => rm_with_mode(name, mode),
     }
 }
 
@@ -281,14 +284,7 @@ fn list(mode: OutputMode) -> Result<(), CliError> {
         if mode == OutputMode::Text {
             println!("catalog 为空");
         } else {
-            println!(
-                "{}",
-                serde_json::json!({
-                    "ok": true,
-                    "command": "catalog list",
-                    "items": [],
-                })
-            );
+            crate::output::print_success("catalog list", serde_json::json!({"items": []}))?;
         }
         return Ok(());
     }
@@ -308,14 +304,7 @@ fn list(mode: OutputMode) -> Result<(), CliError> {
         }
         OutputMode::Json => {
             let items: Vec<_> = registry.entries().values().collect();
-            println!(
-                "{}",
-                serde_json::json!({
-                    "ok": true,
-                    "command": "catalog list",
-                    "items": items,
-                })
-            );
+            crate::output::print_success("catalog list", serde_json::json!({"items": items}))?;
         }
     }
     Ok(())
@@ -340,14 +329,9 @@ fn show(name: &str, mode: OutputMode) -> Result<(), CliError> {
                         println!("来源:       {s}");
                     }
                 }
-                OutputMode::Json => println!(
-                    "{}",
-                    serde_json::json!({
-                        "ok": true,
-                        "command": "catalog show",
-                        "volume": v,
-                    })
-                ),
+                OutputMode::Json => {
+                    crate::output::print_success("catalog show", serde_json::json!({"volume": v}))?
+                }
             }
             Ok(())
         }
@@ -355,12 +339,13 @@ fn show(name: &str, mode: OutputMode) -> Result<(), CliError> {
     }
 }
 
-fn add(
+fn add_with_mode(
     path_str: &str,
     name: Option<&str>,
     provider: Option<&str>,
     source: Option<&str>,
     artifact_type: VolumeArtifactType,
+    mode: OutputMode,
 ) -> Result<(), CliError> {
     let volume = register_volume(RegisterVolume {
         path: path_str,
@@ -371,13 +356,28 @@ fn add(
         artifact_type,
     })?;
 
-    println!("✓ 已注册 volume: {}", volume.name);
+    match mode {
+        OutputMode::Text => println!("✓ 已注册 volume: {}", volume.name),
+        OutputMode::Json => {
+            crate::output::print_success("catalog add", serde_json::json!({"volume": volume}))?
+        }
+    }
     Ok(())
 }
 
-fn set_status(name: &str, status: VolumeStatus) -> Result<(), CliError> {
+fn set_status_with_mode(
+    name: &str,
+    status: VolumeStatus,
+    mode: OutputMode,
+) -> Result<(), CliError> {
     let volume = set_volume_status_in(&util::catalog_dir(), name, status)?;
-    println!("✓ 已更新 volume 状态: {} -> {}", volume.name, volume.status);
+    match mode {
+        OutputMode::Text => println!("✓ 已更新 volume 状态: {} -> {}", volume.name, volume.status),
+        OutputMode::Json => crate::output::print_success(
+            "catalog set-status",
+            serde_json::json!({"volume": volume}),
+        )?,
+    }
     Ok(())
 }
 
@@ -400,11 +400,16 @@ pub fn set_volume_status_in(
     Ok(volume)
 }
 
-fn rm(name: &str) -> Result<(), CliError> {
+fn rm_with_mode(name: &str, mode: OutputMode) -> Result<(), CliError> {
     let mut registry = open_registry();
     match registry.remove(name) {
         Ok(Some(_)) => {
-            println!("✓ 已删除 volume: {name}");
+            match mode {
+                OutputMode::Text => println!("✓ 已删除 volume: {name}"),
+                OutputMode::Json => {
+                    crate::output::print_success("catalog rm", serde_json::json!({"name": name}))?
+                }
+            }
             Ok(())
         }
         Ok(None) => Err(CliError::new(format!("未找到 volume: {name}"))),
@@ -623,12 +628,13 @@ mod tests {
         unsafe {
             std::env::set_var("CATALOG_DIR", &catalog_dir);
         }
-        let err = add(
+        let err = add_with_mode(
             "/nonexistent/file.csv",
             None,
             None,
             None,
             VolumeArtifactType::PreReview,
+            OutputMode::Text,
         )
         .unwrap_err();
         unsafe {
@@ -730,12 +736,13 @@ mod tests {
         unsafe {
             std::env::set_var("CATALOG_DIR", &catalog_dir);
         }
-        let result = add(
+        let result = add_with_mode(
             file.to_str().unwrap(),
             Some("DATA-1"),
             Some("process"),
             None,
             VolumeArtifactType::PreReview,
+            OutputMode::Text,
         );
         unsafe {
             std::env::remove_var("CATALOG_DIR");
@@ -756,7 +763,7 @@ mod tests {
             std::env::set_var("CATALOG_DIR", &catalog_dir);
         }
         let name = seed_volume(&catalog_dir);
-        let result = rm(&name);
+        let result = rm_with_mode(&name, OutputMode::Text);
         unsafe {
             std::env::remove_var("CATALOG_DIR");
         }
@@ -784,7 +791,7 @@ mod tests {
         unsafe {
             std::env::set_var("CATALOG_DIR", &catalog_dir);
         }
-        let err = rm("ghost").unwrap_err();
+        let err = rm_with_mode("ghost", OutputMode::Text).unwrap_err();
         unsafe {
             std::env::remove_var("CATALOG_DIR");
         }

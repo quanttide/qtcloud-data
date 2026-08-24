@@ -5,6 +5,7 @@ use clap::Subcommand;
 pub mod doctor;
 pub mod error;
 pub mod implementation;
+pub mod output;
 pub mod registry;
 pub mod review;
 pub mod runtime;
@@ -89,7 +90,7 @@ fn dispatch_command(
         Commands::Version(args) => spec::version::run(args),
         Commands::Doctor(args) => doctor::run(args),
         Commands::Blueprint(args) => spec::blueprint::run_with_mode(args, mode),
-        Commands::Contract(args) => spec::contract::run(args),
+        Commands::Contract(args) => spec::contract::run_with_mode(args, mode),
         Commands::Pipeline(args) => implementation::pipeline::run_with_mode(args, mode),
         Commands::Catalog(args) => implementation::catalog::run_with_mode(args, mode),
         Commands::Implement(args) => {
