@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-24
+
+### Added
+- `deploy` / `operate` / `monitor` 生命周期记录，补齐发布、安装和验证入口。
+
+### Changed
+- 统一无副作用查看命令与 `catalog` 的 JSON 成功 envelope，成功结果改为 `ok / command / data`。
+- `release-cli` workflow 对齐 `cargo-dist` 目标，补齐 Linux、Windows、macOS arm64 和 macOS Intel 制品。
+
 ## [0.3.0] - 2026-08-24
 
 ### Added
