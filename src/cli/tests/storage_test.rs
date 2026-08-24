@@ -5,7 +5,22 @@ use qtcloud_data_cli::storage::baidu_drive::BaiduDriveStorage;
 use qtcloud_data_cli::storage::dropbox;
 use qtcloud_data_cli::storage::google_drive::{receive_with_base, send_with_base};
 use qtcloud_data_cli::storage::onedrive;
+use russh::keys::{Algorithm, PrivateKey};
+use russh::server::{Auth, ChannelOpenHandle, Msg, Session};
+use russh::{Channel, ChannelId};
+use russh_sftp::protocol::{
+    Attrs, Data, File, FileAttributes, Handle, Name, OpenFlags, Status, StatusCode, Version,
+};
+use std::collections::HashMap;
+use std::fs;
+use std::io::{Read, Seek, SeekFrom, Write};
+use std::net::SocketAddr;
+use std::path::{Component, Path, PathBuf};
+use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use tokio::sync::Mutex as AsyncMutex;
+use tokio::time::{Duration, timeout};
 use wiremock::matchers::query_param;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -14,6 +29,11 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 // 因此用静态锁串行化这两个测试（仅限本测试进程内）。
 static AWS_ENV_LOCK: Mutex<()> = Mutex::new(());
 static BAIDU_ENV_LOCK: Mutex<()> = Mutex::new(());
+static SFTP_ENV_LOCK: Mutex<()> = Mutex::new(());
+static SFTP_PATH_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+const SFTP_TEST_USER: &str = "sftp-user";
+const SFTP_TEST_PASSWORD: &str = "sftp-password";
 
 // ── 辅助函数 ──
 
@@ -33,6 +53,381 @@ async fn mock_shared_link_ok(server: &MockServer) {
         ))
         .mount(server)
         .await;
+}
+
+fn unique_temp_path(prefix: &str) -> PathBuf {
+    std::env::temp_dir().join(format!(
+        "{prefix}-{}-{}",
+        std::process::id(),
+        SFTP_PATH_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ))
+}
+
+fn unique_temp_dir(prefix: &str) -> PathBuf {
+    let path = unique_temp_path(prefix);
+    fs::create_dir_all(&path).unwrap();
+    path
+}
+
+fn resolve_remote_path(root: &Path, remote: &str) -> PathBuf {
+    let mut path = root.to_path_buf();
+    for component in Path::new(remote).components() {
+        match component {
+            Component::RootDir | Component::CurDir => {}
+            #[cfg(windows)]
+            Component::Prefix(_) => {}
+            Component::ParentDir => {
+                path.pop();
+            }
+            Component::Normal(part) => path.push(part),
+            #[cfg(not(windows))]
+            _ => {}
+        }
+    }
+    path
+}
+
+fn ok_status(id: u32) -> Status {
+    Status {
+        id,
+        status_code: StatusCode::Ok,
+        error_message: "Ok".to_string(),
+        language_tag: "en-US".to_string(),
+    }
+}
+
+fn io_error_to_status(err: std::io::Error) -> StatusCode {
+    match err.kind() {
+        std::io::ErrorKind::NotFound => StatusCode::NoSuchFile,
+        std::io::ErrorKind::PermissionDenied => StatusCode::PermissionDenied,
+        _ => StatusCode::Failure,
+    }
+}
+
+fn metadata_to_attrs(id: u32, metadata: fs::Metadata) -> Attrs {
+    Attrs {
+        id,
+        attrs: (&metadata).into(),
+    }
+}
+
+#[derive(Clone)]
+struct SftpTestServer {
+    root: PathBuf,
+    password: String,
+}
+
+struct SshSession {
+    root: PathBuf,
+    password: String,
+    clients: Arc<AsyncMutex<HashMap<ChannelId, Channel<Msg>>>>,
+}
+
+impl SshSession {
+    fn new(root: PathBuf, password: String) -> Self {
+        Self {
+            root,
+            password,
+            clients: Arc::new(AsyncMutex::new(HashMap::new())),
+        }
+    }
+
+    async fn get_channel(&mut self, channel_id: ChannelId) -> Channel<Msg> {
+        let mut clients = self.clients.lock().await;
+        clients.remove(&channel_id).unwrap()
+    }
+}
+
+impl russh::server::Server for SftpTestServer {
+    type Handler = SshSession;
+
+    fn new_client(&mut self, _: Option<SocketAddr>) -> Self::Handler {
+        SshSession::new(self.root.clone(), self.password.clone())
+    }
+}
+
+impl russh::server::Handler for SshSession {
+    type Error = russh::Error;
+
+    async fn auth_none(&mut self, _user: &str) -> Result<Auth, Self::Error> {
+        Ok(Auth::reject())
+    }
+
+    async fn auth_password(&mut self, user: &str, password: &str) -> Result<Auth, Self::Error> {
+        if user == SFTP_TEST_USER && password == self.password {
+            Ok(Auth::Accept)
+        } else {
+            Ok(Auth::reject())
+        }
+    }
+
+    async fn channel_open_session(
+        &mut self,
+        channel: Channel<Msg>,
+        reply: ChannelOpenHandle,
+        _session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        {
+            let mut clients = self.clients.lock().await;
+            clients.insert(channel.id(), channel);
+        }
+        reply.accept().await;
+        Ok(())
+    }
+
+    async fn channel_eof(
+        &mut self,
+        channel: ChannelId,
+        session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        session.close(channel)?;
+        Ok(())
+    }
+
+    async fn subsystem_request(
+        &mut self,
+        channel_id: ChannelId,
+        name: &str,
+        session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        if name == "sftp" {
+            let channel = self.get_channel(channel_id).await;
+            session.channel_success(channel_id)?;
+            russh_sftp::server::run(
+                channel.into_stream(),
+                SftpSession {
+                    root: self.root.clone(),
+                },
+            )
+            .await;
+        } else {
+            session.channel_failure(channel_id)?;
+        }
+
+        Ok(())
+    }
+}
+
+struct SftpSession {
+    root: PathBuf,
+}
+
+impl SftpSession {
+    fn path(&self, remote: &str) -> PathBuf {
+        resolve_remote_path(&self.root, remote)
+    }
+}
+
+impl russh_sftp::server::Handler for SftpSession {
+    type Error = StatusCode;
+
+    fn unimplemented(&self) -> Self::Error {
+        StatusCode::OpUnsupported
+    }
+
+    async fn init(
+        &mut self,
+        _version: u32,
+        _extensions: HashMap<String, String>,
+    ) -> Result<Version, Self::Error> {
+        Ok(Version::new())
+    }
+
+    async fn open(
+        &mut self,
+        id: u32,
+        filename: String,
+        pflags: OpenFlags,
+        _attrs: FileAttributes,
+    ) -> Result<Handle, Self::Error> {
+        let path = self.path(&filename);
+        let write_like = pflags.intersects(
+            OpenFlags::WRITE | OpenFlags::APPEND | OpenFlags::CREATE | OpenFlags::TRUNCATE,
+        );
+
+        if write_like {
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).map_err(io_error_to_status)?;
+            }
+        }
+
+        let mut options = fs::OpenOptions::new();
+        if pflags.contains(OpenFlags::READ) {
+            options.read(true);
+        }
+        if pflags.contains(OpenFlags::WRITE) {
+            options.write(true);
+        }
+        if pflags.contains(OpenFlags::APPEND) {
+            options.append(true);
+        }
+        if pflags.contains(OpenFlags::TRUNCATE) {
+            options.truncate(true);
+        }
+        if write_like {
+            options.create(true);
+        }
+
+        options.open(&path).map_err(io_error_to_status)?;
+
+        Ok(Handle {
+            id,
+            handle: path.to_string_lossy().into_owned(),
+        })
+    }
+
+    async fn close(&mut self, id: u32, _handle: String) -> Result<Status, Self::Error> {
+        Ok(ok_status(id))
+    }
+
+    async fn read(
+        &mut self,
+        id: u32,
+        handle: String,
+        offset: u64,
+        len: u32,
+    ) -> Result<Data, Self::Error> {
+        let path = PathBuf::from(handle);
+        let mut file = fs::File::open(&path).map_err(io_error_to_status)?;
+        file.seek(SeekFrom::Start(offset))
+            .map_err(io_error_to_status)?;
+        let mut limited = file.take(len as u64);
+        let mut data = Vec::new();
+        let read = limited.read_to_end(&mut data).map_err(io_error_to_status)?;
+        if read == 0 {
+            return Err(StatusCode::Eof);
+        }
+        Ok(Data { id, data })
+    }
+
+    async fn write(
+        &mut self,
+        id: u32,
+        handle: String,
+        offset: u64,
+        data: Vec<u8>,
+    ) -> Result<Status, Self::Error> {
+        let path = PathBuf::from(handle);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(io_error_to_status)?;
+        }
+        let mut file = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(&path)
+            .map_err(io_error_to_status)?;
+        file.seek(SeekFrom::Start(offset))
+            .map_err(io_error_to_status)?;
+        file.write_all(&data).map_err(io_error_to_status)?;
+        Ok(ok_status(id))
+    }
+
+    async fn mkdir(
+        &mut self,
+        id: u32,
+        path: String,
+        _attrs: FileAttributes,
+    ) -> Result<Status, Self::Error> {
+        fs::create_dir_all(self.path(&path)).map_err(io_error_to_status)?;
+        Ok(ok_status(id))
+    }
+
+    async fn stat(&mut self, id: u32, path: String) -> Result<Attrs, Self::Error> {
+        let metadata = fs::metadata(self.path(&path)).map_err(io_error_to_status)?;
+        Ok(metadata_to_attrs(id, metadata))
+    }
+
+    async fn lstat(&mut self, id: u32, path: String) -> Result<Attrs, Self::Error> {
+        let metadata = fs::symlink_metadata(self.path(&path)).map_err(io_error_to_status)?;
+        Ok(metadata_to_attrs(id, metadata))
+    }
+
+    async fn fstat(&mut self, id: u32, handle: String) -> Result<Attrs, Self::Error> {
+        let metadata = fs::metadata(PathBuf::from(handle)).map_err(io_error_to_status)?;
+        Ok(metadata_to_attrs(id, metadata))
+    }
+
+    async fn realpath(&mut self, id: u32, path: String) -> Result<Name, Self::Error> {
+        let normalized = if path.starts_with('/') {
+            path
+        } else {
+            format!("/{path}")
+        };
+        Ok(Name {
+            id,
+            files: vec![File::dummy(normalized)],
+        })
+    }
+}
+
+async fn start_sftp_fixture() -> SftpTestServerFixture {
+    let root = unique_temp_dir("qtcloud-sftp");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    let mut config = russh::server::Config::default();
+    config.inactivity_timeout = None;
+    config.auth_rejection_time = Duration::from_secs(0);
+    config.auth_rejection_time_initial = Some(Duration::from_secs(0));
+    config
+        .keys
+        .push(PrivateKey::random(&mut rand::rng(), Algorithm::Rsa { hash: None }).unwrap());
+    let config = Arc::new(config);
+
+    let root_for_server = root.clone();
+    let join = tokio::spawn(async move {
+        let (socket, _) = listener.accept().await.unwrap();
+        let mut server = SftpTestServer {
+            root: root_for_server,
+            password: SFTP_TEST_PASSWORD.to_string(),
+        };
+        let handler = russh::server::Server::new_client(&mut server, None);
+        let running = russh::server::run_stream(config, socket, handler)
+            .await
+            .unwrap();
+        let _ = running.await;
+    });
+
+    SftpTestServerFixture { root, addr, join }
+}
+
+struct SftpTestServerFixture {
+    root: PathBuf,
+    addr: SocketAddr,
+    join: tokio::task::JoinHandle<()>,
+}
+
+impl SftpTestServerFixture {
+    async fn shutdown(self) {
+        let SftpTestServerFixture { root, join, .. } = self;
+        timeout(Duration::from_secs(5), join)
+            .await
+            .expect("SFTP server did not stop")
+            .expect("SFTP server task panicked");
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+fn clear_sftp_env() -> std::sync::MutexGuard<'static, ()> {
+    let guard = SFTP_ENV_LOCK.lock().unwrap();
+    unsafe {
+        std::env::remove_var("SFTP_HOST");
+        std::env::remove_var("SFTP_PORT");
+        std::env::remove_var("SFTP_USER");
+        std::env::remove_var("SFTP_PASSWORD");
+        std::env::remove_var("SFTP_KEY_PATH");
+    }
+    guard
+}
+
+fn set_sftp_env(addr: SocketAddr) {
+    unsafe {
+        std::env::set_var("SFTP_HOST", addr.ip().to_string());
+        std::env::set_var("SFTP_PORT", addr.port().to_string());
+        std::env::set_var("SFTP_USER", SFTP_TEST_USER);
+        std::env::set_var("SFTP_PASSWORD", SFTP_TEST_PASSWORD);
+        std::env::remove_var("SFTP_KEY_PATH");
+    }
 }
 
 // ── Dropbox 传输测试 ──
@@ -220,6 +615,66 @@ async fn baidu_provider_reports_missing_token_without_network_call() {
     let result = BaiduDriveStorage.send("missing.csv", "/report.csv").await;
 
     assert!(result.unwrap_err().contains("BAIDU_ACCESS_TOKEN"));
+}
+
+#[tokio::test]
+async fn sftp_send_writes_file_to_remote_path_and_returns_url() {
+    let _guard = clear_sftp_env();
+    let fixture = start_sftp_fixture().await;
+    set_sftp_env(fixture.addr);
+
+    let local = unique_temp_path("sftp-send-source.csv");
+    fs::write(&local, b"id,value\n1,ok\n").unwrap();
+    let remote_path = "/incoming/report.csv";
+
+    let result = qtcloud_data_cli::storage::SftpStorage
+        .send(local.to_str().unwrap(), remote_path)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        result,
+        format!(
+            "sftp://{}@{}:{}/{}",
+            SFTP_TEST_USER,
+            fixture.addr.ip(),
+            fixture.addr.port(),
+            remote_path.trim_start_matches('/')
+        )
+    );
+
+    let remote_file = fixture.root.join("incoming/report.csv");
+    assert_eq!(
+        fs::read_to_string(&remote_file).unwrap(),
+        "id,value\n1,ok\n"
+    );
+
+    fs::remove_file(&local).ok();
+    fixture.shutdown().await;
+}
+
+#[tokio::test]
+async fn sftp_receive_path_downloads_remote_file_to_local_disk() {
+    let _guard = clear_sftp_env();
+    let fixture = start_sftp_fixture().await;
+    set_sftp_env(fixture.addr);
+
+    let remote_file = fixture.root.join("reports/summary.csv");
+    if let Some(parent) = remote_file.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(&remote_file, b"month,total\naug,42\n").unwrap();
+
+    let local = unique_temp_path("sftp-receive-target.csv");
+    let result = qtcloud_data_cli::storage::SftpStorage
+        .receive_path("/reports/summary.csv", local.to_str().unwrap())
+        .await;
+
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!(fs::read_to_string(&local).unwrap(), "month,total\naug,42\n");
+
+    fs::remove_file(&local).ok();
+    fixture.shutdown().await;
 }
 
 // ── 网盘类 provider receive_path 测试 ──
