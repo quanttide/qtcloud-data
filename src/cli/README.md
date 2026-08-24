@@ -4,6 +4,7 @@
 
 当前 crates.io 发布版本：`qtcloud-data-cli` v0.2.1（GitHub Release `cli/v0.2.1`，含 Linux / Windows 二进制）。
 v0.2.1 重点：统一错误处理模型（CliError）、store 模块收敛路径与 JSON 读写、cue 输出结构化解析、全链路 e2e，测试覆盖率提升至 83.7%。
+当前开发版本为 v0.3.0，新增多语言 Runtime 注册表和命令错误结构化输出；正式发布状态以 `qtcloud-devops release status` 为准。
 
 ## 命令一览
 
@@ -12,7 +13,7 @@ v0.2.1 重点：统一错误处理模型（CliError）、store 模块收敛路�
 | `clarify` | 从客户聊天记录或上下文生成 DRD 数据需求文档 |
 | `design` | 从 DRD 生成 Contract / Blueprint Specification（YAML + MD + HTML） |
 | `spec` | 固化 Specification YAML envelope（wrap / validate） |
-| `implement` | 从 Blueprint YAML 生成 Python 代码实现 |
+| `implement` | 从 Blueprint YAML 生成 Python / R / Stata / Matlab 代码实现 |
 | `review` | 审计 DRD 或 Specification 的完整性和一致性 |
 | `version` | 查看和比较规格版本 |
 | `transfer` | 数据传输（send / receive），支持 6 个平台 |
@@ -76,6 +77,8 @@ qtcloud-data design blueprint .quanttide/data/drd/context.md
 
 # 从规格书生成 Python 实现
 qtcloud-data implement .quanttide/data/spec/context-blueprint.yaml --lang python
+# 也支持 R / Stata / Matlab
+qtcloud-data implement .quanttide/data/spec/context-blueprint.yaml --lang r
 
 # 将旧 Blueprint YAML 包装成稳定 Specification envelope
 qtcloud-data spec wrap .quanttide/data/spec/context-blueprint.yaml
@@ -99,6 +102,8 @@ qtcloud-data process ABC "https://..." --blueprint csv-standardization
 `transfer send` 成功后会把交付链接记录到 `CATALOG_DIR/delivery-links.json`。使用 `--output` 时，链接仍会同时写入指定文件。
 
 成功交付时，`process` 还会把最终产物登记到 `CATALOG_DIR/registry.json`，provider 为 `process`，source 为 `process:<job-id>`，status 为 `delivered`。
+
+使用全局 `--json` 时，命令错误会输出包含稳定 `code` 和用户可读 `message` 的 JSON；`spec validate` 也支持结构化成功结果。
 
 ## DataOps 目录
 

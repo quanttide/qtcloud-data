@@ -60,6 +60,67 @@ impl SftpStorage {
     }
 }
 
+#[cfg(test)]
+#[allow(clippy::items_after_test_module)]
+#[allow(clippy::await_holding_lock)]
+mod tests {
+    use super::*;
+
+    fn clear_sftp_host() -> std::sync::MutexGuard<'static, ()> {
+        let guard = crate::ENV_LOCK.lock().unwrap();
+        unsafe {
+            std::env::remove_var("SFTP_HOST");
+        }
+        guard
+    }
+
+    #[tokio::test]
+    async fn receive_rejects_malformed_sftp_url_before_connecting() {
+        let _guard = clear_sftp_host();
+        let error = SftpStorage
+            .receive("https://example.com/file.csv", "out.csv")
+            .await;
+
+        assert!(error.unwrap_err().contains("不支持的 URL 格式"));
+    }
+
+    #[tokio::test]
+    async fn receive_rejects_url_without_user_before_connecting() {
+        let _guard = clear_sftp_host();
+        let error = SftpStorage
+            .receive("sftp://host:22/file.csv", "out.csv")
+            .await;
+
+        assert!(error.unwrap_err().contains("缺少 user@host"));
+    }
+
+    #[tokio::test]
+    async fn receive_rejects_invalid_port_before_connecting() {
+        let _guard = clear_sftp_host();
+        let error = SftpStorage
+            .receive("sftp://user@host:not-a-port/file.csv", "out.csv")
+            .await;
+
+        assert!(error.unwrap_err().contains("端口格式错误"));
+    }
+
+    #[tokio::test]
+    async fn send_requires_sftp_host_configuration() {
+        let _guard = clear_sftp_host();
+        let error = SftpStorage.send("missing.csv", "/remote.csv").await;
+
+        assert!(error.unwrap_err().contains("SFTP_HOST"));
+    }
+
+    #[tokio::test]
+    async fn receive_path_requires_sftp_host_configuration() {
+        let _guard = clear_sftp_host();
+        let error = SftpStorage.receive_path("/remote.csv", "out.csv").await;
+
+        assert!(error.unwrap_err().contains("SFTP_HOST"));
+    }
+}
+
 #[async_trait]
 impl Storage for SftpStorage {
     fn name(&self) -> &'static str {

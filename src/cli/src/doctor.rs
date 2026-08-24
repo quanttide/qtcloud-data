@@ -7,6 +7,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use crate::error::CliError;
+use crate::runtime;
 
 #[derive(Args)]
 pub struct DoctorArgs {
@@ -98,14 +99,23 @@ fn checks_with_dirs(dirs: &[DataDir]) -> Vec<Check> {
         check_command("git", true, "版本记录和协作事实源需要 git"),
         check_command("cargo", true, "CLI 开发和发布需要 cargo"),
         check_command("rustc", true, "CLI 编译需要 rustc"),
-        check_command(
-            "python3",
-            false,
-            "process 执行 Python pipeline 时会用到 python3",
-        ),
-        check_command("bash", false, "process 执行 shell pipeline 时会用到 bash"),
         check_command("cue", false, "cue 可选增强：CUE 模块化目录查看时使用"),
     ];
+
+    for adapter in runtime::registered() {
+        if let Some(command) = adapter.doctor_command() {
+            let mut check = check_command(
+                command,
+                false,
+                format!(
+                    "process 执行 {} pipeline 时会用到 {command}",
+                    adapter.name()
+                ),
+            );
+            check.name = format!("runtime:{}", adapter.name());
+            checks.push(check);
+        }
+    }
 
     for dir in dirs {
         checks.push(check_directory(&dir.path, &dir.name));
@@ -306,7 +316,8 @@ fn create_data_dirs(dirs: &[DataDir]) -> Vec<Check> {
 }
 
 // ── 检查函数 ──
-fn check_command(command: &str, required: bool, purpose: &str) -> Check {
+fn check_command(command: &str, required: bool, purpose: impl Into<String>) -> Check {
+    let purpose = purpose.into();
     if command_exists(command) {
         Check::pass(command, format!("{purpose}: found"))
     } else if required {
@@ -629,9 +640,18 @@ mod tests {
         let checks = checks_with_dirs(&dirs);
         let names: Vec<&str> = checks.iter().map(|c| c.name.as_str()).collect();
 
-        // 6 个工具检查
-        for tool in ["git", "cargo", "rustc", "python3", "bash", "cue"] {
+        // 基础工具检查
+        for tool in ["git", "cargo", "rustc", "cue"] {
             assert!(names.contains(&tool), "缺工具检查: {tool}");
+        }
+        // 运行时检查由 runtime 注册表驱动，builtin 不需要外部命令
+        for runtime in ["python", "r", "stata", "matlab", "bash"] {
+            assert!(
+                names
+                    .iter()
+                    .any(|name| name == &format!("runtime:{runtime}")),
+                "缺 runtime 检查: {runtime}"
+            );
         }
         // 2 个目录检查
         assert!(names.contains(&"DRD"));
@@ -647,7 +667,7 @@ mod tests {
         ] {
             assert!(names.contains(&env), "缺 env 检查: {env}");
         }
-        assert_eq!(checks.len(), 6 + 2 + 6);
+        assert_eq!(checks.len(), 4 + 5 + 2 + 6);
 
         std::fs::remove_dir_all(&root).ok();
     }

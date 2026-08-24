@@ -34,3 +34,27 @@ fn test_blueprint_list_runs() {
 
     std::fs::remove_dir_all(&tmp).ok();
 }
+
+#[test]
+fn test_blueprint_list_json_returns_items() {
+    let tmp = std::env::temp_dir().join(format!("bp-json-test-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    std::fs::write(tmp.join("customer.yaml"), "name: customer\n").unwrap();
+
+    let output = cli()
+        .env("BLUEPRINT_DIR", &tmp)
+        .arg("--json")
+        .arg("blueprint")
+        .arg("list")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["command"], "blueprint list");
+    assert_eq!(report["items"][0], "customer");
+
+    std::fs::remove_dir_all(&tmp).ok();
+}

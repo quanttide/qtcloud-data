@@ -4,7 +4,11 @@
 //! 模块名 = 概念名：`runtime::Runtime`、`runtime::PythonRuntime`（↔ `storage::Storage`、`storage::DropboxStorage`）。
 
 pub mod bash;
+pub mod builtin;
+pub mod matlab;
 pub mod python;
+pub mod r;
+pub mod stata;
 
 use std::path::Path;
 
@@ -22,6 +26,11 @@ pub trait Runtime: Send + Sync {
 
     /// 默认执行命令
     fn command(&self) -> &'static str;
+
+    /// 外部解释器名称；builtin 等内置运行时不需要 PATH 检查。
+    fn doctor_command(&self) -> Option<&'static str> {
+        Some(self.command())
+    }
 
     // ── codegen（默认不支持，codegen 语言覆盖）──
 
@@ -90,6 +99,9 @@ pub trait Runtime: Send + Sync {
 pub fn from_name(name: &str) -> Option<Box<dyn Runtime>> {
     match name {
         "python" => Some(Box::new(python::PythonRuntime)),
+        "r" => Some(Box::new(r::RRuntime)),
+        "stata" => Some(Box::new(stata::StataRuntime)),
+        "matlab" => Some(Box::new(matlab::MatlabRuntime)),
         _ => None,
     }
 }
@@ -98,9 +110,24 @@ pub fn from_name(name: &str) -> Option<Box<dyn Runtime>> {
 pub fn from_ext(ext: &str) -> Option<Box<dyn Runtime>> {
     match ext {
         "py" => Some(Box::new(python::PythonRuntime)),
+        "r" => Some(Box::new(r::RRuntime)),
+        "do" => Some(Box::new(stata::StataRuntime)),
+        "m" => Some(Box::new(matlab::MatlabRuntime)),
         "sh" => Some(Box::new(bash::BashRuntime)),
         _ => None,
     }
+}
+
+/// 返回所有已注册运行时，供 doctor 和集成层消费。
+pub fn registered() -> Vec<Box<dyn Runtime>> {
+    vec![
+        Box::new(python::PythonRuntime),
+        Box::new(r::RRuntime),
+        Box::new(stata::StataRuntime),
+        Box::new(matlab::MatlabRuntime),
+        Box::new(bash::BashRuntime),
+        Box::new(builtin::BuiltinRuntime),
+    ]
 }
 
 #[cfg(test)]
@@ -110,15 +137,38 @@ mod tests {
     #[test]
     fn from_name_registers_codegen_runtimes() {
         assert!(from_name("python").is_some());
+        assert!(from_name("r").is_some());
+        assert!(from_name("stata").is_some());
+        assert!(from_name("matlab").is_some());
         assert!(from_name("bash").is_none(), "bash 仅执行，不做 codegen");
-        assert!(from_name("r").is_none(), "r 尚未实现");
     }
 
     #[test]
     fn from_ext_registers_execution_runtimes() {
         assert!(from_ext("py").is_some());
+        assert!(from_ext("r").is_some());
+        assert!(from_ext("do").is_some());
+        assert!(from_ext("m").is_some());
         assert!(from_ext("sh").is_some());
-        assert!(from_ext("r").is_none());
         assert!(from_ext("csv").is_none());
+    }
+
+    #[test]
+    fn registered_includes_builtin_without_exposing_it_as_codegen() {
+        let names: Vec<_> = registered().iter().map(|runtime| runtime.name()).collect();
+
+        assert_eq!(
+            names,
+            vec!["python", "r", "stata", "matlab", "bash", "builtin"]
+        );
+        assert!(from_name("builtin").is_none());
+        assert!(
+            registered()
+                .iter()
+                .find(|runtime| runtime.name() == "builtin")
+                .unwrap()
+                .doctor_command()
+                .is_none()
+        );
     }
 }

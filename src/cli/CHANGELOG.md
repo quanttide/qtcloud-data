@@ -2,15 +2,20 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-24
+
 ### Added
 - `Specification` envelope 新增可选 `manifest` 输入契约（raw / map / config_tables / review_decisions）及确定性 YAML 校验。
 - `catalog` 新增 `VolumeArtifactType` 与 `catalog set-status`，用于区分预审核产物、审核决策文件、最终交付产物并推进 volume 状态。
+- 新增 `runtime/` 模块（`Runtime` trait + 注册表），支持 Python、R、Stata、Matlab、Bash 和 builtin 运行时。
+- `implement` 增加 R、Stata、Matlab codegen；`process` 通过运行时注册表执行脚本。
+- 全局 `--json` 命令错误输出与 `CliError` 错误码结构化；`spec validate` 成功结果支持结构化输出。
 
 ### Changed
 - `blueprint list/show` 与 `pipeline list/show` 改为文件直读优先，cue 降为可选增强；`doctor` 中 cue 检查同步降为 warning。
-- v0.2.2 计划文档收口：baidu/sftp 覆盖率补测后移至 v0.3.0，存储凭证常量表去重后移至未分配低优先事项。
-- 新增 `runtime/` 模块（`Runtime` trait + 注册表）：codegen（implement 用）+ execute（process 用），`from_name`/`from_ext` 注册表驱动；Python codegen 逻辑从 `stage/implement.rs` 分离，`process` 执行分发改注册表（`.py`→python / `.sh`→bash）。旧 `stage::implement::{implement_step_prompt, implement_assemble_prompt, to_snake}` 保留为 deprecated 转发（随 v0.3 移除）。
-- `storage/` 统一概念命名：`StorageProvider` → `Storage`、`DropboxProvider` → `DropboxStorage`（等 6 平台）。旧名保留为 deprecated re-export（随 v0.3 移除）。
+- `doctor` 的运行时检查改由运行时注册表驱动。
+- `transfer` provider 改为枚举分发，`process` pipeline 改为结构化 Blueprint state 解析。
+- `storage/` 统一概念命名为 `Storage` 与具体 `*Storage` 类型，旧名保留为 deprecated re-export 供迁移使用。
 
 ## [0.2.2] - 2026-08-02
 

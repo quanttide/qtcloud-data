@@ -1,6 +1,6 @@
 //! 传输命令与服务函数：send / receive（6 平台，进程内 + QTDATA_CLI 委派）。
 
-use clap::{Args, Subcommand};
+use clap::{Args, Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -13,11 +13,57 @@ use crate::util;
 #[derive(Args)]
 pub struct TransferArgs {
     /// 网盘提供商: dropbox（默认）| baidu | google | onedrive | s3 | sftp
-    #[arg(long, default_value = "dropbox")]
-    pub provider: String,
+    #[arg(long, value_enum, default_value_t = TransferProvider::Dropbox)]
+    pub provider: TransferProvider,
 
     #[command(subcommand)]
     pub action: TransferAction,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+pub enum TransferProvider {
+    #[default]
+    Dropbox,
+    Baidu,
+    Google,
+    Onedrive,
+    S3,
+    Sftp,
+}
+
+impl TransferProvider {
+    pub fn parse(value: &str) -> Result<Self, CliError> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "dropbox" => Ok(Self::Dropbox),
+            "baidu" | "baidudrive" => Ok(Self::Baidu),
+            "google" | "googledrive" => Ok(Self::Google),
+            "onedrive" => Ok(Self::Onedrive),
+            "s3" => Ok(Self::S3),
+            "sftp" => Ok(Self::Sftp),
+            other => Err(CliError::new(format!(
+                "不支持的提供商: {other}，可选: dropbox / baidu / google / onedrive / s3 / sftp"
+            ))),
+        }
+    }
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Dropbox => "dropbox",
+            Self::Baidu => "baidu",
+            Self::Google => "google",
+            Self::Onedrive => "onedrive",
+            Self::S3 => "s3",
+            Self::Sftp => "sftp",
+        }
+    }
+
+    pub const fn storage_name(self) -> &'static str {
+        self.as_str()
+    }
+
+    pub fn storage(self) -> Option<Box<dyn storage::Storage>> {
+        storage::from_name(self.storage_name())
+    }
 }
 
 #[derive(Subcommand)]
@@ -55,7 +101,7 @@ pub fn run(args: &TransferArgs) -> Result<(), CliError> {
             output,
         } => {
             let output_path = output.as_deref().map(Path::new);
-            send(file, remote.as_deref(), output_path, &args.provider)
+            send_with_provider(file, remote.as_deref(), output_path, args.provider)
                 .map_err(|err| CliError::new(format!("发送失败: {err}")))?;
             Ok(())
         }
@@ -64,7 +110,7 @@ pub fn run(args: &TransferArgs) -> Result<(), CliError> {
                 .as_deref()
                 .map(Path::new)
                 .unwrap_or_else(|| Path::new(source.rsplit('/').next().unwrap_or("received")));
-            receive(source, output_path, &args.provider)?;
+            receive_with_provider(source, output_path, args.provider)?;
             Ok(())
         }
     }
@@ -77,6 +123,15 @@ pub fn run(args: &TransferArgs) -> Result<(), CliError> {
 // ── 服务函数（receive / send / 委派） ──
 /// 进程内接收服务：从 URL 或远程路径下载到本地文件。
 pub fn receive(source: &str, output: &Path, provider: &str) -> Result<(), CliError> {
+    let provider = TransferProvider::parse(provider)?;
+    receive_with_provider(source, output, provider)
+}
+
+pub fn receive_with_provider(
+    source: &str,
+    output: &Path,
+    provider: TransferProvider,
+) -> Result<(), CliError> {
     let output_str = output.to_string_lossy().to_string();
 
     if let Ok(bin) = std::env::var("QTDATA_CLI") {
@@ -92,15 +147,16 @@ pub fn receive(source: &str, output: &Path, provider: &str) -> Result<(), CliErr
     if is_url {
         // 手动模式：从 URL 自动识别提供商
         let p = storage::detect(source)
-            .or_else(|| storage::from_name(provider))
-            .ok_or_else(|| CliError::new(format!("不支持的提供商: {provider}")))?;
+            .or_else(|| provider.storage())
+            .ok_or_else(|| CliError::new(format!("不支持的提供商: {}", provider.as_str())))?;
         return rt
             .block_on(p.receive(source, &output_str))
             .map_err(|e| CliError::new(format!("接收失败: {e}")));
     }
     // 自动模式：使用指定提供商直接拉取
-    let p = storage::from_name(provider)
-        .ok_or_else(|| CliError::new(format!("不支持的提供商: {provider}")))?;
+    let p = provider
+        .storage()
+        .ok_or_else(|| CliError::new(format!("不支持的提供商: {}", provider.as_str())))?;
     rt.block_on(p.receive_path(source, &output_str))
         .map_err(|e| CliError::new(format!("自动接收失败: {e}")))
 }
@@ -114,6 +170,16 @@ pub fn send(
     output: Option<&Path>,
     provider: &str,
 ) -> Result<String, CliError> {
+    let provider = TransferProvider::parse(provider)?;
+    send_with_provider(file, remote, output, provider)
+}
+
+pub fn send_with_provider(
+    file: &str,
+    remote: Option<&str>,
+    output: Option<&Path>,
+    provider: TransferProvider,
+) -> Result<String, CliError> {
     let remote_path = remote
         .map(str::to_string)
         .unwrap_or_else(|| format!("/send/{}", file.rsplit('/').next().unwrap_or("result")));
@@ -124,12 +190,14 @@ pub fn send(
 
     let rt = tokio::runtime::Runtime::new()
         .map_err(|e| CliError::new(format!("创建运行时失败: {e}")))?;
-    let p = storage::from_name(provider).ok_or_else(|| format!("不支持的提供商: {provider}"))?;
+    let p = provider
+        .storage()
+        .ok_or_else(|| format!("不支持的提供商: {}", provider.as_str()))?;
     let link = rt
         .block_on(p.send(file, &remote_path))
         .map_err(|e| format!("发送失败: {e}"))?;
     handle_sent_link(SentLinkInput {
-        provider,
+        provider: provider.as_str(),
         file,
         remote_path: &remote_path,
         link: &link,
@@ -549,5 +617,38 @@ mod tests {
         assert!(fallback.ends_with("missing.csv"), "{fallback}");
 
         std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn provider_enum_maps_cli_values_and_storage_aliases() {
+        assert_eq!(
+            TransferProvider::parse("dropbox").unwrap(),
+            TransferProvider::Dropbox
+        );
+        assert_eq!(
+            TransferProvider::parse("google").unwrap(),
+            TransferProvider::Google
+        );
+        assert_eq!(
+            TransferProvider::parse("sftp").unwrap(),
+            TransferProvider::Sftp
+        );
+        assert_eq!(TransferProvider::Google.as_str(), "google");
+        assert_eq!(TransferProvider::Google.storage_name(), "google");
+        assert!(TransferProvider::parse("unknown").is_err());
+    }
+
+    #[test]
+    fn provider_enum_resolves_registered_storage() {
+        for provider in [
+            TransferProvider::Dropbox,
+            TransferProvider::Baidu,
+            TransferProvider::Google,
+            TransferProvider::Onedrive,
+            TransferProvider::S3,
+            TransferProvider::Sftp,
+        ] {
+            assert!(provider.storage().is_some(), "{} 未注册", provider.as_str());
+        }
     }
 }

@@ -92,3 +92,37 @@ fn test_spec_validate_accepts_enveloped_yaml() {
 
     std::fs::remove_dir_all(&root).ok();
 }
+
+#[test]
+fn test_spec_validate_json_outputs_success_object() {
+    let root =
+        std::env::temp_dir().join(format!("qtcloud-spec-validate-json-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+
+    let input = root.join("sample-blueprint.yaml");
+    std::fs::write(&input, sample_blueprint_yaml()).unwrap();
+
+    let validate = cli()
+        .arg("--json")
+        .arg("spec")
+        .arg("validate")
+        .arg(&input)
+        .output()
+        .unwrap();
+
+    assert!(
+        validate.status.success(),
+        "spec validate --json failed: {}\n{}",
+        String::from_utf8_lossy(&validate.stdout),
+        String::from_utf8_lossy(&validate.stderr)
+    );
+    assert!(validate.stderr.is_empty());
+
+    let report: serde_json::Value = serde_json::from_slice(&validate.stdout).unwrap();
+    assert_eq!(report["ok"], true);
+    assert_eq!(report["command"], "spec validate");
+    assert_eq!(report["name"], "sample");
+
+    std::fs::remove_dir_all(&root).ok();
+}

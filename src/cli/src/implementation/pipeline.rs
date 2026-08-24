@@ -5,6 +5,7 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use crate::OutputMode;
 use crate::error::CliError;
 use crate::util::collect_defined_names;
 
@@ -29,23 +30,24 @@ pub enum PipelineAction {
 
 /// 管道查看命令入口（list / show）。
 pub fn run(args: &PipelineArgs) -> Result<(), CliError> {
+    run_with_mode(args, OutputMode::Text)
+}
+
+pub fn run_with_mode(args: &PipelineArgs, mode: OutputMode) -> Result<(), CliError> {
     let dir =
         std::env::var("PIPELINE_DIR").unwrap_or_else(|_| ".quanttide/data/pipeline".to_string());
 
     match &args.action {
-        PipelineAction::List => cmd_list(&dir),
-        PipelineAction::Show { name } => cmd_show(&dir, name),
+        PipelineAction::List => cmd_list(&dir, mode),
+        PipelineAction::Show { name } => cmd_show(&dir, name, mode),
     }
 }
 
-fn cmd_list(dir: &str) -> Result<(), CliError> {
+fn cmd_list(dir: &str, mode: OutputMode) -> Result<(), CliError> {
     let dir_path = Path::new(dir);
     if dir_path.is_dir() {
         let names = definition_names(dir_path);
-        println!("可用的 Pipeline:");
-        for name in names {
-            println!("  - {name}");
-        }
+        render_list(&names, mode);
         return Ok(());
     }
 
@@ -59,19 +61,16 @@ fn cmd_list(dir: &str) -> Result<(), CliError> {
     let value: Value = serde_json::from_slice(&output.stdout)
         .map_err(|e| CliError::new(format!("cue 输出不是合法 JSON: {e}")))?;
     let names = collect_defined_names(&value);
-    println!("可用的 Pipeline:");
-    for name in names {
-        println!("  - {name}");
-    }
+    render_list(&names, mode);
     Ok(())
 }
 
-fn cmd_show(dir: &str, name: &str) -> Result<(), CliError> {
+fn cmd_show(dir: &str, name: &str, mode: OutputMode) -> Result<(), CliError> {
     let dir_path = Path::new(dir);
     if let Some(path) = find_definition(dir_path, name) {
         let content = std::fs::read_to_string(&path)
             .map_err(|err| CliError::new(format!("读取 Pipeline 失败: {err}")))?;
-        println!("{content}");
+        render_show(name, &content, mode)?;
         return Ok(());
     }
 
@@ -83,11 +82,49 @@ fn cmd_show(dir: &str, name: &str) -> Result<(), CliError> {
     }
     let value: Value = serde_json::from_slice(&output.stdout)
         .map_err(|e| CliError::new(format!("cue 输出不是合法 JSON: {e}")))?;
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&value)
-            .map_err(|e| CliError::new(format!("序列化失败: {e}")))?
-    );
+    let content = serde_json::to_string_pretty(&value)
+        .map_err(|e| CliError::new(format!("序列化失败: {e}")))?;
+    render_show(name, &content, mode)?;
+    Ok(())
+}
+
+fn render_list(names: &[String], mode: OutputMode) {
+    match mode {
+        OutputMode::Text => {
+            println!("可用的 Pipeline:");
+            for name in names {
+                println!("  - {name}");
+            }
+        }
+        OutputMode::Json => println!(
+            "{}",
+            serde_json::json!({
+                "ok": true,
+                "command": "pipeline list",
+                "items": names,
+            })
+        ),
+    }
+}
+
+fn render_show(name: &str, content: &str, mode: OutputMode) -> Result<(), CliError> {
+    match mode {
+        OutputMode::Text => println!("{content}"),
+        OutputMode::Json => {
+            let definition: serde_json::Value = serde_yaml::from_str(content)
+                .or_else(|_| serde_json::from_str(content))
+                .map_err(|err| CliError::new(format!("Pipeline 不是合法结构化数据: {err}")))?;
+            println!(
+                "{}",
+                serde_json::json!({
+                    "ok": true,
+                    "command": "pipeline show",
+                    "name": name,
+                    "pipeline": definition,
+                })
+            );
+        }
+    }
     Ok(())
 }
 
@@ -174,7 +211,7 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap();
         let (root, old_path) = fake_cue_env();
 
-        let result = cmd_list(root.to_str().unwrap());
+        let result = cmd_list(root.to_str().unwrap(), OutputMode::Text);
         restore_path(old_path);
 
         assert!(result.is_ok(), "{result:?}");
@@ -186,7 +223,7 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap();
         let (root, old_path) = fake_cue_env();
 
-        let result = cmd_show(root.to_str().unwrap(), "pipe1");
+        let result = cmd_show(root.to_str().unwrap(), "pipe1", OutputMode::Text);
         restore_path(old_path);
 
         assert!(result.is_ok(), "{result:?}");
@@ -206,7 +243,7 @@ mod tests {
         unsafe {
             std::env::set_var("PATH", &empty_bin);
         }
-        let result = cmd_list(root.to_str().unwrap());
+        let result = cmd_list(root.to_str().unwrap(), OutputMode::Text);
         restore_path(old_path);
 
         assert!(result.is_ok(), "{result:?}");
@@ -225,7 +262,7 @@ mod tests {
         unsafe {
             std::env::set_var("PATH", &empty_bin);
         }
-        let result = cmd_show(root.to_str().unwrap(), "normalize");
+        let result = cmd_show(root.to_str().unwrap(), "normalize", OutputMode::Text);
         restore_path(old_path);
 
         assert!(result.is_ok(), "{result:?}");

@@ -18,14 +18,14 @@ pub fn send(file: &str, remote: Option<&str>, output: Option<&Path>, provider: &
 ```
 
 - **委派逃生舱**：`QTDATA_CLI` 环境变量设置时，委派给外部 CLI（`transfer receive/send` 子命令）——测试与部署场景使用
-- **进程内路径**：默认走进程内 provider（tokio runtime + StorageProvider）
+- **进程内路径**：默认走进程内 provider（tokio runtime + Storage）
 - 错误类型收敛为 `CliError`
 
-## StorageProvider trait
+## Storage trait
 
 ```rust
 #[async_trait]
-pub trait StorageProvider: Send + Sync {
+pub trait Storage: Send + Sync {
     fn name(&self) -> &'static str;
     async fn send(&self, local_path: &str, remote_path: &str) -> Result<String, String>;
     async fn receive(&self, url: &str, local_path: &str) -> Result<(), String>;
@@ -61,7 +61,7 @@ pub trait StorageProvider: Send + Sync {
 
 ## 添加新平台
 
-1. 新建 `storage/<name>.rs`，实现 `StorageProvider` trait
+1. 新建 `storage/<name>.rs`，实现 `Storage` trait
 2. 在 `storage/mod.rs` 注册（`from_name` / `detect`）
 3. 认证环境变量约定见上表
 4. 需要 mock 的平台遵循 `*_with_base` 注入约定并补 wiremock 测试（`tests/storage_test.rs` 参考）
