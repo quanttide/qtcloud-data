@@ -3,7 +3,7 @@
 > 格式：Keep a Changelog + checkbox 任务清单。
 > ROADMAP 只保留未来计划；已发布内容以 CHANGELOG 为事实源。
 > `cli/v0.2.2` 已于 2026-08-02 发布。原 0.2.2 中未完成的后续工作已重新归入 0.3.0 或延期项。
-> `0.3.0` 仍处于开发中；Manifest、Catalog、查看命令解耦、Runtime 扩展和结构化错误输出首切片已完成，尚未发布。
+> `0.3.1` 仍处于开发中；Manifest、Catalog、查看命令解耦、Runtime 扩展和结构化错误输出首切片已完成。
 
 ## [0.3.0]
 

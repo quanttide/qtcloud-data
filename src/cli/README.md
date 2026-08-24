@@ -2,9 +2,9 @@
 
 量潮数据云命令行工具，用来把数据交付里容易卡住的碎片环节串成可重复命令。
 
-当前 crates.io 发布版本：`qtcloud-data-cli` v0.2.1（GitHub Release `cli/v0.2.1`，含 Linux / Windows 二进制）。
-v0.2.1 重点：统一错误处理模型（CliError）、store 模块收敛路径与 JSON 读写、cue 输出结构化解析、全链路 e2e，测试覆盖率提升至 83.7%。
-当前开发版本为 v0.3.0，新增多语言 Runtime 注册表和命令错误结构化输出；正式发布状态以 `qtcloud-devops release status` 为准。
+当前 crates.io 发布版本：`qtcloud-data-cli` v0.3.0（GitHub Release `cli/v0.3.0`，含 Linux / Windows 二进制）。
+v0.3.0 重点：统一成功 JSON envelope、catalog/pipeline/blueprint/contract 输出收敛、release workflow/macOS 制品补齐、deploy/operate/monitor 记录。
+当前开发版本为 v0.3.1；正式发布状态以 `qtcloud-devops release status` 为准。
 
 ## 命令一览
 
@@ -53,7 +53,7 @@ qtcloud-data --help
 
 ### 二进制包
 
-GitHub Release `cli/v0.2.1` 已发布，提供：
+GitHub Release `cli/v0.3.0` 已发布，提供：
 
 - `qtcloud-data-x86_64-unknown-linux-gnu.tar.gz`
 - `qtcloud-data-x86_64-pc-windows-msvc.zip`
