@@ -29,6 +29,9 @@ quanttide-agent = "0.1.1"
 quanttide-data = "0.1.0"
 
 [dev-dependencies]
+rand = "0.10.2"
+russh = "0.63.1"
+russh-sftp = "2.4.0"
 wiremock = "0.6"
 
 # The profile that 'cargo dist' will build with
