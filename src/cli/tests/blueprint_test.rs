@@ -53,8 +53,9 @@ fn test_blueprint_list_json_returns_items() {
     assert!(output.status.success());
     assert!(output.stderr.is_empty());
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["ok"], true);
     assert_eq!(report["command"], "blueprint list");
-    assert_eq!(report["items"][0], "customer");
+    assert_eq!(report["data"]["items"][0], "customer");
 
     std::fs::remove_dir_all(&tmp).ok();
 }

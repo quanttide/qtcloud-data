@@ -122,7 +122,7 @@ fn test_spec_validate_json_outputs_success_object() {
     let report: serde_json::Value = serde_json::from_slice(&validate.stdout).unwrap();
     assert_eq!(report["ok"], true);
     assert_eq!(report["command"], "spec validate");
-    assert_eq!(report["name"], "sample");
+    assert_eq!(report["data"]["name"], "sample");
 
     std::fs::remove_dir_all(&root).ok();
 }

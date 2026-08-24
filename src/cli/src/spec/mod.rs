@@ -188,14 +188,9 @@ fn wrap_file(input: &str, output: &Option<String>, mode: OutputMode) -> Result<(
         .map_err(|err| CliError::new(format!("写入 Specification YAML 失败: {err}")))?;
     match mode {
         OutputMode::Text => println!("已生成: {}", output_path.display()),
-        OutputMode::Json => println!(
-            "{}",
-            serde_json::json!({
-                "ok": true,
-                "command": "spec wrap",
-                "output": output_path,
-            })
-        ),
+        OutputMode::Json => {
+            crate::output::print_success("spec wrap", serde_json::json!({"output": output_path}))?
+        }
     }
     Ok(())
 }
@@ -219,14 +214,10 @@ fn validate_file(input: &str, mode: OutputMode) -> Result<(), CliError> {
 
     match mode {
         OutputMode::Text => println!("Specification OK: {}", blueprint.name),
-        OutputMode::Json => println!(
-            "{}",
-            serde_json::json!({
-                "ok": true,
-                "command": "spec validate",
-                "name": blueprint.name,
-            })
-        ),
+        OutputMode::Json => crate::output::print_success(
+            "spec validate",
+            serde_json::json!({"name": blueprint.name}),
+        )?,
     }
     Ok(())
 }

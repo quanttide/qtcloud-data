@@ -47,8 +47,7 @@ fn cmd_list(dir: &str, mode: OutputMode) -> Result<(), CliError> {
     let dir_path = Path::new(dir);
     if dir_path.is_dir() {
         let names = definition_names(dir_path);
-        render_list(&names, mode);
-        return Ok(());
+        return render_list(&names, mode);
     }
 
     let output = cue_export(&["export", "--out", "json", dir])
@@ -61,8 +60,7 @@ fn cmd_list(dir: &str, mode: OutputMode) -> Result<(), CliError> {
     let value: Value = serde_json::from_slice(&output.stdout)
         .map_err(|e| CliError::new(format!("cue 输出不是合法 JSON: {e}")))?;
     let names = collect_defined_names(&value);
-    render_list(&names, mode);
-    Ok(())
+    render_list(&names, mode)
 }
 
 fn cmd_show(dir: &str, name: &str, mode: OutputMode) -> Result<(), CliError> {
@@ -70,8 +68,7 @@ fn cmd_show(dir: &str, name: &str, mode: OutputMode) -> Result<(), CliError> {
     if let Some(path) = find_definition(dir_path, name) {
         let content = std::fs::read_to_string(&path)
             .map_err(|err| CliError::new(format!("读取 Pipeline 失败: {err}")))?;
-        render_show(name, &content, mode)?;
-        return Ok(());
+        return render_show(name, &content, mode);
     }
 
     let key = crate::util::to_camel(name);
@@ -84,26 +81,21 @@ fn cmd_show(dir: &str, name: &str, mode: OutputMode) -> Result<(), CliError> {
         .map_err(|e| CliError::new(format!("cue 输出不是合法 JSON: {e}")))?;
     let content = serde_json::to_string_pretty(&value)
         .map_err(|e| CliError::new(format!("序列化失败: {e}")))?;
-    render_show(name, &content, mode)?;
-    Ok(())
+    render_show(name, &content, mode)
 }
 
-fn render_list(names: &[String], mode: OutputMode) {
+fn render_list(names: &[String], mode: OutputMode) -> Result<(), CliError> {
     match mode {
         OutputMode::Text => {
             println!("可用的 Pipeline:");
             for name in names {
                 println!("  - {name}");
             }
+            Ok(())
         }
-        OutputMode::Json => println!(
-            "{}",
-            serde_json::json!({
-                "ok": true,
-                "command": "pipeline list",
-                "items": names,
-            })
-        ),
+        OutputMode::Json => {
+            crate::output::print_success("pipeline list", serde_json::json!({"items": names}))
+        }
     }
 }
 
@@ -114,15 +106,10 @@ fn render_show(name: &str, content: &str, mode: OutputMode) -> Result<(), CliErr
             let definition: serde_json::Value = serde_yaml::from_str(content)
                 .or_else(|_| serde_json::from_str(content))
                 .map_err(|err| CliError::new(format!("Pipeline 不是合法结构化数据: {err}")))?;
-            println!(
-                "{}",
-                serde_json::json!({
-                    "ok": true,
-                    "command": "pipeline show",
-                    "name": name,
-                    "pipeline": definition,
-                })
-            );
+            crate::output::print_success(
+                "pipeline show",
+                serde_json::json!({"name": name, "pipeline": definition}),
+            )?;
         }
     }
     Ok(())

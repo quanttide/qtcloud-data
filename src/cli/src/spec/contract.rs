@@ -3,6 +3,7 @@
 use clap::{Args, Subcommand};
 use std::path::{Path, PathBuf};
 
+use crate::OutputMode;
 use crate::error::CliError;
 
 #[derive(Args)]
@@ -63,31 +64,48 @@ fn find_contract(dir: &Path, name: &str) -> Option<PathBuf> {
 
 /// 契约查看命令入口（list / show）。
 pub fn run(args: &ContractArgs) -> Result<(), CliError> {
+    run_with_mode(args, OutputMode::Text)
+}
+
+pub fn run_with_mode(args: &ContractArgs, mode: OutputMode) -> Result<(), CliError> {
     let dir = contract_dir();
     match &args.action {
-        ContractAction::List => cmd_list(&dir),
-        ContractAction::Show { name } => cmd_show(&dir, name),
+        ContractAction::List => cmd_list_with_mode(&dir, mode),
+        ContractAction::Show { name } => cmd_show_with_mode(&dir, name, mode),
     }
 }
 
-fn cmd_list(dir: &Path) -> Result<(), CliError> {
+fn cmd_list_with_mode(dir: &Path, mode: OutputMode) -> Result<(), CliError> {
     if !dir.is_dir() {
         return Err(CliError::new(format!("契约目录不存在: {}", dir.display())));
     }
     let names = contract_names(dir);
-    println!("可用的 Contract:");
-    for name in names {
-        println!("  - {name}");
+    match mode {
+        OutputMode::Text => {
+            println!("可用的 Contract:");
+            for name in names {
+                println!("  - {name}");
+            }
+            Ok(())
+        }
+        OutputMode::Json => {
+            crate::output::print_success("contract list", serde_json::json!({"items": names}))
+        }
     }
-    Ok(())
 }
 
-fn cmd_show(dir: &Path, name: &str) -> Result<(), CliError> {
+fn cmd_show_with_mode(dir: &Path, name: &str, mode: OutputMode) -> Result<(), CliError> {
     let path = find_contract(dir, name)
         .ok_or_else(|| CliError::new(format!("未找到 Contract: {name}")))?;
     let content = std::fs::read_to_string(&path)
         .map_err(|err| CliError::new(format!("读取契约失败: {err}")))?;
-    println!("{content}");
+    match mode {
+        OutputMode::Text => println!("{content}"),
+        OutputMode::Json => crate::output::print_success(
+            "contract show",
+            serde_json::json!({"name": name, "content": content}),
+        )?,
+    }
     Ok(())
 }
 
@@ -159,7 +177,7 @@ mod tests {
     fn cmd_list_reports_missing_dir_without_exiting() {
         let root = temp_dir("qtcloud-contract-list-missing");
         let missing = root.join("nope");
-        let err = cmd_list(&missing).unwrap_err();
+        let err = cmd_list_with_mode(&missing, OutputMode::Text).unwrap_err();
         assert!(err.to_string().contains("契约目录不存在"), "{}", err);
         std::fs::remove_dir_all(&root).ok();
     }
@@ -167,7 +185,7 @@ mod tests {
     #[test]
     fn cmd_show_reports_missing_contract_without_exiting() {
         let root = temp_dir("qtcloud-contract-show-missing");
-        let err = cmd_show(&root, "ghost").unwrap_err();
+        let err = cmd_show_with_mode(&root, "ghost", OutputMode::Text).unwrap_err();
         assert_eq!(err.to_string(), "未找到 Contract: ghost");
         std::fs::remove_dir_all(&root).ok();
     }
