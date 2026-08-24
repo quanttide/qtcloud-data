@@ -22,6 +22,14 @@
 
 贡献与发布流程见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 
+## 发布生命周期记录
+
+| 文档 | 作用 |
+|------|------|
+| [deploy.md](deploy.md) | 发布状态、制品矩阵、当前 release audit 结果 |
+| [operate.md](operate.md) | 安装与运行入口、可用 smoke 命令 |
+| [monitor.md](monitor.md) | 发布后验证项、已完成检查与待办 |
+
 ## 命令结构总览
 
 ```

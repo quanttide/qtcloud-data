@@ -21,7 +21,7 @@
 - [x] R / Stata runtime：补充运行时实现、codegen prompt 和执行注册（`src/runtime/`、`src/stage/implement.rs`、`src/stage/process.rs`）
 - [x] doctor 检查表改由 runtime 注册表驱动，并覆盖已注册运行时（`src/doctor.rs`、`src/runtime/mod.rs`）
 - [x] 全局 `--json` 错误通道和稳定错误码首切片（`src/main.rs`、`src/cli.rs`、`src/error.rs`）
-- [ ] 成功命令统一结果模型：优先迁移无副作用查看命令和 catalog/pipeline 命令（`src/cli.rs`、`src/spec/`、`src/implementation/`）
+- [x] 成功命令统一结果模型：优先迁移无副作用查看命令和 catalog/pipeline 命令（`src/cli.rs`、`src/spec/`、`src/implementation/`）
 
 ### Changed
 
@@ -30,8 +30,8 @@
 - [x] 传输 provider 使用枚举或结构化解析，替代字符串匹配（`src/stage/transfer.rs`、`src/storage/mod.rs`）
 - [x] process 使用结构化 Blueprint states 引用，替代逗号分隔的 pipeline 字符串（`src/stage/process.rs`）
 - [x] 将命令分发移入库层，使 `Commands` 和统一参数注入路径可单测（`src/main.rs`、`src/cli.rs`、`src/lib.rs`）
-- [ ] 补充 deploy、operate、monitor 阶段记录（`docs/`）
-- [ ] 核对并补齐父仓库各平台 release workflow，确保 Linux、Windows、macOS 制品与发布记录一致（`../../.github/workflows/release-cli.yml`）
+- [x] 补充 deploy、operate、monitor 阶段记录（`docs/`）
+- [x] 核对并补齐父仓库各平台 release workflow，确保 Linux、Windows、macOS 制品与发布记录一致（`../../.github/workflows/release-cli.yml`）
 
 ## Provider 依赖项（不作为 0.3.0 发布门槛）
 
