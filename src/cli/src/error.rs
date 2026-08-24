@@ -3,17 +3,49 @@
 use std::fmt;
 use std::io;
 
-/// CLI 统一错误，携带用户可读消息。
+/// 未显式分类时使用的通用错误码。
+pub const DEFAULT_ERROR_CODE: &str = "cli_error";
+
+/// `io::Error` 转换使用的错误码。
+pub const IO_ERROR_CODE: &str = "io_error";
+
+/// CLI 统一错误，携带稳定错误码和用户可读消息。
 #[derive(Debug)]
 pub struct CliError {
+    code: String,
     message: String,
 }
 
 impl CliError {
+    /// 创建通用 CLI 错误，保持旧有文本错误行为。
     pub fn new(message: impl Into<String>) -> Self {
+        Self::with_code(DEFAULT_ERROR_CODE, message)
+    }
+
+    /// 使用调用方指定的稳定错误码创建错误。
+    pub fn with_code(code: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
+            code: code.into(),
             message: message.into(),
         }
+    }
+
+    /// 返回机器可读错误码。
+    pub fn code(&self) -> &str {
+        &self.code
+    }
+
+    /// 返回用户可读错误消息。
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// 返回供 `--json` 输出复用的错误对象。
+    pub fn to_json_value(&self) -> serde_json::Value {
+        serde_json::json!({
+            "code": self.code,
+            "message": self.message,
+        })
     }
 }
 
@@ -27,7 +59,7 @@ impl std::error::Error for CliError {}
 
 impl From<io::Error> for CliError {
     fn from(err: io::Error) -> Self {
-        Self::new(err.to_string())
+        Self::with_code(IO_ERROR_CODE, err.to_string())
     }
 }
 
@@ -82,5 +114,38 @@ mod tests {
         assert_eq!(a.to_string(), "owned");
         assert_eq!(b.to_string(), "borrowed");
         assert_eq!(c.to_string(), "fmt 42");
+    }
+
+    #[test]
+    fn cli_error_exposes_default_code_and_json_value() {
+        let err = CliError::new("pipeline failed");
+
+        assert_eq!(err.code(), "cli_error");
+        assert_eq!(err.message(), "pipeline failed");
+        assert_eq!(
+            err.to_json_value(),
+            serde_json::json!({
+                "code": "cli_error",
+                "message": "pipeline failed"
+            })
+        );
+    }
+
+    #[test]
+    fn cli_error_with_code_preserves_text_display() {
+        let err = CliError::with_code("not_found", "missing blueprint");
+
+        assert_eq!(err.code(), "not_found");
+        assert_eq!(err.to_string(), "missing blueprint");
+        assert_eq!(err.to_json_value()["code"], "not_found");
+    }
+
+    #[test]
+    fn io_error_uses_io_code() {
+        let io_err = io::Error::new(io::ErrorKind::NotFound, "no such file");
+        let err: CliError = io_err.into();
+
+        assert_eq!(err.code(), "io_error");
+        assert_eq!(err.to_json_value()["message"], "no such file");
     }
 }

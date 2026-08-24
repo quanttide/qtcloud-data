@@ -1,4 +1,7 @@
+#![allow(clippy::await_holding_lock)]
+
 use qtcloud_data_cli::storage::Storage;
+use qtcloud_data_cli::storage::baidu_drive::BaiduDriveStorage;
 use qtcloud_data_cli::storage::dropbox;
 use qtcloud_data_cli::storage::google_drive::{receive_with_base, send_with_base};
 use qtcloud_data_cli::storage::onedrive;
@@ -10,6 +13,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 // s3 测试通过进程级 AWS_* 环境变量指向 wiremock，并行线程会互相覆盖，
 // 因此用静态锁串行化这两个测试（仅限本测试进程内）。
 static AWS_ENV_LOCK: Mutex<()> = Mutex::new(());
+static BAIDU_ENV_LOCK: Mutex<()> = Mutex::new(());
 
 // ── 辅助函数 ──
 
@@ -123,6 +127,99 @@ async fn test_dropbox_upload_500() {
 
     assert!(result.is_err(), "500 应返回错误");
     std::fs::remove_file(&tmp).ok();
+}
+
+#[tokio::test]
+async fn baidu_send_runs_precreate_upload_create_and_share_flow() {
+    let server = MockServer::start().await;
+    for method_name in ["precreate", "upload", "create"] {
+        let response = if method_name == "precreate" {
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({"uploadid": "upload-1"}))
+        } else if method_name == "create" {
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({"fs_id": 42}))
+        } else {
+            ResponseTemplate::new(200)
+        };
+        Mock::given(method("POST"))
+            .and(path("/file"))
+            .and(query_param("method", method_name))
+            .respond_with(response)
+            .mount(&server)
+            .await;
+    }
+    Mock::given(method("POST"))
+        .and(path("/share"))
+        .and(query_param("method", "create"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "link": "https://pan.baidu.com/s/abc",
+            "pwd": "1234"
+        })))
+        .mount(&server)
+        .await;
+
+    let file = tmp_file("baidu-send.csv", "a,b\n1,2\n");
+    let link = BaiduDriveStorage
+        .send_with_base(
+            "fake-token",
+            &file,
+            "/apps/report.csv",
+            &format!("{}/file", server.uri()),
+            &format!("{}/share", server.uri()),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(link, "https://pan.baidu.com/s/abc?pwd=1234");
+    std::fs::remove_file(&file).ok();
+}
+
+#[tokio::test]
+async fn baidu_receive_reads_share_listing_and_downloads_file() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/share"))
+        .and(query_param("method", "list"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "list": [{
+                "fs_id": 42,
+                "dlink": format!("{}/download?x=1", server.uri())
+            }]
+        })))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/download"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("id,value\n1,x\n"))
+        .mount(&server)
+        .await;
+
+    let out = std::env::temp_dir().join("baidu-receive.csv");
+    BaiduDriveStorage
+        .receive_with_base(
+            "fake-token",
+            &format!("{}/s/abc", server.uri()),
+            out.to_str().unwrap(),
+            &format!("{}/file", server.uri()),
+            &format!("{}/share", server.uri()),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), "id,value\n1,x\n");
+    std::fs::remove_file(&out).ok();
+}
+
+#[tokio::test]
+async fn baidu_provider_reports_missing_token_without_network_call() {
+    let _guard = BAIDU_ENV_LOCK.lock().unwrap();
+    unsafe {
+        std::env::remove_var("BAIDU_ACCESS_TOKEN");
+        std::env::remove_var("BAIDUDRIVE_ACCESS_TOKEN");
+    }
+
+    let result = BaiduDriveStorage.send("missing.csv", "/report.csv").await;
+
+    assert!(result.unwrap_err().contains("BAIDU_ACCESS_TOKEN"));
 }
 
 // ── 网盘类 provider receive_path 测试 ──
@@ -279,13 +376,13 @@ async fn mock_gdrive_upload_flow(server: &MockServer, file_id: &str) {
         .await;
     // 2. 上传内容
     Mock::given(method("PUT"))
-        .and(path(&format!("/upload/drive/v3/files/{file_id}")))
+        .and(path(format!("/upload/drive/v3/files/{file_id}")))
         .respond_with(ResponseTemplate::new(200))
         .mount(server)
         .await;
     // 3. 设置权限
     Mock::given(method("POST"))
-        .and(path(&format!("/drive/v3/files/{file_id}/permissions")))
+        .and(path(format!("/drive/v3/files/{file_id}/permissions")))
         .respond_with(ResponseTemplate::new(200))
         .mount(server)
         .await;

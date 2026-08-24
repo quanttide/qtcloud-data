@@ -6,6 +6,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+use crate::OutputMode;
 use crate::error::CliError;
 use crate::registry;
 use crate::util;
@@ -249,9 +250,13 @@ pub fn register_volume_in(
 // ── 命令（run / list / show / add / rm） ──
 /// catalog 命令入口（list / show / add / rm）。
 pub fn run(args: &CatalogArgs) -> Result<(), CliError> {
+    run_with_mode(args, OutputMode::Text)
+}
+
+pub fn run_with_mode(args: &CatalogArgs, mode: OutputMode) -> Result<(), CliError> {
     match &args.action {
-        CatalogAction::List => list(),
-        CatalogAction::Show { name } => show(name),
+        CatalogAction::List => list(mode),
+        CatalogAction::Show { name } => show(name, mode),
         CatalogAction::Add {
             path,
             name,
@@ -270,41 +275,79 @@ pub fn run(args: &CatalogArgs) -> Result<(), CliError> {
     }
 }
 
-fn list() -> Result<(), CliError> {
+fn list(mode: OutputMode) -> Result<(), CliError> {
     let registry = open_registry();
     if registry.is_empty() {
-        println!("catalog 为空");
+        if mode == OutputMode::Text {
+            println!("catalog 为空");
+        } else {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "ok": true,
+                    "command": "catalog list",
+                    "items": [],
+                })
+            );
+        }
         return Ok(());
     }
-    println!("Volume:");
-    for v in registry.entries().values() {
-        let status_icon = match v.status {
-            VolumeStatus::Received => "📥",
-            VolumeStatus::Processing => "⏳",
-            VolumeStatus::Processed => "✅",
-            VolumeStatus::Delivered => "📤",
-            VolumeStatus::Unknown => "📄",
-        };
-        println!("  {status_icon} {}  ({})", v.name, v.path);
+    match mode {
+        OutputMode::Text => {
+            println!("Volume:");
+            for v in registry.entries().values() {
+                let status_icon = match v.status {
+                    VolumeStatus::Received => "📥",
+                    VolumeStatus::Processing => "⏳",
+                    VolumeStatus::Processed => "✅",
+                    VolumeStatus::Delivered => "📤",
+                    VolumeStatus::Unknown => "📄",
+                };
+                println!("  {status_icon} {}  ({})", v.name, v.path);
+            }
+        }
+        OutputMode::Json => {
+            let items: Vec<_> = registry.entries().values().collect();
+            println!(
+                "{}",
+                serde_json::json!({
+                    "ok": true,
+                    "command": "catalog list",
+                    "items": items,
+                })
+            );
+        }
     }
     Ok(())
 }
 
-fn show(name: &str) -> Result<(), CliError> {
+fn show(name: &str, mode: OutputMode) -> Result<(), CliError> {
     let registry = open_registry();
     match registry.get(name) {
         Some(v) => {
-            println!("名称:       {}", v.name);
-            println!("路径:       {}", v.path);
-            println!("大小:       {}", format_size(v.size));
-            println!("接收时间:   {}", v.received_at);
-            println!("状态:       {}", v.status);
-            println!("产物类型:   {}", v.artifact_type);
-            if let Some(p) = &v.provider {
-                println!("Provider:   {p}");
-            }
-            if let Some(s) = &v.source {
-                println!("来源:       {s}");
+            match mode {
+                OutputMode::Text => {
+                    println!("名称:       {}", v.name);
+                    println!("路径:       {}", v.path);
+                    println!("大小:       {}", format_size(v.size));
+                    println!("接收时间:   {}", v.received_at);
+                    println!("状态:       {}", v.status);
+                    println!("产物类型:   {}", v.artifact_type);
+                    if let Some(p) = &v.provider {
+                        println!("Provider:   {p}");
+                    }
+                    if let Some(s) = &v.source {
+                        println!("来源:       {s}");
+                    }
+                }
+                OutputMode::Json => println!(
+                    "{}",
+                    serde_json::json!({
+                        "ok": true,
+                        "command": "catalog show",
+                        "volume": v,
+                    })
+                ),
             }
             Ok(())
         }
@@ -560,7 +603,7 @@ mod tests {
         unsafe {
             std::env::set_var("CATALOG_DIR", &catalog_dir);
         }
-        let err = show("ghost").unwrap_err();
+        let err = show("ghost", OutputMode::Text).unwrap_err();
         unsafe {
             std::env::remove_var("CATALOG_DIR");
         }
@@ -627,7 +670,7 @@ mod tests {
             std::env::set_var("CATALOG_DIR", &catalog_dir);
         }
         seed_volume(&catalog_dir);
-        let result = list();
+        let result = list(OutputMode::Text);
         unsafe {
             std::env::remove_var("CATALOG_DIR");
         }
@@ -646,7 +689,7 @@ mod tests {
         unsafe {
             std::env::set_var("CATALOG_DIR", &catalog_dir);
         }
-        let result = list();
+        let result = list(OutputMode::Text);
         unsafe {
             std::env::remove_var("CATALOG_DIR");
         }
@@ -666,7 +709,7 @@ mod tests {
             std::env::set_var("CATALOG_DIR", &catalog_dir);
         }
         let name = seed_volume(&catalog_dir);
-        let result = show(&name);
+        let result = show(&name, OutputMode::Text);
         unsafe {
             std::env::remove_var("CATALOG_DIR");
         }

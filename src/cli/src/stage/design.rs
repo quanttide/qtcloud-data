@@ -247,6 +247,7 @@ fn write_spec_files(stem: &str, kind: &str, yaml: &str, md: &str) -> Result<(), 
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
 

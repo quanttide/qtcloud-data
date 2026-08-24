@@ -46,6 +46,7 @@ fn days_to_date(mut days: i64) -> (i64, u32, u32) {
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
 
@@ -88,6 +89,10 @@ mod tests {
 
     #[test]
     fn test_drd_dir_default() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        unsafe {
+            std::env::remove_var("DRD_DIR");
+        }
         assert_eq!(drd_dir(), ".quanttide/data/drd");
     }
 

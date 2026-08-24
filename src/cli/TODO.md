@@ -26,21 +26,11 @@
 - [x] coverage：更新覆盖率基线（当前 83.7%，见 `CONTRIBUTING.md` 测试分层）
 - [x] storage：凭证环境变量名集中为常量表迁移至 99. 后续（`DROPBOX_ACCESS_TOKEN` / `GOOGLE_DRIVE_ACCESS_TOKEN` 等魔法字符串去重，低优先，可选）
 
-## [0.3.0]
+## [0.3.1]
 
-- [ ] coverage：`src/storage/` baidu/sftp 补测（需真实服务或本地模拟，0% → ≥50%，需 CI 起 sshd 或本地模拟）
-- [ ] distribution：增加 macOS 二进制构建（`../../.github/workflows/release-cli.yml`）
+- [ ] distribution：增加 macOS 二进制构建和 Release 上传（`../../.github/workflows/release-cli.yml`）
 - [ ] distribution：增加发布后的 deploy、operate、monitor 记录（`../../.github/workflows/`、`docs/`）
-- [ ] runtimes：`src/lib.rs` 注册 runtimes 模块（新增 src/runtimes/）
-- [ ] runtimes：`src/process.rs` run_pipeline 改注册表查表，替代扩展名 if-else
-- [ ] runtimes：`src/implement.rs` implement 支持 --lang r / --lang stata
-- [ ] runtimes：`src/blueprint_core.rs` 新增 R / Stata codegen prompt 模板
-- [ ] runtimes：`src/doctor.rs` 检查表由 RuntimeAdapter 注册表驱动
-- [ ] structured-output：`src/main.rs` 全局 --json 结构化输出
-- [ ] structured-output：`CliError` 携带结构化错误码（`--json` 前置，`src/error.rs`）
-- [ ] structured-output：`run_command` 分发移入 lib（`Commands` 可单测，llm 参数注入，`src/main.rs` / `src/lib.rs`）
-- [ ] structured-output：`src/transfer.rs` provider 枚举化，替代字符串匹配
-- [ ] structured-output：`src/process.rs` pipeline 引用结构化（Blueprint states），替代逗号分隔字符串
+- [ ] structured-output：其余命令成功结果逐步迁移为结构化输出（`src/`）
 
 ## [0.5.0]
 

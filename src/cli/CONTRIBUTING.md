@@ -19,7 +19,7 @@
 | [TODO.md](TODO.md) | — | 按模块拆解的执行任务 |
 | [CHANGELOG.md](CHANGELOG.md) | — | 版本变更记录（发布事实源） |
 | [docs/index.md](docs/index.md) | main/lib/error/registry/util | 命令结构总览 + 文档映射表 + 横切基础（错误模型 + 注册表/工具机制） |
-| [docs/transfer.md](docs/transfer.md) | transfer/storage | 传输服务与 StorageProvider |
+| [docs/transfer.md](docs/transfer.md) | transfer/storage | 传输服务与 Storage |
 | [docs/catalog.md](docs/catalog.md) | catalog | 数据格式（registry/jobs/delivery-links 字段级） |
 | [docs/process.md](docs/process.md) | process | StepExecutor 编排 |
 | [docs/llm.md](docs/llm.md) | clarify/design/implement/review | LLM 命令与 Handler 注入 |
@@ -118,7 +118,7 @@ qtcloud-devops plan audit --scope cli
 **2. Code**：在 feature 分支上完成实现与文档改动
 
 ```bash
-git switch -c codex/cli-v0.2.X-release
+git switch -c codex/cli-v0.3.0-release
 qtcloud-devops code audit src/cli
 ```
 
@@ -135,9 +135,9 @@ cargo test --locked
 cargo clippy --locked -- -A warnings
 ```
 
-**4. 更新发布记录**：`Cargo.toml` 版本号 + `CHANGELOG.md` 发布条目 + `ROADMAP.md`/`TODO.md` 勾选
+**4. 更新发布记录**：`Cargo.toml` 版本号 + `CHANGELOG.md` 发布条目 + `ROADMAP.md`/`TODO.md` 收口
 
-**5. 提交与审查**：release-prep 提交（`chore(cli): prepare v0.2.X release`），
+**5. 提交与审查**：release-prep 提交（`chore(cli): prepare v0.3.0 release`），
 feature 分支推远端 → Pull Request → review → 合并 `main`。release tag 必须指向 `main` 可达提交。
 若变更已在 `main` 且 CI 通过（`push: [main]` 触发），可直接 `main` 发布。
 
@@ -145,8 +145,8 @@ feature 分支推远端 → Pull Request → review → 合并 `main`。release 
 
 ```bash
 qtcloud-devops release status
-qtcloud-devops release audit -v cli/v0.2.X --scope cli
-qtcloud-devops release publish -v cli/v0.2.X --registry crates --dry-run
+qtcloud-devops release audit -v cli/v0.3.0 --scope cli
+qtcloud-devops release publish -v cli/v0.3.0 --registry crates --dry-run
 ```
 
 dry-run 不得创建 tag、GitHub Release 或 crates.io 版本。
@@ -154,7 +154,7 @@ dry-run 不得创建 tag、GitHub Release 或 crates.io 版本。
 **7. 发布**（maintainer 确认后）
 
 ```bash
-qtcloud-devops release publish -v cli/v0.2.X --registry crates -y
+qtcloud-devops release publish -v cli/v0.3.0 --registry crates -y
 ```
 
 命令创建并推送 `cli/v0.2.X` tag，随后 `release-cli.yml` GitHub Actions 完成：

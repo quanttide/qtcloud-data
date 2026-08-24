@@ -2,6 +2,7 @@
 
 use clap::Args;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -25,6 +26,59 @@ pub struct ProcessArgs {
     /// 直接指定 pipeline
     #[arg(long)]
     pub pipeline: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PipelineStep {
+    pub name: String,
+    pub resource: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PipelineSpec {
+    pub steps: Vec<PipelineStep>,
+}
+
+impl PipelineSpec {
+    fn from_legacy(value: &str) -> Result<Self, CliError> {
+        let steps = value
+            .split(',')
+            .map(str::trim)
+            .filter(|step| !step.is_empty())
+            .enumerate()
+            .map(|(index, resource)| PipelineStep {
+                name: resource
+                    .strip_prefix("builtin:")
+                    .unwrap_or(resource)
+                    .rsplit(['/', '\\'])
+                    .next()
+                    .and_then(|name| name.split('.').next())
+                    .filter(|name| !name.is_empty())
+                    .map(str::to_string)
+                    .unwrap_or_else(|| format!("step_{index}")),
+                resource: resource.to_string(),
+            })
+            .collect::<Vec<_>>();
+
+        if steps.is_empty() {
+            return Err(CliError::new("Pipeline 至少需要一个执行步骤"));
+        }
+
+        Ok(Self { steps })
+    }
+
+    fn display(&self) -> String {
+        self.steps
+            .iter()
+            .map(|step| step.resource.as_str())
+            .collect::<Vec<_>>()
+            .join(",")
+    }
+}
+
+struct ResolvedPipeline {
+    display: String,
+    spec: PipelineSpec,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
@@ -89,7 +143,8 @@ impl ProcessJobRecord {
 // ── 命令与 StepExecutor（receive → pipeline → send） ──
 /// 编排命令入口：按 blueprint 执行 receive → pipeline → send。
 pub fn run(args: &ProcessArgs) -> Result<(), CliError> {
-    let pipeline = resolve_pipeline(args)?;
+    let resolved_pipeline = resolve_pipeline(args)?;
+    let pipeline = resolved_pipeline.display;
     let started_at = util::now_utc();
     let job_id = new_job_id(&args.customer_id);
     let work_dir = work_dir();
@@ -131,6 +186,7 @@ pub fn run(args: &ProcessArgs) -> Result<(), CliError> {
         args,
         job_id,
         pipeline,
+        pipeline_spec: resolved_pipeline.spec,
         customer_dir,
         raw_path,
         expected_output_path,
@@ -143,13 +199,21 @@ pub fn run(args: &ProcessArgs) -> Result<(), CliError> {
 }
 
 // ── pipeline 解析 ──
-fn resolve_pipeline(args: &ProcessArgs) -> Result<String, CliError> {
+fn resolve_pipeline(args: &ProcessArgs) -> Result<ResolvedPipeline, CliError> {
     if let Some(bp) = &args.blueprint {
-        resolve_blueprint_pipeline(bp)
+        let spec = resolve_blueprint_pipeline(bp)?;
+        Ok(ResolvedPipeline {
+            display: spec.display(),
+            spec,
+        })
     } else {
-        Ok(args.pipeline.clone().unwrap_or_else(|| {
+        let display = args.pipeline.clone().unwrap_or_else(|| {
             std::env::var("PIPELINE").unwrap_or_else(|_| "csv-standard".to_string())
-        }))
+        });
+        Ok(ResolvedPipeline {
+            spec: PipelineSpec::from_legacy(&display)?,
+            display,
+        })
     }
 }
 
@@ -158,6 +222,7 @@ struct StepExecutor<'a> {
     args: &'a ProcessArgs,
     job_id: String,
     pipeline: String,
+    pipeline_spec: PipelineSpec,
     customer_dir: PathBuf,
     raw_path: PathBuf,
     expected_output_path: PathBuf,
@@ -190,7 +255,7 @@ impl StepExecutor<'_> {
         let result_path = run_pipeline(
             &path_string(&self.raw_path),
             &path_string(&self.customer_dir),
-            &self.pipeline,
+            &self.pipeline_spec,
         )
         .map_err(|err| self.fail(format!("pipeline failed: {err}")))?;
         self.log_lines
@@ -276,9 +341,19 @@ fn register_process_output(job_id: &str, result_path: &str) {
     }
 }
 
-fn resolve_blueprint_pipeline(name: &str) -> Result<String, CliError> {
+fn resolve_blueprint_pipeline(name: &str) -> Result<PipelineSpec, CliError> {
     let dir =
         std::env::var("BLUEPRINT_DIR").unwrap_or_else(|_| ".quanttide/data/blueprint".to_string());
+
+    for ext in ["yaml", "yml", "json"] {
+        let path = Path::new(&dir).join(format!("{name}.{ext}"));
+        if path.is_file() {
+            let content = std::fs::read_to_string(&path)
+                .map_err(|err| CliError::new(format!("读取 Blueprint 失败: {err}")))?;
+            return pipeline_spec_from_yaml(&content);
+        }
+    }
+
     let key = crate::util::to_camel(name);
     let output = Command::new("cue")
         .args([
@@ -299,10 +374,97 @@ fn resolve_blueprint_pipeline(name: &str) -> Result<String, CliError> {
     }
     let pipe: String = serde_json::from_slice(&output.stdout)
         .map_err(|err| CliError::new(format!("解析 Blueprint pipeline 失败: {err}")))?;
-    if pipe.trim().is_empty() {
-        return Err(CliError::new(format!("Blueprint {name} 中未定义 pipeline")));
+    PipelineSpec::from_legacy(&pipe)
+}
+
+fn pipeline_spec_from_yaml(yaml: &str) -> Result<PipelineSpec, CliError> {
+    let root: serde_yaml::Value = serde_yaml::from_str(yaml)
+        .map_err(|err| CliError::new(format!("解析 Blueprint YAML 失败: {err}")))?;
+    let blueprint = root
+        .get("spec")
+        .and_then(|spec| spec.get("blueprint"))
+        .unwrap_or(&root);
+    let pipeline = blueprint
+        .get("pipeline")
+        .ok_or_else(|| CliError::new("Blueprint 中未定义 pipeline"))?;
+
+    if let Some(states) = pipeline
+        .get("states")
+        .and_then(serde_yaml::Value::as_mapping)
+    {
+        return pipeline_spec_from_states(pipeline, states);
     }
-    Ok(pipe)
+
+    let steps = pipeline
+        .get("steps")
+        .and_then(serde_yaml::Value::as_sequence)
+        .ok_or_else(|| CliError::new("Blueprint pipeline 中未定义 states 或 steps"))?;
+    let resources = steps
+        .iter()
+        .enumerate()
+        .map(|(index, step)| {
+            let name = yaml_string(step, "name").unwrap_or_else(|| format!("step_{index}"));
+            let resource = yaml_string(step, "resource").unwrap_or_else(|| name.clone());
+            PipelineStep { name, resource }
+        })
+        .collect::<Vec<_>>();
+    if resources.is_empty() {
+        return Err(CliError::new("Blueprint pipeline 至少需要一个步骤"));
+    }
+    Ok(PipelineSpec { steps: resources })
+}
+
+fn pipeline_spec_from_states(
+    pipeline: &serde_yaml::Value,
+    states: &serde_yaml::Mapping,
+) -> Result<PipelineSpec, CliError> {
+    let start_at = yaml_string(pipeline, "start_at")
+        .or_else(|| {
+            states
+                .keys()
+                .find_map(|key| key.as_str().map(str::to_string))
+        })
+        .ok_or_else(|| CliError::new("Blueprint pipeline.states 不能为空"))?;
+    let mut steps = Vec::new();
+    let mut current = start_at;
+    let mut visited = HashSet::new();
+
+    loop {
+        if !visited.insert(current.clone()) {
+            return Err(CliError::new(format!(
+                "Blueprint pipeline 状态存在循环: {current}"
+            )));
+        }
+
+        let state = states
+            .get(serde_yaml::Value::String(current.clone()))
+            .ok_or_else(|| CliError::new(format!("Blueprint pipeline 缺少状态: {current}")))?;
+        let resource = yaml_string(state, "resource")
+            .ok_or_else(|| CliError::new(format!("Blueprint 状态缺少 resource: {current}")))?;
+        steps.push(PipelineStep {
+            name: current.clone(),
+            resource,
+        });
+
+        let is_end = state
+            .get("end")
+            .and_then(serde_yaml::Value::as_bool)
+            .unwrap_or(false);
+        let next = yaml_string(state, "next");
+        if is_end || next.is_none() {
+            break;
+        }
+        current = next.unwrap();
+    }
+
+    Ok(PipelineSpec { steps })
+}
+
+fn yaml_string(value: &serde_yaml::Value, key: &str) -> Option<String> {
+    value
+        .get(key)
+        .and_then(serde_yaml::Value::as_str)
+        .map(str::to_string)
 }
 
 // ── 脱敏工具 ──
@@ -376,34 +538,52 @@ fn path_string(path: &Path) -> String {
     path.to_string_lossy().to_string()
 }
 
-fn run_pipeline(input: &str, work_dir: &str, pipeline_spec: &str) -> Result<String, String> {
+fn run_pipeline(
+    input: &str,
+    work_dir: &str,
+    pipeline_spec: &PipelineSpec,
+) -> Result<String, String> {
     let mut prev = input.to_string();
-    let steps: Vec<&str> = pipeline_spec.split(',').collect();
 
-    for (i, step) in steps.iter().enumerate() {
-        let step_name = std::path::Path::new(step)
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or(step);
-        let step_output = if i == steps.len() - 1 {
-            format!("{work_dir}/final.csv")
+    for (i, step) in pipeline_spec.steps.iter().enumerate() {
+        let step_name = step.name.as_str();
+        let step_output = if i == pipeline_spec.steps.len() - 1 {
+            Path::new(work_dir)
+                .join("final.csv")
+                .to_string_lossy()
+                .to_string()
         } else {
-            format!("{work_dir}/step_{i}_{step_name}.csv")
+            Path::new(work_dir)
+                .join(format!("step_{i}_{step_name}.csv"))
+                .to_string_lossy()
+                .to_string()
         };
 
-        println!("  ▶ Step {}/{}: {step_name}", i + 1, steps.len());
+        println!(
+            "  ▶ Step {}/{}: {step_name}",
+            i + 1,
+            pipeline_spec.steps.len()
+        );
 
-        let step_path = std::path::Path::new(step);
-        let ext = step_path.extension().and_then(|e| e.to_str()).unwrap_or("");
-        match runtime::from_ext(ext) {
-            // 注册表驱动：.py → python / .sh → bash
+        let (step_path, runtime) = if let Some(resource) = step.resource.strip_prefix("builtin:") {
+            (
+                PathBuf::from(resource),
+                Some(Box::new(runtime::builtin::BuiltinRuntime) as Box<dyn runtime::Runtime>),
+            )
+        } else {
+            let path = Path::new(&step.resource);
+            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+            (path.to_path_buf(), runtime::from_ext(ext))
+        };
+
+        match runtime {
             Some(rt) => {
-                rt.execute(step_path, &prev, &step_output, work_dir)
+                rt.execute(&step_path, &prev, &step_output, work_dir)
                     .map_err(|err| format!("执行 pipeline 步骤 {step_name} 失败: {err}"))?;
             }
             // 其他：直接执行（builtin 可执行脚本）
             None => {
-                let status = Command::new(step)
+                let status = Command::new(&step_path)
                     .arg(&prev)
                     .arg(&step_output)
                     .status()
@@ -634,5 +814,55 @@ mod tests {
         );
 
         std::fs::remove_dir_all(&catalog_dir).ok();
+    }
+
+    #[test]
+    fn blueprint_pipeline_spec_follows_state_transitions() {
+        let yaml = r#"
+pipeline:
+  start_at: load
+  states:
+    load:
+      resource: builtin:copy
+      next: normalize
+    normalize:
+      resource: normalize.py
+      end: true
+"#;
+
+        let spec = pipeline_spec_from_yaml(yaml).unwrap();
+
+        assert_eq!(
+            spec.steps,
+            vec![
+                PipelineStep {
+                    name: "load".to_string(),
+                    resource: "builtin:copy".to_string(),
+                },
+                PipelineStep {
+                    name: "normalize".to_string(),
+                    resource: "normalize.py".to_string(),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn builtin_copy_pipeline_step_copies_input_to_output() {
+        let root = temp_catalog_dir("qtcloud-process-builtin-copy");
+        std::fs::create_dir_all(&root).unwrap();
+        let input = root.join("input.csv");
+        std::fs::write(&input, "a,b\n1,2\n").unwrap();
+
+        let spec = PipelineSpec {
+            steps: vec![PipelineStep {
+                name: "copy".to_string(),
+                resource: "builtin:copy".to_string(),
+            }],
+        };
+        let output = run_pipeline(input.to_str().unwrap(), root.to_str().unwrap(), &spec).unwrap();
+
+        assert_eq!(std::fs::read_to_string(output).unwrap(), "a,b\n1,2\n");
+        std::fs::remove_dir_all(&root).ok();
     }
 }

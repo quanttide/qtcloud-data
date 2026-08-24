@@ -35,7 +35,10 @@ impl ImplementHandler {
 
     pub fn run(&self, args: &ImplementArgs) -> Result<(), CliError> {
         let rt = runtime::from_name(&args.lang).ok_or_else(|| {
-            CliError::new(format!("不支持的语言: {}（目前只支持 python）", args.lang))
+            CliError::new(format!(
+                "不支持的语言: {}（目前支持 python / r / stata / matlab）",
+                args.lang
+            ))
         })?;
         self.cmd_implement(rt.as_ref(), &args.input, &args.output, &args.lang)
     }
@@ -227,10 +230,43 @@ def step1(data):
         let handler = ImplementHandler::new(fake_llm(""));
         let args = ImplementArgs {
             input: "x.yaml".to_string(),
-            lang: "r".to_string(),
+            lang: "bash".to_string(),
             output: None,
         };
         let err = handler.run(&args).unwrap_err();
-        assert!(err.to_string().contains("不支持的语言"));
+        assert!(
+            err.to_string()
+                .contains("目前支持 python / r / stata / matlab")
+        );
+    }
+
+    #[test]
+    fn implement_non_python_runtimes_generate_language_files() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let root = crate::test_support::temp_dir("qtcloud-implement-runtimes");
+        let bp = root.join("demo.yaml");
+        write_blueprint(&bp);
+
+        for (lang, extension, response) in [
+            ("r", "r", "```r\nclean <- function(data) data\n```"),
+            ("stata", "do", "```stata\nuse `input', clear\n```"),
+            (
+                "matlab",
+                "m",
+                "```matlab\nfunction data = clean_data(data)\nend\n```",
+            ),
+        ] {
+            let output = root.join(format!("out.{extension}"));
+            let handler = ImplementHandler::new(fake_llm(response));
+            handler
+                .run(&ImplementArgs {
+                    input: bp.to_string_lossy().into_owned(),
+                    lang: lang.to_string(),
+                    output: Some(output.to_string_lossy().into_owned()),
+                })
+                .unwrap();
+            assert!(output.is_file(), "{lang} 输出文件不存在");
+            assert!(!std::fs::read_to_string(output).unwrap().trim().is_empty());
+        }
     }
 }

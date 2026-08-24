@@ -22,19 +22,14 @@
 
 > **待排期（不阻塞 v0.2.2）**：CLI 发起 Provider run 的执行入口（`PROVIDER_URL` 配置 + run 请求参数校验），以及业务 e2e（raw + map.dta → review_master，依赖 Provider merge_review / export）——待 Provider ROADMAP [0.0.3] 的 merge_review/export 落地后启动。
 
-## [0.3.0]
+## [0.3.1]
+
+> v0.3.0 已完成项已迁移至 [CHANGELOG.md](CHANGELOG.md)。
 
 ### Added
 
-- [ ] `src/storage/` baidu/sftp 补测（需真实服务或本地模拟：CI 起 sshd 或本地模拟，0% → ≥50%）
-- [ ] `Cargo.toml` 构建 Linux、Windows、macOS 二进制包
-- [ ] `Cargo.toml` 自动上传各平台 Release 制品
-- [ ] `src/lib.rs` 新增 runtimes 模块：RuntimeAdapter trait 与注册表（python / r / stata / matlab / bash / builtin）
-- [ ] `src/process.rs` run_pipeline 改为注册表查表，替代扩展名 if-else 分发
-- [ ] `src/implement.rs` implement 支持 --lang r / --lang stata
-- [ ] `src/blueprint_core.rs` 新增 R / Stata codegen prompt 模板
-- [ ] `src/doctor.rs` 检查表由 RuntimeAdapter 注册表驱动
-- [ ] `src/main.rs` 全局 --json 结构化输出，供 Studio/CI 消费
+- [ ] `Cargo.toml` / `.github/workflows/release-cli.yml` 构建并上传 macOS 二进制包
+- [ ] 其余命令成功结果逐步迁移为结构化输出，供 Studio/CI 消费
 
 ### Changed
 

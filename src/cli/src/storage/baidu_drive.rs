@@ -21,21 +21,21 @@ impl BaiduDriveStorage {
     }
 }
 
-#[async_trait]
-impl Storage for BaiduDriveStorage {
-    fn name(&self) -> &'static str {
-        "baidudrive"
-    }
-
-    async fn send(&self, local_path: &str, remote_path: &str) -> Result<String, String> {
-        let token = self.token()?;
+impl BaiduDriveStorage {
+    pub async fn send_with_base(
+        &self,
+        token: &str,
+        local_path: &str,
+        remote_path: &str,
+        api_base: &str,
+        share_base: &str,
+    ) -> Result<String, String> {
         let data = fs::read(local_path).map_err(|e| format!("读取文件失败: {e}"))?;
         let size = data.len();
         let client = self.client();
-        let _file_name = local_path.rsplit('/').next().unwrap_or("file");
 
         // 1. 预创建文件
-        let precreate_url = format!("{API_BASE}?method=precreate&access_token={token}");
+        let precreate_url = format!("{api_base}?method=precreate&access_token={token}");
         let precreate_body = serde_json::json!({
             "path": remote_path,
             "size": size,
@@ -62,7 +62,7 @@ impl Storage for BaiduDriveStorage {
 
         // 2. 上传文件内容
         let upload_url = format!(
-            "{API_BASE}?method=upload&access_token={token}&type=tmpfile&path={remote_path}&uploadid={uploadid}&partseq=0"
+            "{api_base}?method=upload&access_token={token}&type=tmpfile&path={remote_path}&uploadid={uploadid}&partseq=0"
         );
 
         client
@@ -73,7 +73,7 @@ impl Storage for BaiduDriveStorage {
             .map_err(|e| format!("上传请求失败: {e}"))?;
 
         // 3. 创建文件
-        let create_url = format!("{API_BASE}?method=create&access_token={token}");
+        let create_url = format!("{api_base}?method=create&access_token={token}");
         let create_body = serde_json::json!({
             "path": remote_path,
             "size": size,
@@ -99,7 +99,7 @@ impl Storage for BaiduDriveStorage {
             .ok_or_else(|| format!("创建文件失败: {create_json}"))?;
 
         // 4. 创建分享链接
-        let share_url = format!("{SHARE_API}?method=create&access_token={token}");
+        let share_url = format!("{share_base}?method=create&access_token={token}");
         let share_body = serde_json::json!({
             "path": [remote_path],
             "period": 7,          // 7天有效期
@@ -133,9 +133,15 @@ impl Storage for BaiduDriveStorage {
         }
     }
 
-    async fn receive(&self, url: &str, local_path: &str) -> Result<(), String> {
+    pub async fn receive_with_base(
+        &self,
+        token: &str,
+        url: &str,
+        local_path: &str,
+        _api_base: &str,
+        share_base: &str,
+    ) -> Result<(), String> {
         let client = self.client();
-        let token = self.token()?;
 
         // 从分享链接提取 surl
         let surl = url
@@ -146,7 +152,7 @@ impl Storage for BaiduDriveStorage {
         let surl = surl.trim_end_matches('/');
 
         // 解析分享信息：获取文件列表
-        let info_url = format!("{SHARE_API}?method=list&access_token={token}");
+        let info_url = format!("{share_base}?method=list&access_token={token}");
 
         let info_body = serde_json::json!({
             "shorturl": surl,
@@ -200,5 +206,24 @@ impl Storage for BaiduDriveStorage {
         fs::write(local_path, &bytes).map_err(|e| format!("写入文件失败: {e}"))?;
         println!("✓ 已接收: {local_path} ({} 字节)", bytes.len());
         Ok(())
+    }
+}
+
+#[async_trait]
+impl Storage for BaiduDriveStorage {
+    fn name(&self) -> &'static str {
+        "baidudrive"
+    }
+
+    async fn send(&self, local_path: &str, remote_path: &str) -> Result<String, String> {
+        let token = self.token()?;
+        self.send_with_base(&token, local_path, remote_path, API_BASE, SHARE_API)
+            .await
+    }
+
+    async fn receive(&self, url: &str, local_path: &str) -> Result<(), String> {
+        let token = self.token()?;
+        self.receive_with_base(&token, url, local_path, API_BASE, SHARE_API)
+            .await
     }
 }

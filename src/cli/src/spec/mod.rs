@@ -8,6 +8,7 @@ use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+use crate::OutputMode;
 use crate::error::CliError;
 
 pub const SPEC_API_VERSION: &str = "qtcloud.quanttide.com/v1alpha1";
@@ -106,9 +107,14 @@ impl Specification {
 // ── 命令（wrap / validate） ──
 /// Specification 工具命令入口（wrap / validate）。
 pub fn run(args: &SpecArgs) -> Result<(), CliError> {
+    run_with_mode(args, OutputMode::Text)
+}
+
+/// Specification 工具命令入口，按输出模式执行已迁移的子命令。
+pub fn run_with_mode(args: &SpecArgs, mode: OutputMode) -> Result<(), CliError> {
     match &args.action {
-        SpecAction::Wrap { input, output } => wrap_file(input, output),
-        SpecAction::Validate { input } => validate_file(input),
+        SpecAction::Wrap { input, output } => wrap_file(input, output, mode),
+        SpecAction::Validate { input } => validate_file(input, mode),
         SpecAction::Version(args) => version::run(args),
     }
 }
@@ -160,7 +166,7 @@ pub fn parse_specification_yaml(yaml: &str) -> Result<Specification, CliError> {
     Ok(spec)
 }
 
-fn wrap_file(input: &str, output: &Option<String>) -> Result<(), CliError> {
+fn wrap_file(input: &str, output: &Option<String>, mode: OutputMode) -> Result<(), CliError> {
     let content = std::fs::read_to_string(input)
         .map_err(|err| CliError::new(format!("无法读取 YAML: {err}")))?;
 
@@ -180,11 +186,21 @@ fn wrap_file(input: &str, output: &Option<String>) -> Result<(), CliError> {
 
     std::fs::write(&output_path, wrapped)
         .map_err(|err| CliError::new(format!("写入 Specification YAML 失败: {err}")))?;
-    println!("已生成: {}", output_path.display());
+    match mode {
+        OutputMode::Text => println!("已生成: {}", output_path.display()),
+        OutputMode::Json => println!(
+            "{}",
+            serde_json::json!({
+                "ok": true,
+                "command": "spec wrap",
+                "output": output_path,
+            })
+        ),
+    }
     Ok(())
 }
 
-fn validate_file(input: &str) -> Result<(), CliError> {
+fn validate_file(input: &str, mode: OutputMode) -> Result<(), CliError> {
     let content = std::fs::read_to_string(input)
         .map_err(|err| CliError::new(format!("无法读取 YAML: {err}")))?;
 
@@ -201,7 +217,17 @@ fn validate_file(input: &str) -> Result<(), CliError> {
         )));
     }
 
-    println!("Specification OK: {}", blueprint.name);
+    match mode {
+        OutputMode::Text => println!("Specification OK: {}", blueprint.name),
+        OutputMode::Json => println!(
+            "{}",
+            serde_json::json!({
+                "ok": true,
+                "command": "spec validate",
+                "name": blueprint.name,
+            })
+        ),
+    }
     Ok(())
 }
 

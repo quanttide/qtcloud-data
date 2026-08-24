@@ -8,7 +8,7 @@
 | 文档 | 对应模块 | 内容 |
 |------|---------|------|
 | [index.md](index.md)（本文件） | `main.rs`、`lib.rs`、`error.rs`、`registry.rs`、`util.rs` | 命令结构、文档映射、横切基础（错误模型 + 注册表/工具机制） |
-| [transfer.md](transfer.md) | `transfer.rs`、`storage/` | 传输服务与 StorageProvider trait、添加新平台 |
+| [transfer.md](transfer.md) | `transfer.rs`、`storage/` | 传输服务与 Storage trait、添加新平台 |
 | [catalog.md](catalog.md) | `implementation/catalog.rs` | 数据格式（registry/jobs/delivery-links 字段级定义） |
 | [process.md](process.md) | `stage/process.rs` | StepExecutor 编排（receive → pipeline → send） |
 | [llm.md](llm.md) | `stage/clarify.rs`、`stage/design.rs`、`stage/implement.rs`、`review.rs` | LLM 命令与 Handler 注入模式 |
@@ -18,6 +18,7 @@
 | [pipeline.md](pipeline.md) | `implementation/pipeline.rs` | 管道定义查看 |
 | [doctor.md](doctor.md) | `doctor.rs` | 环境检查 |
 | [version.md](version.md) | `spec/version.rs` | Specification 版本管理（spec version） |
+| — | `runtime/` | Python / R / Stata / Matlab / Bash / builtin 运行时注册表 |
 
 贡献与发布流程见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 
@@ -29,7 +30,7 @@ qtcloud-data
 ├── 生命周期命令（纵向流程，按数据流顺序）
 │   ├── clarify     需求澄清：聊天记录 → DRD
 │   ├── design      规格设计：DRD → Contract / Blueprint（contract / blueprint / formalize / preview）
-│   ├── implement   代码实现：Blueprint → Python
+│   ├── implement   代码实现：Blueprint → Python / R / Stata / Matlab
 │   ├── process     流程编排：receive → pipeline → send（StepExecutor）
 │   └── transfer    数据传输：send / receive（6 平台）
 │
@@ -38,13 +39,17 @@ qtcloud-data
 │   ├── review      质量审查：审计任意阶段产物（需求 / 设计 / 实现 / 交付）
 │   ├── spec        Specification 工具：wrap（包装 envelope）/ validate（结构校验）
 │   ├── catalog     数据目录：volume 登记（list / show / add / rm）
-│   └── version     规格版本管理：git 历史（list / show / diff）
+│   └── spec version 规格版本管理：git 历史（list / show / diff）
 │
 └── 查看命令（定义查看）
     ├── blueprint   蓝图定义查看（list / show）
     ├── contract    契约定义查看（list / show）
     └── pipeline    管道定义查看（list / show）
 ```
+
+全局选项 `--json` 当前统一命令错误输出为 `{"error":{"code","message"}}`；
+`spec validate`、`pipeline list/show`、`blueprint list/show` 和 `catalog` 已提供结构化成功输出，
+其余成功结果按命令逐步迁移。
 
 ## 命令分类原则
 
@@ -110,7 +115,8 @@ fn show(name: &str) -> Result<(), CliError> {
 - 错误路径通过 `Result` 传播，**不直接 `std::process::exit(1)`**（仅 `main` 保留 bin 入口 exit）
 - `Result<_, String>` 的公开函数已收敛为 `CliError`（`From<io::Error>/String/&str`）
 - 错误路径因此可测试：`cmd_xxx(...).unwrap_err()`
-- `CliError` 只携带用户可读消息（`Display` 即消息本体），不携带结构化错误码
+- `CliError` 携带稳定错误码和用户可读消息；`Display` 仍只输出消息本体，
+  `to_json_value()` 提供 `--json` 可复用的 `{code, message}` 错误对象
 
 ### 注册表与工具机制（registry.rs + util.rs）
 
