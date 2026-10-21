@@ -15,7 +15,7 @@
 | 文档 | 对应模块 | 用途 |
 |------|---------|------|
 | [README.md](README.md) | — | 快速开始、命令一览、安装 |
-| [ROADMAP.md](ROADMAP.md) | — | 版本里程碑和 checkbox 计划 |
+| [ROADMAP.md](docs/dev-guide/roadmap.md) | — | 版本里程碑和 checkbox 计划 |
 | [TODO.md](TODO.md) | — | 按模块拆解的执行任务 |
 | [CHANGELOG.md](CHANGELOG.md) | — | 版本变更记录（发布事实源） |
 | [docs/index.md](docs/index.md) | main/lib/error/registry/util | 命令结构总览 + 文档映射表 + 横切基础（错误模型 + 注册表/工具机制） |

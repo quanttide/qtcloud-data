@@ -1,6 +1,6 @@
 # TODO
 
-> 按发布版本组织；版本目标见 [ROADMAP.md](ROADMAP.md)。
+> 按发布版本组织；版本目标见 [ROADMAP.md](docs/dev-guide/roadmap.md)。
 > `cli/v0.2.2` 已于 2026-08-02 发布，已完成内容已归档到 [CHANGELOG.md](CHANGELOG.md)。
 > `0.3.1` 当前仍在开发中；本文件只记录已完成进度和剩余执行任务，不代表已发布。
 

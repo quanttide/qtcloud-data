@@ -27,7 +27,7 @@
 - **输入与输出规格**：左右双栏对比，输入侧标约束条件，输出侧标质量承诺
 - **处理过程详解**：垂直步骤时间轴，每步包含业务逻辑说明 + 预期产出
 
-详见 [Blueprint 详情页设计方案](docs/blueprint-detail-page-design.md)。
+详见 [Blueprint 详情页设计方案](../blueprint-detail-page-design.md)。
 
 ### 数据对接
 
