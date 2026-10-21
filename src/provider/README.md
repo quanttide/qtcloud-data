@@ -13,7 +13,8 @@
 
 ## 文档
 
-- [ROADMAP](ROADMAP.md)：Provider scope 的版本计划和待办。
+- [开发指南](docs/dev-guide/index.md)：代码落位、一次 run 走哪几段、文档怎么分。
+- [版本计划](docs/dev-guide/roadmap.md)：0.0.3 的产品能力与取舍判断（原 `ROADMAP.md` 已并入此篇）。
 - [TODO](TODO.md)：Provider scope 未完成任务和对应文件位置。
 - [CHANGELOG](CHANGELOG.md)：Provider scope 的已完成变更记录。
 

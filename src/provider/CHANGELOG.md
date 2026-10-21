@@ -14,6 +14,9 @@
 - Pipeline 某一步失败时，job 会保留已完成步骤和失败步骤的输入、输出、资源与状态，便于 Studio 展开排查。
 - 设置 `PIPELINE_WORK_ROOT` 且目录尚不存在时，Provider 会自动创建工作根目录，再按 job id 创建本次 run 的工作目录。
 
+### Changed
+- 文档：端根 `ROADMAP.md` 并入 `docs/dev-guide/roadmap.md` 后删除；新增 `docs/dev-guide/index.md`（代码落位、一次 run 走哪几段、文档怎么分）。README 的文档索引随之更新。
+
 ### Security
 - Blueprint 执行接口不会直接执行任意 shell 字符串；脚本资源只按参数化方式调用解释器，并限制脚本真实路径位于 `PIPELINE_SCRIPT_DIR` 下。
 - 支持用 `PIPELINE_INPUT_DIR` / `PIPELINE_WORK_ROOT` 收紧 run API 的输入和工作目录边界，并解析真实路径以拒绝 symlink/junction 逃逸。
